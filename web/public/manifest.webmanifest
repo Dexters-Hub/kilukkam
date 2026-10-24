@@ -1,0 +1,13 @@
+{
+  "name": "Kilukkam",
+  "short_name": "Kilukkam",
+  "description": "A room full of phones becomes an orchestra.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fafaf8",
+  "theme_color": "#fafaf8",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -49,6 +49,8 @@ interface Room {
   startedAt: number | null;
   /** Insertion order = conductor first, then join order */
   players: Map<string, Player>;
+  /** Accepted taps per track since the last ensemble_pulse */
+  taps: Map<string, number>;
 }
 
 interface Seat {
@@ -127,18 +129,32 @@ export class RoomEngine {
 
     if (player.conductor) {
       this.rooms.delete(room.code);
+      const others = socketsOf(room).filter((id) => id !== socketId);
       const actions: EngineAction[] = [];
-      for (const p of room.players.values()) {
-        if (p.socketId === null || p.socketId === socketId) continue;
-        this.seats.delete(p.socketId);
-        actions.push({ kind: 'close', socketId: p.socketId, reason: 'conductor left' });
+      if (others.length > 0) {
+        actions.push(send(others, { type: 'room_closed', reason: 'conductor_left' }));
+      }
+      for (const id of others) {
+        this.seats.delete(id);
+        actions.push({ kind: 'close', socketId: id, reason: 'conductor left' });
       }
       return actions;
     }
 
-    player.socketId = null;
-    player.trackId = null;
+    // No session resume in v1: a rejoin is a new player, so drop the ghost.
+    room.players.delete(player.id);
     return [this.broadcastState(room)];
+  }
+
+  /** Called on a fixed cadence (~4 Hz) by the transport; flushes tap counters as ensemble_pulse. */
+  tick(now: number): EngineAction[] {
+    const actions: EngineAction[] = [];
+    for (const room of this.rooms.values()) {
+      if (room.phase !== 'playing') continue;
+      const pulse = this.flushPulse(room, now);
+      if (pulse) actions.push(pulse);
+    }
+    return actions;
   }
 
   private createRoom(socketId: string, pieceId: string): EngineAction[] {
@@ -162,6 +178,7 @@ export class RoomEngine {
       piece,
       startedAt: null,
       players: new Map([[conductor.id, conductor]]),
+      taps: new Map(),
     };
     this.rooms.set(code, room);
     this.seats.set(socketId, { room, player: conductor });
@@ -212,7 +229,7 @@ export class RoomEngine {
   }
 
   private pickTrack: Handler<'pick_track'> = ({ room, player }, socketId, msg) => {
-    const refused = this.seatChangeRefusal(room, player, socketId);
+    const refused = this.seatChangeRefusal(player, socketId);
     if (refused) return refused;
     const track = room.piece.tracks.find((t) => t.id === msg.trackId);
     if (!track) return error(socketId, 'track_not_found', `no track ${msg.trackId}`);
@@ -224,7 +241,7 @@ export class RoomEngine {
   };
 
   private autoAssign({ room, player }: Seat, socketId: string): EngineAction[] {
-    const refused = this.seatChangeRefusal(room, player, socketId);
+    const refused = this.seatChangeRefusal(player, socketId);
     if (refused) return refused;
     // Least-occupied by fill ratio so small sections (e.g. a 10-seat cello)
     // fill at the same pace as large ones; ties go to score order.
@@ -247,8 +264,11 @@ export class RoomEngine {
     if (msg.noteIndex >= track.events.length) {
       return error(socketId, 'bad_message', 'noteIndex out of range');
     }
+    room.taps.set(track.id, (room.taps.get(track.id) ?? 0) + 1);
+    const conductor = conductorOf(room);
+    if (!conductor?.socketId) return [];
     return [
-      send(socketsOf(room), {
+      send([conductor.socketId], {
         type: 'note_echo',
         playerId: player.id,
         trackId: track.id,
@@ -272,6 +292,7 @@ export class RoomEngine {
     if (room.phase === 'playing') return error(socketId, 'already_started', 'already playing');
     room.phase = 'playing';
     room.startedAt = this.now();
+    room.taps.clear();
     return [
       send(socketsOf(room), { type: 'piece_started', startedAt: room.startedAt }),
       this.broadcastState(room),
@@ -280,8 +301,14 @@ export class RoomEngine {
 
   private stopPiece: Handler<'stop_piece'> = ({ room }, socketId) => {
     if (room.phase !== 'playing') return error(socketId, 'not_started', 'piece is not playing');
+    // Last taps of the run still count toward everyone's tally.
+    const pulse = this.flushPulse(room, this.now());
     room.phase = 'ended';
-    return [send(socketsOf(room), { type: 'piece_stopped' }), this.broadcastState(room)];
+    return [
+      ...(pulse ? [pulse] : []),
+      send(socketsOf(room), { type: 'piece_stopped' }),
+      this.broadcastState(room),
+    ];
   };
 
   private removePlayer: Handler<'remove_player'> = ({ room }, socketId, msg) => {
@@ -311,12 +338,19 @@ export class RoomEngine {
     return handler(seat, socketId, msg);
   }
 
-  private seatChangeRefusal(room: Room, player: Player, socketId: string): EngineAction[] | null {
+  private seatChangeRefusal(player: Player, socketId: string): EngineAction[] | null {
+    // Open in every phase, including playing, so a dropped phone can rejoin mid-piece.
     if (player.conductor) return error(socketId, 'bad_message', 'the conductor does not play a track');
-    if (room.phase === 'playing') {
-      return error(socketId, 'already_started', 'tracks are locked while playing');
-    }
     return null;
+  }
+
+  private flushPulse(room: Room, now: number): EngineAction | null {
+    if (room.taps.size === 0) return null;
+    const counts = Object.fromEntries(room.taps);
+    let total = 0;
+    for (const n of room.taps.values()) total += n;
+    room.taps.clear();
+    return send(socketsOf(room), { type: 'ensemble_pulse', counts, total, at: now });
   }
 
   private broadcastState(room: Room): EngineAction {
@@ -374,6 +408,11 @@ function occupancy(room: Room, trackId: string, excludeId?: string): number {
     if (p.trackId === trackId && p.id !== excludeId) n++;
   }
   return n;
+}
+
+function conductorOf(room: Room): Player | undefined {
+  for (const p of room.players.values()) if (p.conductor) return p;
+  return undefined;
 }
 
 function socketsOf(room: Room): string[] {

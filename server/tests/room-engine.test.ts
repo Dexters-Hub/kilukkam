@@ -257,15 +257,24 @@ describe('track assignment', () => {
     expect(snap.players.find((p) => p.id === pid)?.trackId).toBe('violin-1');
   });
 
-  it('track changes are frozen while playing', () => {
+  it('track picks stay open while playing so a dropped phone can rejoin', () => {
     const h = setup();
     const code = createRoom(h);
-    joinRoom(h, 'p', code);
+    const pid = joinRoom(h, 'p', code);
+    const qid = joinRoom(h, 'q', code);
     send(h, 'cond', { type: 'start_piece' });
-    expect(errorCode(send(h, 'p', { type: 'pick_track', trackId: 'flute' }), 'p')).toBe(
-      'already_started',
-    );
-    expect(errorCode(send(h, 'p', { type: 'auto_assign' }), 'p')).toBe('already_started');
+    let snap = lastSnapshot(send(h, 'p', { type: 'pick_track', trackId: 'flute' }), 'cond');
+    expect(snap.players.find((p) => p.id === pid)?.trackId).toBe('flute');
+    snap = lastSnapshot(send(h, 'q', { type: 'auto_assign' }), 'cond');
+    expect(snap.players.find((p) => p.id === qid)?.trackId).toBeTruthy();
+  });
+
+  it('the conductor cannot take a track in any phase', () => {
+    const h = setup();
+    createRoom(h);
+    expect(errorCode(send(h, 'cond', { type: 'pick_track', trackId: 'flute' }), 'cond')).toBe('bad_message');
+    send(h, 'cond', { type: 'start_piece' });
+    expect(errorCode(send(h, 'cond', { type: 'auto_assign' }), 'cond')).toBe('bad_message');
   });
 });
 
@@ -358,11 +367,13 @@ describe('note_played', () => {
     return { h, pid };
   }
 
-  it('echoes to everyone including the sender', () => {
+  it('echoes to the conductor only', () => {
     const { h, pid } = playing();
     const actions = send(h, 'p', { type: 'note_played', noteIndex: 3 });
     const echo = { type: 'note_echo', playerId: pid, trackId: 'flute', noteIndex: 3 };
-    for (const s of ['p', 'q', 'cond']) expect(inbox(actions, s)).toContainEqual(echo);
+    expect(inbox(actions, 'cond')).toEqual([echo]);
+    expect(inbox(actions, 'p')).toEqual([]);
+    expect(inbox(actions, 'q')).toEqual([]);
   });
 
   it('bounds-checks the index against the track length', () => {
@@ -425,25 +436,48 @@ describe('remove_player', () => {
 });
 
 describe('disconnect', () => {
-  it('frees the seat, marks disconnected, and rebroadcasts', () => {
+  it('removes a player from the roster entirely and rebroadcasts', () => {
     const h = setup();
     const code = createRoom(h);
     const pid = joinRoom(h, 'p', code);
+    joinRoom(h, 'q', code);
     send(h, 'p', { type: 'pick_track', trackId: 'flute' });
 
     const actions = h.engine.handleDisconnect('p');
-    const gone = lastSnapshot(actions, 'cond').players.find((p) => p.id === pid);
-    expect(gone).toMatchObject({ connected: false, trackId: null });
+    expect(lastSnapshot(actions, 'cond').players.map((p) => p.id)).not.toContain(pid);
+    expect(lastSnapshot(actions, 'q').players.map((p) => p.id)).not.toContain(pid);
     expect(inbox(actions, 'p')).toEqual([]);
+    expect(h.engine.snapshotOf(code)?.players.map((p) => p.id)).not.toContain(pid);
   });
 
-  it('conductor disconnect closes the room and every remaining socket', () => {
+  it('a dropped phone rejoining mid-piece gets its track back', () => {
+    const h = setup();
+    const code = createRoom(h);
+    joinRoom(h, 'p', code);
+    send(h, 'p', { type: 'pick_track', trackId: 'flute' });
+    send(h, 'cond', { type: 'start_piece' });
+    h.engine.handleDisconnect('p');
+
+    const pid = joinRoom(h, 'p2', code);
+    const snap = lastSnapshot(send(h, 'p2', { type: 'pick_track', trackId: 'flute' }), 'cond');
+    expect(snap.players.find((p) => p.id === pid)?.trackId).toBe('flute');
+    expect(snap.players.filter((p) => !p.conductor)).toHaveLength(1);
+  });
+
+  it('conductor disconnect sends room_closed to every player, then closes them', () => {
     const h = setup();
     const code = createRoom(h);
     joinRoom(h, 'p', code);
     joinRoom(h, 'q', code);
 
     const actions = h.engine.handleDisconnect('cond');
+    for (const s of ['p', 'q']) {
+      expect(inbox(actions, s)).toEqual([{ type: 'room_closed', reason: 'conductor_left' }]);
+      const sendIdx = actions.findIndex((a) => a.kind === 'send' && a.to.includes(s));
+      const closeIdx = actions.findIndex((a) => a.kind === 'close' && a.socketId === s);
+      expect(closeIdx).toBeGreaterThan(sendIdx);
+    }
+    expect(inbox(actions, 'cond')).toEqual([]);
     const closed = actions.flatMap((a) => (a.kind === 'close' ? [a.socketId] : []));
     expect(closed.sort()).toEqual(['p', 'q']);
     expect(h.engine.roomCount).toBe(0);
@@ -455,6 +489,78 @@ describe('disconnect', () => {
   it('ignores unknown sockets', () => {
     const h = setup();
     expect(h.engine.handleDisconnect('nobody')).toEqual([]);
+  });
+});
+
+describe('ensemble_pulse', () => {
+  function playing(): Harness {
+    const h = setup();
+    const code = createRoom(h);
+    joinRoom(h, 'p', code);
+    joinRoom(h, 'q', code);
+    send(h, 'p', { type: 'pick_track', trackId: 'flute' });
+    send(h, 'q', { type: 'pick_track', trackId: 'cello' });
+    send(h, 'cond', { type: 'start_piece' });
+    return h;
+  }
+
+  it('emits per-track tap counts to every socket, then resets', () => {
+    const h = playing();
+    send(h, 'p', { type: 'note_played', noteIndex: 0 });
+    send(h, 'p', { type: 'note_played', noteIndex: 1 });
+    send(h, 'q', { type: 'note_played', noteIndex: 0 });
+
+    const actions = h.engine.tick(4_000);
+    const pulse = { type: 'ensemble_pulse', counts: { flute: 2, cello: 1 }, total: 3, at: 4_000 };
+    for (const s of ['cond', 'p', 'q']) expect(inbox(actions, s)).toEqual([pulse]);
+
+    expect(h.engine.tick(4_250)).toEqual([]);
+    send(h, 'q', { type: 'note_played', noteIndex: 1 });
+    expect(only(h.engine.tick(4_500), 'p', 'ensemble_pulse')).toEqual({
+      type: 'ensemble_pulse',
+      counts: { cello: 1 },
+      total: 1,
+      at: 4_500,
+    });
+  });
+
+  it('does not count rejected taps', () => {
+    const h = playing();
+    send(h, 'p', { type: 'note_played', noteIndex: 9_999 });
+    expect(h.engine.tick(4_000)).toEqual([]);
+  });
+
+  it('stays silent outside playing', () => {
+    const h = setup();
+    const code = createRoom(h);
+    joinRoom(h, 'p', code);
+    send(h, 'p', { type: 'pick_track', trackId: 'flute' });
+    expect(h.engine.tick(2_000)).toEqual([]);
+    send(h, 'cond', { type: 'start_piece' });
+    expect(h.engine.tick(2_250)).toEqual([]);
+  });
+
+  it('flushes pending taps when the piece stops', () => {
+    const h = playing();
+    send(h, 'p', { type: 'note_played', noteIndex: 0 });
+    h.clock.t = 5_000;
+    const actions = send(h, 'cond', { type: 'stop_piece' });
+    const types = inbox(actions, 'q').map((m) => m.type);
+    expect(types.indexOf('ensemble_pulse')).toBeLessThan(types.indexOf('piece_stopped'));
+    expect(only(actions, 'q', 'ensemble_pulse')).toMatchObject({ counts: { flute: 1 }, total: 1, at: 5_000 });
+    expect(h.engine.tick(5_250)).toEqual([]);
+  });
+
+  it('pulses each room independently', () => {
+    const h = playing();
+    const other = createRoom(h, 'c2');
+    joinRoom(h, 'r', other);
+    send(h, 'r', { type: 'pick_track', trackId: 'violin' });
+    send(h, 'c2', { type: 'start_piece' });
+    send(h, 'r', { type: 'note_played', noteIndex: 0 });
+    const actions = h.engine.tick(4_000);
+    expect(inbox(actions, 'p')).toEqual([]);
+    expect(only(actions, 'r', 'ensemble_pulse').counts).toEqual({ violin: 1 });
   });
 });
 

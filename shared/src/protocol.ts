@@ -65,6 +65,14 @@ export type ServerMessage =
   | { type: 'piece_started'; startedAt: number }
   | { type: 'piece_stopped' }
   | { type: 'note_echo'; playerId: string; trackId: string; noteIndex: number }
+  | {
+      type: 'ensemble_pulse';
+      /** Taps per track since the previous pulse (~4 Hz while playing) */
+      counts: Record<string, number>;
+      total: number;
+      at: number;
+    }
+  | { type: 'room_closed'; reason: 'conductor_left' }
   | { type: 'pong'; t: number; serverTime: number }
   | { type: 'error'; code: ErrorCode; message: string };
 
@@ -184,6 +192,22 @@ export function parseServerMessage(raw: string): ServerMessage | null {
       return isStr(v.playerId, 64) && isStr(v.trackId, 64) &&
         typeof v.noteIndex === 'number'
         ? { type: 'note_echo', playerId: v.playerId, trackId: v.trackId, noteIndex: v.noteIndex }
+        : null;
+    case 'ensemble_pulse':
+      return isObj(v.counts) &&
+        Object.values(v.counts).every((n) => typeof n === 'number') &&
+        typeof v.total === 'number' &&
+        typeof v.at === 'number'
+        ? {
+            type: 'ensemble_pulse',
+            counts: v.counts as Record<string, number>,
+            total: v.total,
+            at: v.at,
+          }
+        : null;
+    case 'room_closed':
+      return v.reason === 'conductor_left'
+        ? { type: 'room_closed', reason: 'conductor_left' }
         : null;
     case 'pong':
       return typeof v.t === 'number' && typeof v.serverTime === 'number'

@@ -7,3 +7,5 @@ dist/
 coverage/
 .vite/
 .atlan/
+.playwright-mcp/
+*.png
