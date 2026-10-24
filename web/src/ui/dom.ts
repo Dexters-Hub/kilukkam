@@ -165,8 +165,7 @@ export const wordmark = (size: 'bar' | 'hero' = 'bar'): HTMLElement =>
     'span',
     { class: cx('wordmark', `wordmark-${size}`) },
     size === 'bar' ? h('img', { class: 'wordmark-mark', src: '/icon.svg', alt: '', width: 30, height: 30 }) : null,
-    h('span', { class: 'wordmark-en' }, 'Kilukkam'),
-    h('span', { class: 'wordmark-ml', lang: 'ml' }, 'കിലുക്കം'),
+    h('span', { class: 'wordmark-words' }, h('span', { class: 'wordmark-en' }, 'Kilukkam'), h('span', { class: 'wordmark-ml', lang: 'ml' }, 'കിലുക്കം')),
   );
 
 export const topBar = (right?: Child, onBack?: () => void): HTMLElement =>

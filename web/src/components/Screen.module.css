@@ -19,7 +19,10 @@
   -webkit-backdrop-filter: saturate(1.4) blur(16px);
 }
 
+/* The mark centres on the words; the two names share one baseline. */
 .wordmark { display: inline-flex; align-items: center; gap: .45em; min-height: var(--tap); }
+/* RIT Ala hangs its vowel signs low, so the box centre sits under the letters: nudge the words to centre "Kilukkam" on the mark. */
+.words { display: inline-flex; align-items: baseline; gap: .45em; transform: translateY(.35em); }
 .mark { width: 30px; height: 30px; align-self: center; }
 .en { font: 800 1.2rem/1 var(--font-brand); letter-spacing: -.035em; }
 /* Malayalam vowel signs are tall: room above and below so background-clip never cuts them. */

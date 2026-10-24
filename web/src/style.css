@@ -64,11 +64,16 @@ input { -webkit-appearance: none; appearance: none; }
 }
 .brand { display: flex; align-items: center; gap: 10px; min-height: var(--tap); }
 
-.wordmark { display: inline-flex; align-items: baseline; gap: .45em; min-height: var(--tap); align-items: center; }
+/* The mark centres on the words; the two names share one baseline. */
+.wordmark { display: inline-flex; align-items: center; gap: .45em; min-height: var(--tap); }
+.wordmark-words { display: inline-flex; align-items: baseline; gap: .45em; }
+/* RIT Ala hangs its vowel signs low, so the box centre sits under the letters: nudge the words to centre "Kilukkam" on the mark. */
+.wordmark-bar .wordmark-words { transform: translateY(.35em); }
 .wordmark-mark { width: 30px; height: 30px; border-radius: 8px; align-self: center; }
 .wordmark-en { font: 800 1.2rem/1 var(--font-brand); letter-spacing: -.035em; }
 .wordmark-ml { font: 400 1.4rem/1.3 var(--font-brand-ml); color: var(--text); padding-bottom: .1em; }
-.wordmark-hero { flex-direction: column; gap: 10px; min-height: 0; }
+.wordmark-hero { min-height: 0; }
+.wordmark-hero .wordmark-words { flex-direction: column; align-items: center; gap: 10px; }
 .wordmark-hero .wordmark-en { font-size: clamp(3rem, 15vw, 4.25rem); letter-spacing: -.05em; }
 .wordmark-hero .wordmark-ml { font-size: 1.6rem; }
 

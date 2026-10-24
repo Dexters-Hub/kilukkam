@@ -17,3 +17,5 @@ coverage/
 web/public/mediapipe/*.task
 web/public/mediapipe/wasm/*.wasm
 .wrangler/
+# Test reports written by the RTK test wrapper
+web/.vitest/

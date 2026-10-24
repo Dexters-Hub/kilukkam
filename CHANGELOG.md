@@ -5,15 +5,7 @@ before the docs commit are backfilled from `git log`.
 
 ## Unreleased
 
-- 2026-10-25 04:25: The Malayalam name in the logo is now set in RIT Ala
-  (Rachana Institute of Typography, OFL), a clean rounded line, in the
-  header, the camera page and the share card. RIT Kutty is removed.
-
-- 2026-10-25 04:10: The Spotify play-along tab is locked as "Coming soon"
-  until sign-in and playback are solid on every device. The code stays;
-  one flag in the music picker turns it back on.
-
-- 2026-10-25 04:20: The camera conductor controls the room live and can
+- 2026-10-25 04:40: The camera conductor controls the room live and can
   no longer end it. Root cause of the "Well played" bug: a held fist was a
   cut-off that sent `stop_piece`, and its 3 s grace counted from the piece
   start, not the camera start, so a hand raised into view mid-piece ended
@@ -31,6 +23,19 @@ before the docs commit are backfilled from `git log`.
   back in, and flash, sparkle and ring together on Kilukkam. With the
   camera on, the stage shows live readouts and folds the buttons into "No
   camera? Use buttons". `?camdemo` performs all ten. Only Stop ends a piece.
+
+- 2026-10-25 04:36: The wordmark lines up with the logo. "Kilukkam" and
+  കിലുക്കം share one baseline and sit centred on the mark; RIT Ala hangs its
+  vowel signs low, so the words are nudged down to match.
+
+- 2026-10-25 04:25: The Malayalam name in the logo is now set in RIT Ala
+  (Rachana Institute of Typography, OFL), a clean rounded line, in the
+  header, the camera page and the share card. RIT Kutty is removed.
+
+- 2026-10-25 04:10: The Spotify play-along tab is locked as "Coming soon"
+  until sign-in and playback are solid on every device. The code stays;
+  one flag in the music picker turns it back on.
+
 - 2026-10-25 03:34: Play mode is now Piano Tiles with glass tiles.
   A Level picker (Easy, Normal, Hard, Expert) sets 1, 2 or 4 columns;
   Expert adds hold tiles that fill while held and arrow tiles you swipe

@@ -24,9 +24,11 @@ export function Wordmark() {
   return (
     <span className={s.wordmark}>
       <img className={s.mark} src="/icon.svg" alt="" width={30} height={30} />
-      <span className={s.en}>Kilukkam</span>
-      <span className={s.ml} lang="ml">
-        കിലുക്കം
+      <span className={s.words}>
+        <span className={s.en}>Kilukkam</span>
+        <span className={s.ml} lang="ml">
+          കിലുക്കം
+        </span>
       </span>
     </span>
   );
