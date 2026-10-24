@@ -34,7 +34,7 @@ if (!score) throw new Error(`unknown piece ${PIECE}`);
 
 const now = (): number => performance.now();
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-/** Box–Muller: humans scatter around the beat, mostly close, sometimes not */
+/** Box-Muller: humans scatter around the beat, mostly close, sometimes not */
 const gauss = (sd: number): number => {
   const u = 1 - Math.random();
   const v = Math.random();

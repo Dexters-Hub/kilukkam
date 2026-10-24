@@ -9,7 +9,7 @@ describe('COMPOSERS', () => {
     for (const id of ids) expect(id.length).toBeLessThanOrEqual(MAX_AVATAR_LEN);
   });
 
-  it('uses 1–2 letter monograms', () => {
+  it('uses 1 or 2 letter monograms', () => {
     for (const c of COMPOSERS) expect(c.monogram).toMatch(/^\p{L}{1,2}$/u);
   });
 });

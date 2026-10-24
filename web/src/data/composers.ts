@@ -15,7 +15,7 @@ export interface Composer {
   /** Billing name, as on a festival poster */
   displayName: string;
   fullName: string;
-  /** 1–2 letters set in serif on the disc */
+  /** 1 or 2 letters set in serif on the disc */
   monogram: string;
   eraColor: string;
 }

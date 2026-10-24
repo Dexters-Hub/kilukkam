@@ -23,6 +23,7 @@ never an exception, never a disconnect.
 | `set_dynamics` | `level` (pp..ff) | conductor | any phase; broadcasts `dynamics` |
 | `set_section` | `trackId, muted` | conductor | any phase; snapshot carries `mutedTracks` |
 | `note_played` | `noteIndex` | player | playing only; echoes to room |
+| `player_tally` | `tally{perfect,great,good,miss,streakBest}` | player | within 1.5 s after piece_stopped; needs a seat |
 | `ping` | `t` | anyone | RTT probe |
 
 ## Server → Client
@@ -35,7 +36,8 @@ never an exception, never a disconnect.
 | `piece_started` | `startedAt, bpm` | server ms (may be in the future with countIn); bpm = piece tempo |
 | `tempo` | `bpm, at, beat` | new anchor: beat index `beat` falls at server ms `at`, then `bpm` from there; phones re-anchor without jumps |
 | `dj` | `cue, at, bars?` | phones apply locally: drop = silence to next bar, loop = repeat current bar, build = sections fade in by track order |
-| `piece_stopped` | (none) | room phase → ended |
+| `piece_stopped` | (none) | room phase → ended; opens a 1.5 s tally window |
+| `piece_results` | `results{sections[], room{notes,accuracy,grade}}` | once, when the window closes; grade S/A/B/C/D at 95/85/70/50 percent |
 | `dynamics` | `level` | conductor changed expression; phones scale velocity + show the cue |
 | `note_echo` | `playerId, trackId, noteIndex` | conductor only; raw fan-out does not scale to 100 |
 | `ensemble_pulse` | `counts{trackId:n}, total, at` | ~4 Hz during playing, to everyone; feeds ambient room visuals |

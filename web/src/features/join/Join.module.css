@@ -1,0 +1,25 @@
+.form { display: flex; flex-direction: column; gap: 12px; }
+.field, .code {
+  width: 100%; min-height: var(--tap); padding: 0 16px;
+  border-radius: var(--radius);
+  background: var(--sunk);
+  transition: background .2s, box-shadow .2s;
+}
+.field:focus, .code:focus { background: var(--surface); box-shadow: var(--ring); }
+.code {
+  min-height: 88px; text-align: center; text-transform: uppercase;
+  font: 700 2.8rem/1 var(--font-display); letter-spacing: .3em; padding-left: .3em;
+}
+.lineup { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+.pick {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0;
+  padding: 12px 6px 10px; border-radius: var(--radius); background: var(--sunk);
+  transition: transform .15s var(--ease), background .2s, box-shadow .2s;
+}
+.pick:active { transform: scale(.97); }
+.pick.on { background: var(--surface); box-shadow: var(--shadow-lift), var(--ring); }
+.pickName {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: 600 .85rem/1.2 var(--font-display); letter-spacing: -.01em;
+}
+.pick.on .pickName { color: var(--accent-text); }

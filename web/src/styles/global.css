@@ -1,0 +1,53 @@
+/* Page reset plus the few class names lib/anim creates by name (ripples, sparks, tap rings, floating notes). */
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; overflow-x: clip; }
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 var(--font-body);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  touch-action: manipulation;
+}
+/* Ambient stage light behind every screen: soft, fixed, never in the way. */
+body::before {
+  content: ''; position: fixed; inset: -20vmax; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(40vmax 32vmax at 88% 4%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 65%),
+    radial-gradient(36vmax 30vmax at 0% 46%, color-mix(in srgb, var(--accent-3) 10%, transparent), transparent 65%),
+    radial-gradient(40vmax 30vmax at 90% 100%, color-mix(in srgb, var(--accent-2) 9%, transparent), transparent 65%);
+}
+
+/* Zero visible borders: separation comes from surface color, radius and soft shadow. */
+button, input, select { font: inherit; color: inherit; border: 0; outline: none; }
+button { -webkit-tap-highlight-color: transparent; cursor: pointer; background: none; }
+input { -webkit-appearance: none; appearance: none; }
+:focus { outline: none; }
+:focus-visible { outline: none; box-shadow: var(--ring); }
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+h1, h2 { font-family: var(--font-display); letter-spacing: var(--track-display); }
+
+/* ---------- created by lib/anim ---------- */
+
+.float-note { position: absolute; bottom: 42%; font-size: 1.7rem; color: #fff; text-shadow: 0 0 14px var(--tint); }
+.tap-ring { position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 3px color-mix(in srgb, var(--tint) 75%, #fff); pointer-events: none; }
+.ripple {
+  position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
+  background: radial-gradient(circle, transparent 40%, color-mix(in srgb, var(--tint) 70%, transparent) 62%, transparent 72%);
+}
+.spark {
+  position: absolute; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%;
+  background: var(--tint);
+}
+.coach-ring { position: relative; flex: none; width: 14px; height: 14px; border-radius: 50%; background: var(--tint); }
+.coach-ring::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--tint); opacity: .5; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

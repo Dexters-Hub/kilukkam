@@ -14,7 +14,7 @@ with the actual command and numbers. Never summarise a step you did not run.
 ```sh
 npm run typecheck          # all workspaces, must print no "error TS"
 npm test                   # shared, server, web: report each count
-npm run check:dashes       # must exit 0: zero em dashes anywhere (owner rule)
+npm run check:dashes       # must exit 0: zero em or en dashes anywhere (owner rule)
 ```
 
 ## 2. Sync matrix (any change to shared/, server/, net, store or play logic)

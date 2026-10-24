@@ -1,0 +1,105 @@
+/* The first screen is the game. */
+
+.home { gap: 0; padding-top: 0; }
+.flow { display: flex; flex-direction: column; }
+.top {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 0 calc(-1 * var(--pad));
+  padding: 8px var(--pad);
+  padding-top: calc(8px + var(--safe-t));
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: saturate(1.4) blur(16px);
+  -webkit-backdrop-filter: saturate(1.4) blur(16px);
+}
+.notice:not(:empty) { margin: 4px 0 8px; }
+
+.heroTitle {
+  margin: 18px 0; font: 700 clamp(2.9rem, 14vw, 4.6rem)/.98 var(--font-display); letter-spacing: -.05em;
+}
+.heroWord {
+  display: inline-block; white-space: nowrap; will-change: transform, opacity, filter;
+  background: var(--brand); -webkit-background-clip: text; background-clip: text; color: transparent;
+  padding-bottom: .06em;
+}
+
+/* the stage: a small dark concert hall you can play */
+.stage {
+  --tint: var(--violin);
+  position: relative; isolation: isolate; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 14px 14px 18px; border-radius: 30px; color: #f6f4f1;
+  background:
+    radial-gradient(110% 70% at 50% 8%, color-mix(in srgb, var(--tint) 42%, transparent), transparent 72%),
+    radial-gradient(80% 50% at 50% 110%, color-mix(in srgb, var(--tint) 26%, transparent), transparent 70%),
+    #111116;
+  box-shadow: 0 34px 64px -34px color-mix(in srgb, var(--tint) 70%, #000), var(--shadow-lift);
+}
+.tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 100%; padding: 4px; border-radius: 20px; background: rgb(255 255 255 / .07); }
+.tab {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  min-height: 64px; border-radius: 16px; color: rgb(255 255 255 / .55); font-size: .72rem; font-weight: 650;
+  transition: background .25s, color .25s, transform .15s var(--ease);
+}
+.tab:active { transform: scale(.94); }
+.tab.on { background: var(--tint); color: #fff; box-shadow: 0 8px 20px -10px var(--tint); }
+.pad {
+  position: relative; width: min(64vw, 240px); aspect-ratio: 1; border-radius: 50%; margin: 10px 0 0;
+  display: grid; place-items: center; align-content: center; gap: 4px; color: #fff;
+  background: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--tint) 70%, #fff), var(--tint) 52%, color-mix(in srgb, var(--tint) 58%, #000));
+  box-shadow: 0 0 0 12px color-mix(in srgb, var(--tint) 16%, transparent), 0 0 70px 14px color-mix(in srgb, var(--tint) 42%, transparent), inset 0 -12px 26px rgb(0 0 0 / .25);
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  transition: transform .12s var(--ease), background .35s;
+}
+.pad:active { transform: scale(.95); }
+.padNote { font: 700 clamp(3.4rem, 17vw, 4.8rem)/1 var(--font-display); letter-spacing: -.05em; text-shadow: 0 2px 14px rgb(0 0 0 / .25); }
+.padHint { font-size: .7rem; font-weight: 700; letter-spacing: .26em; text-transform: uppercase; opacity: .75; }
+.float { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.next { display: flex; gap: 22px; min-height: 1.4em; font: 650 1.15rem/1 var(--font-display); color: rgb(255 255 255 / .5); }
+.next span:last-child { opacity: .55; }
+.caption { margin: 0; min-height: 2.6em; text-align: center; color: rgb(255 255 255 / .72); font-size: .95rem; max-width: 28ch; }
+
+/* game PIN */
+.pin {
+  display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 6px 10px; align-items: center;
+  margin-top: 16px; padding: 14px 14px 14px 20px; border-radius: 26px; background: var(--surface); box-shadow: var(--shadow-lift);
+}
+.pinLabel { grid-column: 1 / -1; font-size: .8rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.pinInput {
+  min-width: 0; height: 60px; padding: 0; background: none;
+  font: 700 2.4rem/1 var(--font-display); letter-spacing: .32em; text-transform: uppercase;
+}
+.pinInput::placeholder { color: color-mix(in srgb, var(--muted) 35%, transparent); }
+.pinInput:focus, .pinInput:focus-visible { box-shadow: none; }
+.pin:focus-within { box-shadow: var(--shadow-lift), var(--ring); }
+.pinGo {
+  display: grid; place-items: center; width: 64px; height: 64px; border-radius: 20px;
+  background: var(--accent); color: #fff; transition: opacity .2s, transform .15s var(--ease);
+}
+.pinGo:disabled { opacity: .3; }
+.pinGo:not(:disabled):active { transform: scale(.94); }
+.alt { margin: 10px 0 0; text-align: center; color: var(--muted); font-size: .95rem; }
+
+.strip { list-style: none; margin: 34px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.strip li {
+  display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px 6px 14px; text-align: center;
+  border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow);
+  font: 650 .92rem/1.2 var(--font-display); letter-spacing: -.01em;
+}
+.stripIcon { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 18px; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--sunk)); }
+.strip li:nth-child(2) .stripIcon { color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 12%, var(--sunk)); }
+.strip li:nth-child(3) .stripIcon { color: var(--accent-3); background: color-mix(in srgb, var(--accent-3) 12%, var(--sunk)); }
+
+.sectionTitle { margin: 0 0 6px; font: 700 1.6rem/1.1 var(--font-display); letter-spacing: -.035em; }
+.legend { padding: 34px 0 0; display: flex; flex-direction: column; gap: 4px; }
+.legendWindow {
+  margin: 0 calc(-1 * var(--pad)); overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+.legendTrack { display: flex; gap: 10px; width: max-content; padding: 8px 0 12px; }
+.legendItem {
+  display: inline-flex; align-items: center; gap: 10px; padding: 6px 16px 6px 6px; border-radius: 999px;
+  background: var(--surface); box-shadow: var(--shadow); font: 600 .95rem/1 var(--font-display); white-space: nowrap;
+}
+.foot { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 28px 0 8px; color: var(--muted); font-size: .9rem; }

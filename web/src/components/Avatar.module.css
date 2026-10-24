@@ -1,0 +1,33 @@
+/* Composer disc: era-tinted gradient and serif monogram under the portrait. */
+.av {
+  --size: 44px;
+  position: relative; overflow: hidden;
+  flex: none; display: inline-grid; place-items: center;
+  width: var(--size); height: var(--size); border-radius: 50%;
+  font-size: calc(var(--size) * .5); line-height: 1; user-select: none;
+}
+.xs { --size: 18px; }
+.sm { --size: 32px; }
+.md { --size: 44px; }
+.lg { --size: 60px; }
+.composer {
+  --era: var(--accent);
+  color: #fff;
+  background:
+    radial-gradient(circle at 32% 26%, rgb(255 255 255 / .38), transparent 46%),
+    linear-gradient(150deg, color-mix(in srgb, var(--era) 72%, #fff) 0%, var(--era) 52%, color-mix(in srgb, var(--era) 62%, #000) 100%);
+  box-shadow: inset 0 -2px 6px rgb(0 0 0 / .18), 0 4px 10px -6px color-mix(in srgb, var(--era) 80%, transparent);
+}
+.portrait {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  border-radius: inherit; pointer-events: none; user-select: none;
+}
+.composer .mono {
+  font-family: var(--font-serif); font-weight: 600; font-style: italic;
+  letter-spacing: -.04em; text-shadow: 0 1px 1px rgb(0 0 0 / .25);
+}
+.composer[data-wide] { font-size: calc(var(--size) * .4); }
+.plain { background: var(--sunk); }
+.mine { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--accent); overflow: visible; }
+.mine .portrait { border-radius: 50%; }
+.away { opacity: .35; filter: grayscale(1); }

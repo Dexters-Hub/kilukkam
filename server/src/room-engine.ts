@@ -3,6 +3,8 @@ import {
   CODE_LEN,
   COUNT_IN_MS,
   MAX_PLAYERS,
+  RESULTS_GRACE_MS,
+  aggregateResults,
   getPiece,
   parseClientMessage,
   validateScore,
@@ -10,6 +12,7 @@ import {
   type DynamicsLevel,
   type ErrorCode,
   type PlayerSnapshot,
+  type PlayerTally,
   type RoomPhase,
   type RoomSnapshot,
   type Score,
@@ -59,6 +62,8 @@ interface Room {
   mutedTracks: Set<string>;
   customPiece: boolean;
   tempo: TempoAnchor | null;
+  /** Tallies collected after a stop, keyed by trackId; null when no window is open */
+  results: { closesAt: number; byTrack: Map<string, PlayerTally[]> } | null;
 }
 
 interface Seat {
@@ -118,6 +123,8 @@ export class RoomEngine {
         return this.autoAssign(seat, socketId);
       case 'note_played':
         return this.notePlayed(seat, socketId, msg);
+      case 'player_tally':
+        return this.playerTally(seat, socketId, msg);
       case 'set_piece':
         return this.asConductor(seat, socketId, msg, this.setPiece);
       case 'start_piece':
@@ -170,6 +177,10 @@ export class RoomEngine {
   tick(now: number): EngineAction[] {
     const actions: EngineAction[] = [];
     for (const room of this.rooms.values()) {
+      if (room.results && now >= room.results.closesAt) {
+        actions.push(send(socketsOf(room), { type: 'piece_results', results: aggregateResults(room.results.byTrack) }));
+        room.results = null;
+      }
       if (room.phase !== 'playing') continue;
       const pulse = this.flushPulse(room, now);
       if (pulse) actions.push(pulse);
@@ -203,6 +214,7 @@ export class RoomEngine {
       mutedTracks: new Set(),
       customPiece: false,
       tempo: null,
+      results: null,
     };
     this.rooms.set(code, room);
     this.seats.set(socketId, { room, player: conductor });
@@ -319,6 +331,7 @@ export class RoomEngine {
     room.startedAt = this.now() + (msg.countIn ? COUNT_IN_MS : 0);
     room.tempo = null;
     room.taps.clear();
+    room.results = null;
     return [
       send(socketsOf(room), { type: 'piece_started', startedAt: room.startedAt, bpm: room.piece.bpm }),
       this.broadcastState(room),
@@ -330,6 +343,7 @@ export class RoomEngine {
     // Last taps of the run still count toward everyone's tally.
     const pulse = this.flushPulse(room, this.now());
     room.phase = 'ended';
+    room.results = { closesAt: this.now() + RESULTS_GRACE_MS, byTrack: new Map() };
     return [
       ...(pulse ? [pulse] : []),
       send(socketsOf(room), { type: 'piece_stopped' }),
@@ -397,6 +411,18 @@ export class RoomEngine {
       ? { type: 'dj', cue: msg.cue, at: this.now() }
       : { type: 'dj', cue: msg.cue, at: this.now(), bars: msg.bars };
     return [send(socketsOf(room), out)];
+  };
+
+  private playerTally: Handler<'player_tally'> = ({ room, player }, socketId, msg) => {
+    if (room.phase === 'playing') return error(socketId, 'not_started', 'send your tally after the piece stops');
+    if (!room.results || this.now() > room.results.closesAt) {
+      return error(socketId, 'bad_message', 'results window is closed');
+    }
+    if (!player.trackId) return error(socketId, 'track_not_found', 'you have no instrument');
+    const list = room.results.byTrack.get(player.trackId) ?? [];
+    list.push(msg.tally);
+    room.results.byTrack.set(player.trackId, list);
+    return [];
   };
 
   private setDynamics: Handler<'set_dynamics'> = ({ room }, socketId, msg) => {

@@ -1,6 +1,7 @@
 /// <reference types="vitest/config" />
 import { networkInterfaces } from 'node:os';
 import { resolve } from 'node:path';
+import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 // Phones load one URL (http://<lan-ip>:5173). The WS lives on the same
@@ -25,6 +26,7 @@ const lanHost = (): string => {
 };
 
 export default defineConfig({
+  plugins: [react()],
   define: {
     __LAN_HOST__: JSON.stringify(lanHost()),
   },
@@ -52,7 +54,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
     environment: 'node',
   },
 });

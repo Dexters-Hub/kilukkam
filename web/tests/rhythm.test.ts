@@ -37,6 +37,12 @@ describe('BeatGrid', () => {
     expect(g.beatAt(11_000)).toBe(2);
     expect(g.beatAt(8_000)).toBe(-4);
   });
+  it('adopts a server tempo anchor so every phone re-times identically', () => {
+    const g = new BeatGrid(0, 60);
+    g.anchor({ at: 8000, beat: 8, bpm: 120 });
+    expect(g.timeOf(10)).toBeCloseTo(9000);
+    expect(g.beatAt(4000)).toBeCloseTo(4); // before the anchor, the old tempo still holds
+  });
   it('changes tempo without the grid jumping', () => {
     const g = new BeatGrid(0, 60);
     g.setTempo(120, 4000); // beat 4 reached at 4 s, then twice as fast

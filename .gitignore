@@ -9,3 +9,4 @@ coverage/
 .atlan/
 .playwright-mcp/
 *.png
+.claude/worktrees/

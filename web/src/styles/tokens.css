@@ -1,0 +1,92 @@
+/* Kilukkam design tokens: warm neutrals, one hot accent, instrument tints on top. */
+
+/* The Malayalam wordmark is the brand: a real Malayalam display face, system fonts only as fallback. */
+@font-face {
+  font-family: "Nupuram";
+  src: url("/fonts/unicode-nupuram-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Nupuram";
+  src: url("/fonts/unicode-nupuram-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  /* Sunset palette: the orange leads, rose and violet carry it into a gradient. */
+  --bg: #f6f5f2;
+  --surface: #ffffff;
+  --sunk: #efede9;
+  --line: #e6e3de;
+  --line-strong: #d4d0c9;
+  --text: #111114;
+  --muted: #67646e;
+  --accent: #ff5b1f;
+  --accent-2: #ff3d6e;
+  --accent-3: #7c5cff;
+  --accent-ink: #ffffff;
+  --accent-text: #d23d0c;
+  --brand: linear-gradient(120deg, #ff7a1a 0%, #ff3d6e 52%, #7c5cff 100%);
+  --brand-soft: linear-gradient(135deg, color-mix(in srgb, #ff7a1a 16%, var(--surface)), color-mix(in srgb, #7c5cff 12%, var(--surface)));
+  --danger: #d7263d;
+  --warn: #8a5a00;
+  --warn-bg: #fbf0d9;
+  --ok: #12a37a;
+
+  /* One family of instrument hues: similar weight, distinct at a glance. */
+  --violin: #f2780c;
+  --cello: #7c5cff;
+  --flute: #0fa892;
+  --piano: #2f74ff;
+
+  --font-display: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-malayalam: "Nupuram", "Noto Sans Malayalam", "Malayalam Sangam MN", "Malayalam MN", Manjari, Kartika, sans-serif;
+  /* Composer monograms: a classical serif against the geometric UI type */
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --track-display: -.03em;
+
+  --radius: 18px;
+  --radius-sm: 12px;
+  --pad: 16px;
+  --tap: 64px;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --shadow: 0 1px 2px rgb(20 16 40 / .04), 0 10px 28px -14px rgb(20 16 40 / .16);
+  --shadow-lift: 0 2px 6px rgb(20 16 40 / .06), 0 18px 40px -16px rgb(20 16 40 / .26);
+  --glow: 0 14px 34px -14px color-mix(in srgb, var(--accent-2) 70%, transparent);
+  --ring: 0 0 0 4px color-mix(in srgb, var(--accent) 40%, transparent), 0 0 18px 2px color-mix(in srgb, var(--accent) 35%, transparent);
+  --safe-t: env(safe-area-inset-top);
+  --safe-b: env(safe-area-inset-bottom);
+  --safe-l: env(safe-area-inset-left);
+  --safe-r: env(safe-area-inset-right);
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #09090f;
+    --surface: #14141c;
+    --sunk: #1c1c27;
+    --line: #262633;
+    --line-strong: #363645;
+    --text: #f4f3f8;
+    --muted: #9c99aa;
+    --accent: #ff6a2b;
+    --accent-2: #ff4d8d;
+    --accent-3: #9a7cff;
+    --accent-text: #ff7a3d;
+    --danger: #ff5c6c;
+    --warn: #f0c063;
+    --warn-bg: #2b2210;
+    --ok: #3ad6a5;
+    --violin: #ff9a45;
+    --cello: #a68bff;
+    --flute: #2fd6bd;
+    --piano: #6b9bff;
+    --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 12px 32px -16px rgb(0 0 0 / .7);
+    --shadow-lift: 0 2px 6px rgb(0 0 0 / .5), 0 18px 40px -16px rgb(0 0 0 / .8);
+    color-scheme: dark;
+  }
+}

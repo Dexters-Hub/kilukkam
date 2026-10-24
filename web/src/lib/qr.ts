@@ -1,5 +1,5 @@
 // QR Code model 2 encoder: byte mode, error correction level M, versions
-// 1–10 (up to 213 bytes, far more than a join URL needs). Pure, no DOM.
+// 1 to 10 (up to 213 bytes, far more than a join URL needs). Pure, no DOM.
 
 const ECC_PER_BLOCK = [-1, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26];
 const NUM_BLOCKS = [-1, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5];
@@ -20,7 +20,7 @@ const rawDataModules = (ver: number): number => {
 const dataCodewords = (ver: number): number =>
   Math.floor(rawDataModules(ver) / 8) - (ECC_PER_BLOCK[ver] ?? 0) * (NUM_BLOCKS[ver] ?? 0);
 
-// ---------- GF(256) Reed–Solomon ----------
+// ---------- GF(256) Reed-Solomon ----------
 
 const gfMul = (x: number, y: number): number => {
   let z = 0;

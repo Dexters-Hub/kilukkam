@@ -39,7 +39,7 @@ export class Recorder {
 // ---------- mix ----------
 
 export interface Channel {
-  /** 0–1.5, 1 is unity */
+  /** 0 to 1.5, 1 is unity */
   gain: number;
   muted: boolean;
   solo: boolean;

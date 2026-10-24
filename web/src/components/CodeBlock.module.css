@@ -1,0 +1,11 @@
+.block {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  text-align: center; padding: 20px 16px; border-radius: var(--radius); background: var(--sunk);
+}
+.label { font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.code {
+  font: 700 clamp(4rem, 24vw, 7rem)/1 var(--font-display);
+  letter-spacing: .06em; padding-left: .06em; color: var(--accent);
+}
+.qr { margin-top: 8px; }
+.link { margin: 6px 0 0; color: var(--muted); font-size: .9rem; overflow-wrap: anywhere; }

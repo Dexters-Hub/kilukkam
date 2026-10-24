@@ -28,6 +28,32 @@ export interface TempoAnchor {
   beat: number;
 }
 
+/** How long the server waits for player tallies after a stop before emitting piece_results */
+export const RESULTS_GRACE_MS = 1500;
+
+/** One phone's self-reported timing tally for a run */
+export interface PlayerTally {
+  perfect: number;
+  great: number;
+  good: number;
+  miss: number;
+  streakBest: number;
+}
+
+export interface SectionResult extends PlayerTally {
+  trackId: string;
+  players: number;
+  /** (perfect + great + good) / total, 0..1; 0 when no notes */
+  accuracy: number;
+}
+
+export type Grade = 'S' | 'A' | 'B' | 'C' | 'D';
+
+export interface PieceResults {
+  sections: SectionResult[];
+  room: { notes: number; accuracy: number; grade: Grade };
+}
+
 /** Conductor expression level */
 export type DynamicsLevel = 'pp' | 'p' | 'mf' | 'f' | 'ff';
 const DYNAMICS_LEVELS: readonly DynamicsLevel[] = ['pp', 'p', 'mf', 'f', 'ff'];
@@ -75,6 +101,7 @@ export type ClientMessage =
   | { type: 'set_dynamics'; level: DynamicsLevel }
   | { type: 'set_section'; trackId: string; muted: boolean }
   | { type: 'note_played'; noteIndex: number }
+  | { type: 'player_tally'; tally: PlayerTally }
   | { type: 'ping'; t: number };
 
 export type ErrorCode =
@@ -98,6 +125,7 @@ export type ServerMessage =
   | { type: 'piece_changed'; piece: Score }
   | { type: 'piece_started'; startedAt: number; bpm: number }
   | { type: 'piece_stopped' }
+  | { type: 'piece_results'; results: PieceResults }
   | { type: 'tempo'; bpm: number; at: number; beat: number }
   | { type: 'dj'; cue: DjCue; at: number; bars?: number }
   | { type: 'dynamics'; level: DynamicsLevel }
@@ -153,6 +181,22 @@ function isSnapshot(v: unknown): v is RoomSnapshot {
     typeof v.customPiece === 'boolean' &&
     (v.tempo === null || isTempo(v.tempo))
   );
+}
+
+const isCount = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 100_000;
+
+function isTally(v: unknown): v is PlayerTally {
+  return isObj(v) && isCount(v.perfect) && isCount(v.great) && isCount(v.good) && isCount(v.miss) && isCount(v.streakBest);
+}
+
+function isSection(v: unknown): v is SectionResult {
+  return isObj(v) && isTally(v) && isStr(v.trackId, 64) && isCount(v.players) && typeof v.accuracy === 'number';
+}
+
+function isResults(v: unknown): v is PieceResults {
+  if (!isObj(v) || !Array.isArray(v.sections) || !v.sections.every(isSection) || !isObj(v.room)) return false;
+  const r = v.room;
+  return isCount(r.notes) && typeof r.accuracy === 'number' && ['S', 'A', 'B', 'C', 'D'].includes(r.grade as string);
 }
 
 function isTempo(v: unknown): v is TempoAnchor {
@@ -232,6 +276,8 @@ export function parseClientMessage(raw: string): ClientMessage | null {
       return isStr(v.trackId, 64) && typeof v.muted === 'boolean'
         ? { type: 'set_section', trackId: v.trackId, muted: v.muted }
         : null;
+    case 'player_tally':
+      return isTally(v.tally) ? { type: 'player_tally', tally: v.tally } : null;
     case 'note_played':
       return typeof v.noteIndex === 'number' && Number.isInteger(v.noteIndex) && v.noteIndex >= 0
         ? { type: 'note_played', noteIndex: v.noteIndex }
@@ -271,6 +317,8 @@ export function parseServerMessage(raw: string): ServerMessage | null {
         : null;
     case 'piece_stopped':
       return { type: 'piece_stopped' };
+    case 'piece_results':
+      return isResults(v.results) ? { type: 'piece_results', results: v.results } : null;
     case 'tempo':
       return isTempo(v) ? { type: 'tempo', bpm: v.bpm, at: v.at, beat: v.beat } : null;
     case 'dj': {

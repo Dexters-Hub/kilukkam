@@ -4,6 +4,7 @@ import {
   CODE_LEN,
   COUNT_IN_MS,
   MAX_PLAYERS,
+  RESULTS_GRACE_MS,
   encodeMessage,
   getPiece,
   type ClientMessage,
@@ -700,5 +701,57 @@ describe('dj cues', () => {
     expect(errorCode(send(h, 'cond', { type: 'dj', cue: 'build' }), 'cond')).toBe('not_started');
     send(h, 'cond', { type: 'start_piece' });
     expect(errorCode(send(h, 'p', { type: 'dj', cue: 'build' }), 'p')).toBe('not_conductor');
+  });
+});
+
+describe('piece_results', () => {
+  const tally = (perfect: number, miss = 0) => ({ perfect, great: 0, good: 0, miss, streakBest: perfect });
+
+  it('aggregates tallies by section and emits once after the grace window', () => {
+    const h = setup();
+    const code = createRoom(h, 'cond', 'ode-to-joy');
+    joinRoom(h, 'a', code); joinRoom(h, 'b', code); joinRoom(h, 'c', code);
+    send(h, 'a', { type: 'pick_track', trackId: 'flute' });
+    send(h, 'b', { type: 'pick_track', trackId: 'flute' });
+    send(h, 'c', { type: 'pick_track', trackId: 'cello' });
+    send(h, 'cond', { type: 'start_piece' });
+    h.clock.t = 50_000;
+    send(h, 'cond', { type: 'stop_piece' });
+    send(h, 'a', { type: 'player_tally', tally: tally(8, 2) });
+    send(h, 'b', { type: 'player_tally', tally: tally(10, 0) });
+    send(h, 'c', { type: 'player_tally', tally: tally(5, 5) });
+
+    expect(inbox(h.engine.tick(50_000 + RESULTS_GRACE_MS - 1), 'cond').map((m) => m.type)).not.toContain('piece_results');
+    const actions = h.engine.tick(50_000 + RESULTS_GRACE_MS);
+    const res = only(actions, 'a', 'piece_results').results;
+    const flute = res.sections.find((s) => s.trackId === 'flute')!;
+    expect(flute).toMatchObject({ players: 2, perfect: 18, miss: 2, streakBest: 10 });
+    expect(flute.accuracy).toBeCloseTo(0.9);
+    expect(res.room).toMatchObject({ notes: 30 });
+    expect(res.room.accuracy).toBeCloseTo(23 / 30);
+    expect(res.room.grade).toBe('B');
+    expect(inbox(h.engine.tick(60_000), 'a').map((m) => m.type)).not.toContain('piece_results');
+  });
+
+  it('ignores tallies from players without a track and outside the window', () => {
+    const h = setup();
+    const code = createRoom(h, 'cond', 'ode-to-joy');
+    joinRoom(h, 'a', code);
+    send(h, 'a', { type: 'pick_track', trackId: 'flute' });
+    send(h, 'cond', { type: 'start_piece' });
+    expect(errorCode(send(h, 'a', { type: 'player_tally', tally: tally(3) }), 'a')).toBe('not_started');
+    h.clock.t = 1_000; send(h, 'cond', { type: 'stop_piece' });
+    h.clock.t = 1_000 + RESULTS_GRACE_MS + 1;
+    expect(errorCode(send(h, 'a', { type: 'player_tally', tally: tally(3) }), 'a')).toBe('bad_message');
+  });
+
+  it('emits empty results when nobody reports', () => {
+    const h = setup();
+    const code = createRoom(h);
+    joinRoom(h, 'a', code);
+    send(h, 'cond', { type: 'start_piece' });
+    h.clock.t = 2_000; send(h, 'cond', { type: 'stop_piece' });
+    const res = only(h.engine.tick(2_000 + RESULTS_GRACE_MS), 'cond', 'piece_results').results;
+    expect(res.room).toEqual({ notes: 0, accuracy: 0, grade: 'D' });
   });
 });

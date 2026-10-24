@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./protocol": "./src/protocol.ts",
     "./score": "./src/score.ts",
-    "./pieces": "./src/pieces/index.ts"
+    "./pieces": "./src/pieces/index.ts",
+    "./games": "./src/games/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",

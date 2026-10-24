@@ -68,8 +68,8 @@ const startRun = (startedAt: number | null): void => {
 // ---------- rhythm: one shared clock and beat grid for the whole room ----------
 
 const clock = new ServerClock();
-/** Every phone counts in the same 4 beats after startedAt, so the room starts on one downbeat */
-const COUNT_IN_BEATS = 4;
+/** Room tempo announced with piece_started; the piece's own tempo until then */
+let roomBpm: number | null = null;
 let grid: { key: string; grid: BeatGrid } | null = null;
 const onsetCache = new Map<string, number[]>();
 
@@ -78,8 +78,11 @@ const currentGrid = (): BeatGrid | null => {
   if (runStartedAt === null || !piece) return null;
   const key = `${runStartedAt}|${piece.id}`;
   if (grid?.key !== key) {
-    const beat0 = runStartedAt + (COUNT_IN_BEATS * 60_000) / piece.bpm;
-    grid = { key, grid: new BeatGrid(beat0, piece.bpm) };
+    // The server schedules startedAt a count-in ahead, so it is beat 0 for every phone.
+    const g = new BeatGrid(runStartedAt, roomBpm ?? piece.bpm);
+    const anchor = store.state.snapshot?.tempo;
+    if (anchor && anchor.at >= runStartedAt) g.anchor(anchor);
+    grid = { key, grid: g };
   }
   return grid.grid;
 };
@@ -197,7 +200,22 @@ function onMessage(msg: ServerMessage): void {
       applySnapshot(msg.snapshot);
       return;
 
+    case 'tempo':
+      // Live tempo from the conductor: re-time the grid from the anchor, no jump.
+      currentGrid()?.anchor({ bpm: msg.bpm, at: msg.at, beat: msg.beat });
+      return;
+
+    case 'piece_changed':
+      // A custom song: snapshots only carry its id, so keep the full score from here.
+      store.set({ piece: msg.piece });
+      if (store.state.session?.role === 'player') {
+        const track = myTrack(store.state);
+        if (track) void preloadInstrument(track.instrument);
+      }
+      return;
+
     case 'piece_started':
+      roomBpm = msg.bpm;
       if (msg.startedAt !== runStartedAt) {
         startRun(msg.startedAt);
         store.set({ cursor: 0 });
@@ -351,7 +369,7 @@ const actions: Actions = {
   pickTrack: (trackId) => send({ type: 'pick_track', trackId }),
   autoAssign: () => send({ type: 'auto_assign' }),
   setPiece: (pieceId) => send({ type: 'set_piece', pieceId }),
-  startPiece: () => send({ type: 'start_piece' }),
+  startPiece: () => send({ type: 'start_piece', countIn: true }),
   stopPiece: () => send({ type: 'stop_piece' }),
   kick: (playerId) => send({ type: 'remove_player', playerId }),
 

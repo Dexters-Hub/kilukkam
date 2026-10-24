@@ -19,7 +19,7 @@
     "test": "npm run test --workspaces --if-present",
     "sim": "tsx scripts/room-sim.ts",
     "shot": "node scripts/shot.mjs",
-    "check:dashes": "! grep -rIn --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.playwright-mcp --exclude-dir=dist '\u2014' ."
+    "check:dashes": "! grep -rIn --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.playwright-mcp --exclude-dir=dist --exclude-dir=worktrees -e '\u2014' -e '\u2013' ."
   },
   "devDependencies": {
     "typescript": "~5.9.3",

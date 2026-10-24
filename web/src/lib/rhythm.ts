@@ -50,6 +50,12 @@ export class BeatGrid {
     this.segments.splice(0, this.segments.length, ...(keep.length ? keep : [this.segments[0] as TempoSegment]), { at, beat, bpm });
   }
 
+  /** Adopt the server's tempo anchor (beat `beat` at server time `at`), replacing anything after it. */
+  anchor(seg: TempoSegment): void {
+    const keep = this.segments.filter((s) => s.at < seg.at);
+    this.segments.splice(0, this.segments.length, ...keep, { ...seg });
+  }
+
   get bpm(): number {
     return (this.segments[this.segments.length - 1] as TempoSegment).bpm;
   }
@@ -88,7 +94,7 @@ export interface Tally {
   miss: number;
   combo: number;
   bestCombo: number;
-  /** 0–100: points earned over points possible */
+  /** 0 to 100: points earned over points possible */
   accuracy: number;
 }
 
