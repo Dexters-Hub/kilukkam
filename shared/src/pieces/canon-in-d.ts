@@ -1,9 +1,9 @@
 import { note, offsetTrack, type Score, type ScoreEvent, type Track } from '../score.js';
 
-// Pachelbel — Canon in D. The three violin parts are the same melody
+// Pachelbel: Canon in D. The three violin parts are the same melody
 // entering 2 bars apart; the cello loops the 8-note ground bass.
 
-// Phrase A — the famous opening, half notes (8 bars, 32 beats)
+// Phrase A: the famous opening, half notes (8 bars, 32 beats)
 const PHRASE_A: ScoreEvent[] = [
   note(78, 2), note(76, 2), note(74, 2), note(73, 2), // F#5 E5 D5 C#5
   note(71, 2), note(69, 2), note(71, 2), note(73, 2), // B4 A4 B4 C#5
@@ -11,7 +11,7 @@ const PHRASE_A: ScoreEvent[] = [
   note(67, 2), note(66, 2), note(67, 2), note(64, 2), // G4 F#4 G4 E4
 ];
 
-// Phrase B — quarter-note variation over the same ground bass (8 bars, 32 beats)
+// Phrase B: quarter-note variation over the same ground bass (8 bars, 32 beats)
 const PHRASE_B: ScoreEvent[] = [
   note(66, 1), note(69, 1), note(74, 1), note(69, 1), // D  : F#4 A4 D5 A4
   note(64, 1), note(69, 1), note(73, 1), note(76, 1), // A  : E4 A4 C#5 E5
@@ -25,7 +25,7 @@ const PHRASE_B: ScoreEvent[] = [
 
 const MELODY: ScoreEvent[] = [...PHRASE_A, ...PHRASE_B, ...PHRASE_A];
 
-// Ground bass: D A B F# G D G A, half notes — 16 beats per cycle
+// Ground bass: D A B F# G D G A, half notes, 16 beats per cycle
 const BASS_CYCLE: ScoreEvent[] = [
   note(50, 2), note(45, 2), note(47, 2), note(42, 2),
   note(43, 2), note(50, 2), note(43, 2), note(45, 2),

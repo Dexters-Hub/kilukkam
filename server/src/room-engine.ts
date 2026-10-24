@@ -5,6 +5,7 @@ import {
   getPiece,
   parseClientMessage,
   type ClientMessage,
+  type DynamicsLevel,
   type ErrorCode,
   type PlayerSnapshot,
   type RoomPhase,
@@ -24,7 +25,7 @@ export type EngineAction =
 
 export interface EngineOptions {
   now?: () => number;
-  /** Uniform [0, 1) — drives room code generation */
+  /** Uniform [0, 1); drives room code generation */
   random?: () => number;
   newId?: () => string;
 }
@@ -51,6 +52,8 @@ interface Room {
   players: Map<string, Player>;
   /** Accepted taps per track since the last ensemble_pulse */
   taps: Map<string, number>;
+  dynamics: DynamicsLevel;
+  mutedTracks: Set<string>;
 }
 
 interface Seat {
@@ -116,6 +119,10 @@ export class RoomEngine {
         return this.asConductor(seat, socketId, msg, this.startPiece);
       case 'stop_piece':
         return this.asConductor(seat, socketId, msg, this.stopPiece);
+      case 'set_dynamics':
+        return this.asConductor(seat, socketId, msg, this.setDynamics);
+      case 'set_section':
+        return this.asConductor(seat, socketId, msg, this.setSection);
       case 'remove_player':
         return this.asConductor(seat, socketId, msg, this.removePlayer);
     }
@@ -179,6 +186,8 @@ export class RoomEngine {
       startedAt: null,
       players: new Map([[conductor.id, conductor]]),
       taps: new Map(),
+      dynamics: 'mf',
+      mutedTracks: new Set(),
     };
     this.rooms.set(code, room);
     this.seats.set(socketId, { room, player: conductor });
@@ -311,6 +320,23 @@ export class RoomEngine {
     ];
   };
 
+  private setDynamics: Handler<'set_dynamics'> = ({ room }, socketId, msg) => {
+    room.dynamics = msg.level;
+    return [
+      send(socketsOf(room), { type: 'dynamics', level: msg.level }),
+      this.broadcastState(room),
+    ];
+  };
+
+  private setSection: Handler<'set_section'> = ({ room }, socketId, msg) => {
+    if (!room.piece.tracks.some((t) => t.id === msg.trackId)) {
+      return error(socketId, 'track_not_found', `no track ${msg.trackId}`);
+    }
+    if (msg.muted) room.mutedTracks.add(msg.trackId);
+    else room.mutedTracks.delete(msg.trackId);
+    return [this.broadcastState(room)];
+  };
+
   private removePlayer: Handler<'remove_player'> = ({ room }, socketId, msg) => {
     const target = room.players.get(msg.playerId);
     if (!target) return error(socketId, 'bad_message', 'no such player');
@@ -394,10 +420,12 @@ function snapshot(room: Room): RoomSnapshot {
     players,
     maxPlayers: MAX_PLAYERS,
     startedAt: room.startedAt,
+    dynamics: room.dynamics,
+    mutedTracks: [...room.mutedTracks],
   };
 }
 
-/** Connected, non-conductor players — the ones that count toward capacity. */
+/** Connected, non-conductor players: the ones that count toward capacity. */
 function activePlayers(room: Room): Player[] {
   return [...room.players.values()].filter((p) => !p.conductor && p.socketId !== null);
 }

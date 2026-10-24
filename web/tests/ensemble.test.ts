@@ -33,6 +33,8 @@ describe('rejoinPlan', () => {
     code: 'ABCD',
     phase,
     pieceId: 'ode-to-joy',
+    dynamics: 'mf',
+    mutedTracks: [],
     players: [],
     maxPlayers: 100,
     startedAt,

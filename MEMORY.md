@@ -12,7 +12,7 @@ conductor opens a room, friends join with a 4-letter code, each picks an
 instrument, and every tap plays that phone's next note. The humans are the
 timing. It must be fun, intuitive, and understandable in 3 seconds.
 
-## Status — 2026-10-24
+## Status, 2026-10-24
 
 - `shared/` green: protocol v1 + validators, score format, Canon in D and
   Ode to Joy. `MAX_AVATAR_LEN` raised to 24 for composer ids. The protocol
@@ -31,6 +31,8 @@ timing. It must be fun, intuitive, and understandable in 3 seconds.
   code, comments, commits, or docs.
 - Commits authored as the repo owner (Alwin John), professional style.
 - Local-first: no deploy, no external services, no secrets in repo.
+- **No em dashes** anywhere: UI copy, docs, comments, commits. Use a colon,
+  comma, semicolon or full stop.
 - **Zero visible borders/outlines** anywhere. Separation comes from surface
   colour, radius and soft shadow. Focus is an accent glow, never a 1px line.
 - Motion through **GSAP**, tasteful and light, and it honours

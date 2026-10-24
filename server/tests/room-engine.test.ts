@@ -229,7 +229,7 @@ describe('track assignment', () => {
 
   it('auto_assign picks the least-occupied open track', () => {
     const h = setup();
-    const code = createRoom(h); // ode: flute, violin, piano, cello — 25 each
+    const code = createRoom(h); // ode: flute, violin, piano, cello, 25 each
     for (const [sock, track] of [
       ['a', 'flute'],
       ['b', 'flute'],

@@ -82,7 +82,7 @@ const net = new Net(wsUrl(location), {
 });
 
 function send(msg: ClientMessage): void {
-  if (!net.send(msg)) toast('Not connected — retrying…', 'error');
+  if (!net.send(msg)) toast('Not connected. Retrying…', 'error');
 }
 
 function onOpen(): void {
@@ -322,7 +322,7 @@ function render(s: AppState): void {
 
   const busy = s.session !== null || s.intent !== null;
   banner.hidden = !busy || s.conn === 'open';
-  banner.textContent = s.conn === 'connecting' ? 'Connecting…' : 'Connection lost — reconnecting…';
+  banner.textContent = s.conn === 'connecting' ? 'Connecting…' : 'Connection lost. Reconnecting…';
   rttPill.hidden = s.session === null || s.conn !== 'open';
   document.body.dataset.screen = key;
 }

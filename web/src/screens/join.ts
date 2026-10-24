@@ -94,7 +94,7 @@ export const joinScreen: ScreenFactory = (s, a) => {
     },
     h('label', { class: 'label', for: 'code' }, 'Room code'),
     code,
-    h('p', { class: 'hint', id: 'code-hint' }, "It's on the conductor's screen — 4 letters, big and orange."),
+    h('p', { class: 'hint', id: 'code-hint' }, "It's on the conductor's screen: 4 letters, big and orange."),
     h('label', { class: 'label', for: 'name' }, 'Your name'),
     name,
     h('span', { class: 'label', id: 'lineup-label' }, 'Pick your composer'),

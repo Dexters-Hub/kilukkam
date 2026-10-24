@@ -2,7 +2,7 @@ import type { Score } from './score.js';
 
 export const PROTOCOL_VERSION = 1;
 
-/** Room capacity — a full-room ensemble */
+/** Room capacity: a full-room ensemble */
 export const MAX_PLAYERS = 100;
 export const CODE_LEN = 4;
 export const MAX_NAME_LEN = 20;
@@ -12,6 +12,10 @@ export const MAX_AVATAR_LEN = 24;
 export const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 export type RoomPhase = 'lobby' | 'playing' | 'ended';
+
+/** Conductor expression level */
+export type DynamicsLevel = 'pp' | 'p' | 'mf' | 'f' | 'ff';
+const DYNAMICS_LEVELS: readonly DynamicsLevel[] = ['pp', 'p', 'mf', 'f', 'ff'];
 
 export interface PlayerSnapshot {
   id: string;
@@ -30,6 +34,10 @@ export interface RoomSnapshot {
   maxPlayers: number;
   /** Server ms timestamp of last start; null while in lobby */
   startedAt: number | null;
+  /** Current conductor expression level (default 'mf') */
+  dynamics: DynamicsLevel;
+  /** Tracks silenced by the conductor */
+  mutedTracks: string[];
 }
 
 export type ClientMessage =
@@ -41,6 +49,8 @@ export type ClientMessage =
   | { type: 'start_piece' }
   | { type: 'stop_piece' }
   | { type: 'remove_player'; playerId: string }
+  | { type: 'set_dynamics'; level: DynamicsLevel }
+  | { type: 'set_section'; trackId: string; muted: boolean }
   | { type: 'note_played'; noteIndex: number }
   | { type: 'ping'; t: number };
 
@@ -64,6 +74,7 @@ export type ServerMessage =
   | { type: 'room_state'; snapshot: RoomSnapshot }
   | { type: 'piece_started'; startedAt: number }
   | { type: 'piece_stopped' }
+  | { type: 'dynamics'; level: DynamicsLevel }
   | { type: 'note_echo'; playerId: string; trackId: string; noteIndex: number }
   | {
       type: 'ensemble_pulse';
@@ -109,7 +120,10 @@ function isSnapshot(v: unknown): v is RoomSnapshot {
     Array.isArray(v.players) &&
     v.players.every(isPlayer) &&
     typeof v.maxPlayers === 'number' &&
-    (v.startedAt === null || typeof v.startedAt === 'number')
+    (v.startedAt === null || typeof v.startedAt === 'number') &&
+    (DYNAMICS_LEVELS as unknown[]).includes(v.dynamics) &&
+    Array.isArray(v.mutedTracks) &&
+    v.mutedTracks.every((t) => typeof t === 'string')
   );
 }
 
@@ -153,6 +167,14 @@ export function parseClientMessage(raw: string): ClientMessage | null {
       return { type: 'stop_piece' };
     case 'remove_player':
       return isStr(v.playerId, 64) ? { type: 'remove_player', playerId: v.playerId } : null;
+    case 'set_dynamics':
+      return (DYNAMICS_LEVELS as unknown[]).includes(v.level)
+        ? { type: 'set_dynamics', level: v.level as DynamicsLevel }
+        : null;
+    case 'set_section':
+      return isStr(v.trackId, 64) && typeof v.muted === 'boolean'
+        ? { type: 'set_section', trackId: v.trackId, muted: v.muted }
+        : null;
     case 'note_played':
       return typeof v.noteIndex === 'number' && Number.isInteger(v.noteIndex) && v.noteIndex >= 0
         ? { type: 'note_played', noteIndex: v.noteIndex }
@@ -188,6 +210,10 @@ export function parseServerMessage(raw: string): ServerMessage | null {
       return typeof v.startedAt === 'number' ? { type: 'piece_started', startedAt: v.startedAt } : null;
     case 'piece_stopped':
       return { type: 'piece_stopped' };
+    case 'dynamics':
+      return (DYNAMICS_LEVELS as unknown[]).includes(v.level)
+        ? { type: 'dynamics', level: v.level as DynamicsLevel }
+        : null;
     case 'note_echo':
       return isStr(v.playerId, 64) && isStr(v.trackId, 64) &&
         typeof v.noteIndex === 'number'

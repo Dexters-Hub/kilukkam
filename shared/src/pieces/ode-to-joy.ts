@@ -1,6 +1,6 @@
 import { note, type Score, type ScoreEvent } from '../score.js';
 
-// Beethoven — Ode to Joy, C major. Short and instantly recognisable;
+// Beethoven: Ode to Joy, C major. Short and instantly recognisable;
 // good first piece for a room that has never played together.
 
 // Flute: melody

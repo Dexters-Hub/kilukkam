@@ -2,7 +2,7 @@
 
 Single WebSocket per client. All frames are JSON text, validated by
 `parseClientMessage` / `parseServerMessage` in `@kilukkam/shared`.
-Unknown or malformed frames MUST be dropped with an `error` message —
+Unknown or malformed frames MUST be dropped with an `error` message:
 never an exception, never a disconnect.
 
 ## Client → Server
@@ -12,11 +12,13 @@ never an exception, never a disconnect.
 | `create_room` | `pieceId` | anyone | first message on a fresh socket |
 | `join_room` | `code, name, avatar` | anyone | first message on a fresh socket |
 | `pick_track` | `trackId` | player | any phase; fails if track full |
-| `auto_assign` | — | player | least-occupied open track |
+| `auto_assign` | (none) | player | least-occupied open track |
 | `set_piece` | `pieceId` | conductor | lobby or ended; from ended returns to lobby and clears track picks |
-| `start_piece` | — | conductor | lobby or ended → playing |
-| `stop_piece` | — | conductor | playing → ended |
+| `start_piece` | (none) | conductor | lobby or ended → playing |
+| `stop_piece` | (none) | conductor | playing → ended |
 | `remove_player` | `playerId` | conductor | kicks; kicked socket gets `room_state` minus them then close |
+| `set_dynamics` | `level` (pp..ff) | conductor | any phase; broadcasts `dynamics` |
+| `set_section` | `trackId, muted` | conductor | any phase; snapshot carries `mutedTracks` |
 | `note_played` | `noteIndex` | player | playing only; echoes to room |
 | `ping` | `t` | anyone | RTT probe |
 
@@ -28,8 +30,9 @@ never an exception, never a disconnect.
 | `joined` | `playerId, snapshot, piece` | includes the full Score so the client needs no fetch |
 | `room_state` | `snapshot` | broadcast on every membership/phase change |
 | `piece_started` | `startedAt` | server ms timestamp |
-| `piece_stopped` | — | room phase → ended |
-| `note_echo` | `playerId, trackId, noteIndex` | conductor only — raw fan-out does not scale to 100 |
+| `piece_stopped` | (none) | room phase → ended |
+| `dynamics` | `level` | conductor changed expression; phones scale velocity + show the cue |
+| `note_echo` | `playerId, trackId, noteIndex` | conductor only; raw fan-out does not scale to 100 |
 | `ensemble_pulse` | `counts{trackId:n}, total, at` | ~4 Hz during playing, to everyone; feeds ambient room visuals |
 | `room_closed` | `reason` | sent before sockets close (conductor left) |
 | `pong` | `t, serverTime` | |

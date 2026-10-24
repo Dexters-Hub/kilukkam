@@ -87,7 +87,7 @@ export function normalizeName(raw: string): string {
 
 const ERROR_TEXT: Record<ErrorCode, string> = {
   room_not_found: "No room with that code. Check the conductor's screen.",
-  room_full: 'That room is full — 100 players already.',
+  room_full: 'That room is full: 100 players already.',
   invalid_name: 'Pick a name up to 20 characters.',
   invalid_avatar: 'Pick a composer to play as.',
   not_conductor: 'Only the conductor can do that.',

@@ -1,17 +1,17 @@
 # Kilukkam architecture
 
 Phones in the same room become instruments. One person conducts;
-everyone else taps, and each tap plays the next note of their part —
+everyone else taps, and each tap plays the next note of their part:
 a 100-phone handbell choir.
 
 ## Layout
 
 ```
-shared/   @kilukkam/shared — protocol types, score format, piece library.
+shared/   @kilukkam/shared: protocol types, score format, piece library.
           Pure TS, zero runtime deps, imported by both server and web.
-server/   @kilukkam/server — Node ws server. Room registry, lobby state
+server/   @kilukkam/server: Node ws server. Room registry, lobby state
           machine, message routing, heartbeat. Vitest for unit tests.
-web/      @kilukkam/web    — Vite + vanilla TS client. Screens, WS client,
+web/      @kilukkam/web:    Vite + vanilla TS client. Screens, WS client,
           WebAudio instruments.
 docs/     Architecture, protocol contract, decisions.
 ```
@@ -33,7 +33,7 @@ docs/     Architecture, protocol contract, decisions.
   track so late joiners always land somewhere.
 - **Conductor authority.** The first socket to `create_room` is the
   conductor. Only it may `set_piece`, `start_piece`, `stop_piece`,
-  `remove_player`. Auto-accept on join (kicking is the moderation tool —
+  `remove_player`. Auto-accept on join (kicking is the moderation tool;
   reviewing 100 joins by hand is not a UX we want).
 - **Phases.** `lobby` lets players join/leave/switch tracks freely.
   `playing` freezes track assignment; `note_played` is accepted.
@@ -43,7 +43,7 @@ docs/     Architecture, protocol contract, decisions.
 ## Hard boundaries
 
 - All WS payloads are validated with `parseClientMessage` /
-  `parseServerMessage` from `@kilukkam/shared` — never trust raw JSON.
+  `parseServerMessage` from `@kilukkam/shared`; never trust raw JSON.
 - No audio on the server. No state on the client beyond the last
   `room_state` snapshot; the server snapshot is the source of truth.
 - Transport is the only infra assumption. `server/` exposes a
@@ -55,7 +55,7 @@ docs/     Architecture, protocol contract, decisions.
 
 - Before `start_piece`, a player sees their track, next note preview,
   and a countdown state. Tapping early does nothing (or plays a dull
-  thunk — product call: ignored, no punishment).
+  thunk. Product call: ignored, no punishment).
 - During `playing`, one giant tap surface per phone: instrument name,
   the current note, the next two upcoming notes. `note_played` is sent
   fire-and-forget; the echoed ripple on other screens is the show.
