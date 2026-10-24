@@ -3,8 +3,7 @@ import { CONDUCTOR_AVATAR } from '../data/composers.js';
 import { playNote, preloadInstrument, thunk, unlockAudio } from '../lib/audio.js';
 import { ServerClock } from '../lib/clock.js';
 import { Net, wsUrl } from '../lib/net.js';
-import type { LaneSide } from '../lib/lane.js';
-import { BeatGrid, WINDOWS, breakCombo, emptyTally, judge, onsets, record, type Judgement } from '../lib/rhythm.js';
+import { BeatGrid, HOLD_RELEASE_MS, WINDOWS, breakCombo, emptyTally, flickJudgement, judge, onsets, record, regrade, releaseJudgement, type Judgement } from '../lib/rhythm.js';
 import {
   Store,
   advanceCursor,
@@ -465,23 +464,29 @@ export interface TapResult {
   resting: boolean;
   /** How close to the beat it landed; null when the clock is not synced yet */
   judgement: Judgement | null;
-  /** Two hands: the lane of the note this tap was judged against (null in single-lane play) */
-  lane: LaneSide | null;
-  /** Two hands: the tap hit the other lane. The note counts as a miss, the combo breaks, the cursor stays. */
-  wrongSide: boolean;
+  /** Lanes: the lane of the note this tap was judged against (null in single-lane play) */
+  lane: number | null;
+  /** Lanes: the tap hit another lane. The note counts as a miss, the combo breaks, the cursor stays. */
+  wrongLane: boolean;
+  /** Index in my part of the note this tap played (null when nothing played) */
+  index: number | null;
 }
 
-/** Two-hands input for a tap; leave it out for single-lane play */
+/** Lane input for a tap; leave it out for single-lane play */
 export interface TapHands {
   /** Lane of every event in my part (null for rests) */
-  sides: readonly (LaneSide | null)[];
+  lanes: readonly (number | null)[];
   /** The lane the player hit */
-  hit: LaneSide;
-  /** ms since the first finger of this hit came down (a chord waits for its second) */
+  hit: number;
+  /** ms since the finger came down (a flick note waits to see the swipe) */
   lateMs?: number;
+  /** Expert: which events are flick notes */
+  flicks?: readonly boolean[];
+  /** The player flicked (swiped up, or Shift with the lane key) */
+  flicked?: boolean;
 }
 
-/** The note a wrong-side tap already cost: it scores a miss whenever it resolves, once */
+/** The note a wrong-lane tap already cost: it scores a miss whenever it resolves, once */
 let lostNote: { run: number | null; track: string; index: number } | null = null;
 
 export interface RhythmView {
@@ -551,7 +556,7 @@ export const actions = {
     const s = store.state;
     const track = myTrack(s);
     const piece = s.piece;
-    if (s.snapshot?.phase === 'playing' && track && isMuted(s, track.id)) return { played: false, resting: true, judgement: null, lane: null, wrongSide: false };
+    if (s.snapshot?.phase === 'playing' && track && isMuted(s, track.id)) return { played: false, resting: true, judgement: null, lane: null, wrongLane: false, index: null };
     if (dj.loop && track && piece) {
       const { notes } = dj.loop;
       const index = notes[dj.loop.next % Math.max(1, notes.length)];
@@ -560,7 +565,7 @@ export const actions = {
         dj.loop.next++;
         playSafely(track.instrument, ev.midi, ev.beats, currentGrid()?.bpm ?? piece.bpm, ev.velocity, { level: levelNow(s) });
         navigator.vibrate?.(HAPTIC_NOTE);
-        return { played: true, resting: false, judgement: null, lane: null, wrongSide: false };
+        return { played: true, resting: false, judgement: null, lane: null, wrongLane: false, index: null };
       }
     }
     const at = track ? skipRests(track.events, s.cursor) : 0;
@@ -568,17 +573,17 @@ export const actions = {
     if (s.snapshot?.phase !== 'playing' || !track || !piece || ev?.kind !== 'note') {
       thunk();
       navigator.vibrate?.(HAPTIC_DUD);
-      return { played: false, resting: false, judgement: null, lane: null, wrongSide: false };
+      return { played: false, resting: false, judgement: null, lane: null, wrongLane: false, index: null };
     }
-    const lane = hands?.sides[at] ?? null;
+    const lane = hands?.lanes[at] ?? null;
     const lost = lostNote?.run === runStartedAt && lostNote.track === track.id && lostNote.index === at;
-    if (hands && lane && hands.hit !== lane) {
-      // Wrong side: a soft thunk instead of the note, nothing sent, the cursor waits for the right hand.
+    if (hands && lane !== null && hands.hit !== lane) {
+      // Wrong lane: a soft thunk instead of the note, nothing sent, the cursor waits for the right hand.
       thunk();
       navigator.vibrate?.(HAPTIC_DUD);
       lostNote = { run: runStartedAt, track: track.id, index: at };
       if (s.tally.combo) store.set({ tally: breakCombo(s.tally) });
-      return { played: false, resting: false, judgement: 'miss', lane, wrongSide: true };
+      return { played: false, resting: false, judgement: 'miss', lane, wrongLane: true, index: null };
     }
     if (lost) lostNote = null;
     if (!silentNow()) playSafely(track.instrument, ev.midi, ev.beats, currentGrid()?.bpm ?? piece.bpm, ev.velocity, { level: levelNow(s) });
@@ -586,10 +591,22 @@ export const actions = {
     net.send({ type: 'note_played', noteIndex: at });
     navigator.vibrate?.(HAPTIC_NOTE);
     const offset = offsetNow(track, at);
-    const timed: Judgement | null = offset === null ? null : judge(offset - (hands?.lateMs ?? 0));
+    const judged: Judgement | null = offset === null ? null : judge(offset - (hands?.lateMs ?? 0));
+    const timed = judged && hands?.flicks?.[at] ? flickJudgement(judged, !!hands.flicked) : judged;
     const judgement: Judgement | null = lost && timed ? 'miss' : timed;
     store.set({ cursor: advanceCursor(track.events, at), ...(judgement ? { tally: record(s.tally, judgement) } : {}) });
-    return { played: true, resting: false, judgement, lane, wrongSide: false };
+    return { played: true, resting: false, judgement, lane, wrongLane: false, index: at };
+  },
+
+  /**
+   * A hold note's finger lifted `earlyMs` before its tail ended (`holdMs` long).
+   * Its head was already scored as `hit`; letting go too early rescores it
+   * lower and breaks the combo. Nothing is sent: the note was played on the hit.
+   */
+  releaseHold(hit: Judgement, earlyMs: number, holdMs: number): Judgement {
+    const to = releaseJudgement(hit, earlyMs, holdMs);
+    if (earlyMs > HOLD_RELEASE_MS) store.set({ tally: regrade(store.state.tally, hit, to) });
+    return to;
   },
 
   /** Shared clock and beat grid for the current run (null outside a run) */

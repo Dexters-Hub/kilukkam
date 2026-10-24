@@ -117,3 +117,39 @@ export const grade = (accuracy: number, completion: number): 'S' | 'A' | 'B' | '
   if (score >= 55) return 'B';
   return 'C';
 };
+
+// ---------- hold and flick notes ----------
+
+/** Letting go of a hold up to this many ms before its tail ends costs nothing */
+export const HOLD_RELEASE_MS = 120;
+
+const STEP_DOWN: Record<Judgement, Judgement> = { perfect: 'great', great: 'good', good: 'miss', miss: 'miss' };
+
+/**
+ * The grade a hold ends on. `hit` is how its head was judged, `earlyMs` how
+ * long before the tail ended the finger lifted, `holdMs` the length of the
+ * hold. Inside the grace it keeps its grade; early drops it a step, and
+ * letting go before the halfway point is a miss.
+ */
+export const releaseJudgement = (hit: Judgement, earlyMs: number, holdMs: number): Judgement => {
+  if (earlyMs <= HOLD_RELEASE_MS) return hit;
+  if (earlyMs > holdMs / 2) return 'miss';
+  return STEP_DOWN[hit];
+};
+
+/** A flick note: a plain tap counts as Good at best, a flick keeps its timing grade */
+export const flickJudgement = (timed: Judgement, flicked: boolean): Judgement =>
+  flicked || timed === 'good' || timed === 'miss' ? timed : 'good';
+
+/**
+ * Score a note already recorded as `from` as `to` instead, and break the
+ * streak: a hold let go too early. The note count stays the same.
+ */
+export const regrade = (t: Tally, from: Judgement, to: Judgement): Tally => {
+  if (!t.notes || !t[from]) return breakCombo(t);
+  const counts = { perfect: t.perfect, great: t.great, good: t.good, miss: t.miss };
+  counts[from]--;
+  counts[to]++;
+  const earned = (t.accuracy / 100) * t.notes * 100 - POINTS[from] + POINTS[to];
+  return { ...t, ...counts, combo: 0, accuracy: Math.max(0, earned / t.notes) };
+};

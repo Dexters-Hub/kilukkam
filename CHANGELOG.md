@@ -5,6 +5,14 @@ before the docs commit are backfilled from `git log`.
 
 ## Unreleased
 
+- 2026-10-25 03:34: Play mode is now Piano Tiles with glass tiles.
+  A Level picker (Easy, Normal, Hard, Expert) sets 1, 2 or 4 columns;
+  Expert adds hold tiles that fill while held and arrow tiles you swipe
+  up. Tiles are translucent glass in the instrument colour; hits spark
+  and throw a beam up the column, misses flash red, and disco lights
+  pulse brighter with the combo. Reduced motion keeps gentle flashes
+  only. Replaces the two-hands setting.
+
 - 2026-10-25 03:30: Camera practice levels advance again. Picking a
   tempo or pattern no longer switches Levels off, and moving up now reads
   your last 8 beats (6 good, average 65 or more) instead of 8 perfect

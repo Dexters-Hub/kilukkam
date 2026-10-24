@@ -1,66 +1,37 @@
-import type { LaneSide } from '../../lib/lane.js';
+import type { LaneCount } from './lanes.js';
 
-// The two-hands input layer: turns left and right presses (fingers or keys)
-// into hits. A chord waits a moment for the other hand; everything else
-// fires at once so the note sounds on touch.
+// The lane input layer: which lane a finger or key plays, and whether a
+// finger's motion was a flick. Pure, so it is tested without a DOM.
 
-export type Hand = 'left' | 'right';
+/** Laptop keys per lane: two lanes split the home row, four take one finger each */
+export const LANE_KEYS: Record<2 | 4, readonly (readonly string[])[]> = {
+  2: [
+    ['KeyD', 'KeyF'],
+    ['KeyJ', 'KeyK'],
+  ],
+  4: [['KeyD'], ['KeyF'], ['KeyJ'], ['KeyK']],
+};
 
-/** Both hands within this many ms of each other make a chord */
-export const CHORD_MS = 60;
+/** Key caps shown under each column */
+export const KEY_CAPS: Record<2 | 4, readonly string[]> = { 2: ['F', 'J'], 4: ['D', 'F', 'J', 'K'] };
 
-export const LEFT_KEYS: ReadonlySet<string> = new Set(['KeyF', 'KeyD']);
-export const RIGHT_KEYS: ReadonlySet<string> = new Set(['KeyJ', 'KeyK']);
+/** The lane a key plays, or null when the key plays nothing at this lane count */
+export const keyLane = (code: string, count: LaneCount): number | null => {
+  if (count === 1) return null;
+  const lane = LANE_KEYS[count].findIndex((keys) => keys.includes(code));
+  return lane < 0 ? null : lane;
+};
 
-export const keyHand = (code: string): Hand | null => (LEFT_KEYS.has(code) ? 'left' : RIGHT_KEYS.has(code) ? 'right' : null);
+/** Which of `count` equal vertical strips of a surface `x` landed in */
+export const laneAt = (x: number, left: number, width: number, count: LaneCount): number => {
+  if (count === 1 || width <= 0) return 0;
+  return Math.max(0, Math.min(count - 1, Math.floor(((x - left) / width) * count)));
+};
 
-/** Which half of a surface `x` landed on */
-export const sideOf = (x: number, left: number, width: number): Hand => (x < left + width / 2 ? 'left' : 'right');
+/** An upward swipe at least this far (CSS px) counts as a flick */
+export const FLICK_PX = 24;
+/** ...made within this long of the finger coming down */
+export const FLICK_MS = 240;
 
-export interface Hands {
-  /** A hand came down at `at` (ms on the same clock as `now`) */
-  press(hand: Hand, at: number): void;
-  /** Drop a half-made chord without firing it */
-  cancel(): void;
-}
-
-/**
- * `want` names the lane of the next note; `fire` gets the hit and how many ms
- * ago the first hand came down, so a chord is judged from its first finger.
- */
-export function createHands(want: () => LaneSide | null, fire: (hit: LaneSide, lateMs: number) => void, now: () => number = () => performance.now()): Hands {
-  let pending: { hand: Hand; at: number } | null = null;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  const clear = () => {
-    if (timer) clearTimeout(timer);
-    timer = null;
-    const p = pending;
-    pending = null;
-    return p;
-  };
-  const flush = () => {
-    const p = clear();
-    if (p) fire(p.hand, Math.max(0, now() - p.at));
-  };
-  return {
-    press(hand, at) {
-      if (pending) {
-        if (hand !== pending.hand && at - pending.at <= CHORD_MS) {
-          const p = clear() as { at: number };
-          fire('both', Math.max(0, now() - p.at));
-          return;
-        }
-        flush();
-      }
-      if (want() === 'both') {
-        pending = { hand, at };
-        timer = setTimeout(flush, CHORD_MS);
-        return;
-      }
-      fire(hand, Math.max(0, now() - at));
-    },
-    cancel: () => {
-      clear();
-    },
-  };
-}
+/** A finger that moved `dx`, `dy` (screen px, y down) in `ms` since touching: was it a flick up? */
+export const isFlick = (dx: number, dy: number, ms: number): boolean => ms <= FLICK_MS && -dy >= FLICK_PX && -dy > Math.abs(dx);
