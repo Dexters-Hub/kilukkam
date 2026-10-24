@@ -188,7 +188,7 @@ const SLIDES: readonly Slide[] = [
           card('Beat the pattern', '4/4, 3/4 waltz and 2/4 march. Hit each numbered target as its ring closes; levels get faster and switch the swish.', 'var(--accent)'),
           card('Bigger is louder', 'Large sweeping beats play forte, small careful ones piano. The room follows your dynamics live.', 'var(--piano)'),
           card('Point to cue', 'Point into a third of the picture and hold: that section comes in. The labels show which third is which.', 'var(--violin)'),
-          card('Fist to cut off', 'Close your fist and hold it. The whole room stops on your mark.', 'var(--cello)'),
+          card('Fist to pause', 'Close your fist and hold it: the whole room holds on your mark. An open palm plays on.', 'var(--cello)'),
         ),
       );
     },

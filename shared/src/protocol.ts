@@ -28,6 +28,19 @@ export interface TempoAnchor {
   beat: number;
 }
 
+/** The room is paused: its grid stands still on `beat` (frozen at server time `at`) until resumed at `bpm` */
+export interface PauseState {
+  at: number;
+  beat: number;
+  bpm: number;
+}
+
+/** Beats the room counts in before it plays again after a pause */
+export const RESUME_COUNT_IN_BEATS = 2;
+
+/** Kilukkam, the room-wide bell: the server rings it at most once in this long */
+export const KILUKKAM_COOLDOWN_MS = 3000;
+
 /** Limits for conductor-uploaded custom scores; enforced server-side, mirrored by the importer */
 export const CUSTOM_PIECE_LIMITS: Readonly<{
   maxTracks: number; maxEventsPerTrack: number; maxTitleLen: number; maxFrameBytes: number;
@@ -131,6 +144,8 @@ export interface RoomSnapshot {
   customPiece: boolean;
   /** Room tempo; null means use the piece's bpm from startedAt */
   tempo: TempoAnchor | null;
+  /** Set while the conductor holds the room paused; null while it plays */
+  paused: PauseState | null;
 }
 
 export type ClientMessage =
@@ -142,6 +157,9 @@ export type ClientMessage =
   | { type: 'set_custom_piece'; score: Score }
   | { type: 'start_piece'; countIn?: boolean }
   | { type: 'stop_piece' }
+  | { type: 'pause_piece' }
+  | { type: 'resume_piece' }
+  | { type: 'kilukkam' }
   | { type: 'set_tempo'; bpm: number }
   | { type: 'assign_track'; playerId: string; trackId: string | null }
   | { type: 'dj'; cue: DjCue; bars?: number }
@@ -178,6 +196,12 @@ export type ServerMessage =
   | { type: 'piece_changed'; piece: Score }
   | { type: 'piece_started'; startedAt: number; bpm: number }
   | { type: 'piece_stopped' }
+  /** The grid freezes on `beat` from server time `at` */
+  | { type: 'piece_paused'; at: number; beat: number }
+  /** After a count-in, beat `beat` falls on server time `at`, then `bpm` from there */
+  | { type: 'piece_resumed'; at: number; beat: number; bpm: number }
+  /** The conductor rang the room: every phone flashes and chimes together */
+  | { type: 'kilukkam'; at: number }
   | { type: 'piece_results'; results: PieceResults }
   | { type: 'game_state'; game: GameState }
   | { type: 'game_row'; row: GameRow; playback: { midi: number; playerIds: string[] }[] }
@@ -236,7 +260,8 @@ function isSnapshot(v: unknown): v is RoomSnapshot {
     Array.isArray(v.mutedTracks) &&
     v.mutedTracks.every((t) => typeof t === 'string') &&
     typeof v.customPiece === 'boolean' &&
-    (v.tempo === null || isTempo(v.tempo))
+    (v.tempo === null || isTempo(v.tempo)) &&
+    (v.paused === null || isPause(v.paused))
   );
 }
 
@@ -291,6 +316,10 @@ function isTempo(v: unknown): v is TempoAnchor {
   );
 }
 
+function isPause(v: unknown): v is PauseState {
+  return isObj(v) && typeof v.at === 'number' && typeof v.beat === 'number' && typeof v.bpm === 'number' && v.bpm >= MIN_BPM && v.bpm <= MAX_BPM;
+}
+
 function isScore(v: unknown): v is Score {
   return (
     isObj(v) &&
@@ -333,6 +362,12 @@ export function parseClientMessage(raw: string): ClientMessage | null {
         : typeof v.countIn === 'boolean' ? { type: 'start_piece', countIn: v.countIn } : null;
     case 'stop_piece':
       return { type: 'stop_piece' };
+    case 'pause_piece':
+      return { type: 'pause_piece' };
+    case 'resume_piece':
+      return { type: 'resume_piece' };
+    case 'kilukkam':
+      return { type: 'kilukkam' };
     case 'set_tempo':
       return typeof v.bpm === 'number' && v.bpm >= MIN_BPM && v.bpm <= MAX_BPM
         ? { type: 'set_tempo', bpm: v.bpm }
@@ -419,6 +454,16 @@ export function parseServerMessage(raw: string): ServerMessage | null {
         : null;
     case 'piece_stopped':
       return { type: 'piece_stopped' };
+    case 'piece_paused':
+      return typeof v.at === 'number' && typeof v.beat === 'number'
+        ? { type: 'piece_paused', at: v.at, beat: v.beat }
+        : null;
+    case 'kilukkam':
+      return typeof v.at === 'number' ? { type: 'kilukkam', at: v.at } : null;
+    case 'piece_resumed':
+      return typeof v.at === 'number' && typeof v.beat === 'number' && typeof v.bpm === 'number' && v.bpm >= MIN_BPM && v.bpm <= MAX_BPM
+        ? { type: 'piece_resumed', at: v.at, beat: v.beat, bpm: v.bpm }
+        : null;
     case 'piece_results':
       return isResults(v.results) ? { type: 'piece_results', results: v.results } : null;
     case 'game_state':

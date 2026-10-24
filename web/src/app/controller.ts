@@ -58,6 +58,9 @@ export const COUNT_IN_BEATS = 4;
 let grid: { key: string; grid: BeatGrid } | null = null;
 const onsetCache = new Map<string, number[]>();
 
+/** A paused room's grid: a segment so slow it stands still on `beat` (BeatGrid has no pause of its own). */
+const frozen = (p: { at: number; beat: number }) => ({ bpm: 1e-9, at: p.at, beat: p.beat });
+
 /** The room's beat grid: beat 0 is startedAt, then the server's tempo anchors. */
 const currentGrid = (): BeatGrid | null => {
   const piece = store.state.piece;
@@ -68,6 +71,9 @@ const currentGrid = (): BeatGrid | null => {
     // Arriving mid-run after a tempo change: adopt the room's current anchor.
     const tempo = store.state.snapshot?.tempo;
     if (tempo) g.anchor(tempo);
+    // Arriving while the conductor holds the room paused: the grid stands still.
+    const paused = store.state.snapshot?.paused;
+    if (paused) g.anchor(frozen(paused));
     grid = { key, grid: g };
   }
   return grid.grid;
@@ -110,7 +116,7 @@ function watchFinish(): void {
     const g = currentGrid();
     const s = store.state;
     if (!g || s.snapshot?.phase !== 'playing') return stopFinishWatch();
-    if (dj.loop) return;
+    if (dj.loop || s.snapshot.paused) return;
     if (clock.now() > g.timeOf(pieceBeats()) + RING_OUT_MS) {
       stopFinishWatch();
       send({ type: 'stop_piece' });
@@ -266,6 +272,22 @@ function onMessage(msg: ServerMessage): void {
       stopFinishWatch();
       if (s.session?.role === 'conductor') stopSong();
       return; // room_state carries the phase change
+
+    case 'piece_paused':
+      // The whole room stops on the same beat; nothing plays or counts as missed until it resumes.
+      currentGrid()?.anchor(frozen(msg));
+      emitLive('paused', { at: msg.at, beat: msg.beat });
+      return;
+
+    case 'piece_resumed':
+      // Beat `beat` falls on `at`, after a short count-in; the frozen stretch before it stays frozen.
+      currentGrid()?.anchor({ bpm: msg.bpm, at: msg.at, beat: msg.beat });
+      emitLive('resumed', { at: msg.at, bpm: msg.bpm });
+      return;
+
+    case 'kilukkam':
+      emitLive('kilukkam', { at: msg.at });
+      return;
 
     case 'tempo':
       // The server's anchor is the truth: beat `beat` at `at`, then `bpm`, on every phone alike.
@@ -434,6 +456,7 @@ setInterval(() => {
   const track = myTrack(s);
   const piece = s.piece;
   if (s.snapshot?.phase !== 'playing' || !track || !piece || !clock.ready || dj.loop) return;
+  if (s.snapshot.paused) return;
   if (isMuted(s, track.id)) {
     resync();
     return;
@@ -530,6 +553,9 @@ export const actions = {
   setPiece: (pieceId: string) => send({ type: 'set_piece', pieceId }),
   startPiece: (countIn: boolean) => send(countIn ? { type: 'start_piece', countIn: true } : { type: 'start_piece' }),
   stopPiece: () => send({ type: 'stop_piece' }),
+  pausePiece: () => send({ type: 'pause_piece' }),
+  resumePiece: () => send({ type: 'resume_piece' }),
+  kilukkam: () => send({ type: 'kilukkam' }),
   kick: (playerId: string) => send({ type: 'remove_player', playerId }),
   assignTrack: (playerId: string, trackId: string | null) => send({ type: 'assign_track', playerId, trackId }),
   setDynamics: (level: DynamicsLevel) => send({ type: 'set_dynamics', level }),
@@ -556,6 +582,7 @@ export const actions = {
     const s = store.state;
     const track = myTrack(s);
     const piece = s.piece;
+    if (s.snapshot?.phase === 'playing' && s.snapshot.paused) return { played: false, resting: true, judgement: null, lane: null, wrongLane: false, index: null };
     if (s.snapshot?.phase === 'playing' && track && isMuted(s, track.id)) return { played: false, resting: true, judgement: null, lane: null, wrongLane: false, index: null };
     if (dj.loop && track && piece) {
       const { notes } = dj.loop;

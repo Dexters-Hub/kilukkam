@@ -56,7 +56,7 @@ describe('parseServerMessage', () => {
       snapshot: {
         code: 'AB3F', phase: 'lobby', pieceId: 'canon-in-d',
         players: [{ id: 'p1', name: 'A', avatar: '🦊', trackId: 'violin-1', connected: true, conductor: false }],
-        maxPlayers: MAX_PLAYERS, startedAt: null, dynamics: 'mf', mutedTracks: [], customPiece: false, tempo: null,
+        maxPlayers: MAX_PLAYERS, startedAt: null, dynamics: 'mf', mutedTracks: [], customPiece: false, tempo: null, paused: null,
       },
     };
     expect(parseServerMessage(JSON.stringify(msg))).toEqual(msg);
@@ -87,5 +87,18 @@ describe('constants', () => {
 
   it('supports 100 participants', () => {
     expect(MAX_PLAYERS).toBe(100);
+  });
+});
+
+describe('pause, resume and kilukkam frames', () => {
+  it('parse both ways and reject bad fields', () => {
+    expect(parseClientMessage('{"type":"pause_piece"}')).toEqual({ type: 'pause_piece' });
+    expect(parseClientMessage('{"type":"resume_piece"}')).toEqual({ type: 'resume_piece' });
+    expect(parseClientMessage('{"type":"kilukkam"}')).toEqual({ type: 'kilukkam' });
+    expect(parseServerMessage('{"type":"kilukkam","at":5}')).toEqual({ type: 'kilukkam', at: 5 });
+    expect(parseServerMessage('{"type":"kilukkam"}')).toBeNull();
+    expect(parseServerMessage('{"type":"piece_paused","at":1,"beat":2}')).toEqual({ type: 'piece_paused', at: 1, beat: 2 });
+    expect(parseServerMessage('{"type":"piece_resumed","at":1,"beat":2,"bpm":90}')).toEqual({ type: 'piece_resumed', at: 1, beat: 2, bpm: 90 });
+    expect(parseServerMessage('{"type":"piece_resumed","at":1,"beat":2,"bpm":900}')).toBeNull();
   });
 });

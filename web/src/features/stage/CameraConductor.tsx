@@ -1,24 +1,24 @@
-import type { Score } from '@kilukkam/shared';
+import type { ClientMessage, DynamicsLevel, Score } from '@kilukkam/shared';
 import { useEffect, useRef, useState } from 'react';
 import { actions } from '../../app/controller.js';
 import { DYNAMICS_LABEL } from '../../app/cues.js';
+import { onLive } from '../../app/live.js';
 import { Button, cx } from '../../components/Button.js';
 import { Icon } from '../../components/Icon.js';
-import { createConductor, type CueSide } from '../../lib/camera/conductor.js';
+import { demoHands } from '../../lib/camera/camdemo.js';
+import { createConductor, type Conductor, type ConductorCue, type CueSide, type Hold } from '../../lib/camera/conductor.js';
 import { drawCueZones, newZoneState } from '../../lib/camera/cueZones.js';
 import type { HandFrame } from '../../lib/camera/features.js';
 import { CameraError, startHandTracking, type HandTracking } from '../../lib/camera/hands.js';
 import { PLAYALONG_ID } from '../../lib/spotify/playalong.js';
+import { SIDES, messagesFor, sectionsFor } from './gestureActions.js';
 import s from './CameraConductor.module.css';
 
 // Conduct the live room with the laptop camera. Gestures drive the same
-// controls as the buttons below: the beat sets the tempo, the size of the
-// beat sets the dynamics, pointing into a third of the picture brings that
-// section in, and a held fist cuts the room off. Video stays in this tab.
-
-const SIDES: readonly CueSide[] = ['left', 'center', 'right'];
-/** Ignore a cut-off in the first seconds, so raising a closed hand cannot end the piece by accident */
-const CUTOFF_GRACE_MS = 3000;
+// controls as the buttons: the beat sets the tempo, its size the dynamics,
+// pointing brings a section in, the stop hand rests it, a fist pauses the
+// room and an open palm resumes it, and two-hand gestures build, drop and
+// loop. No gesture ends the piece: that is the Stop button. Video stays here.
 
 const MESSAGES: Record<CameraError['reason'], string> = {
   insecure: 'Camera conducting needs https or localhost.',
@@ -29,121 +29,167 @@ const MESSAGES: Record<CameraError['reason'], string> = {
   model: 'Hand tracking does not run in this browser. Try a recent Chrome or Safari.',
 };
 
-/** Split the instruments into thirds of the picture, left to right in score order. */
-const sectionsFor = (piece: Score): Record<CueSide, { ids: string[]; label: string }> => {
-  const n = piece.tracks.length;
-  const out = { left: { ids: [] as string[], label: '' }, center: { ids: [] as string[], label: '' }, right: { ids: [] as string[], label: '' } };
-  piece.tracks.forEach((t, i) => {
-    const side = SIDES[Math.min(2, Math.floor((i * 3) / Math.max(1, n)))] ?? 'right';
-    out[side].ids.push(t.id);
-    out[side].label = out[side].label ? `${out[side].label} + ${t.name}` : t.name;
-  });
-  return out;
+/** Gesture guide cards, in the order a conductor learns them */
+type Card = 'beat' | 'dynamics' | 'cue' | 'rest' | 'pause' | 'resume' | 'build' | 'drop' | 'loop' | 'kilukkam';
+const GUIDE: readonly { card: Card; title: string; hint: string }[] = [
+  { card: 'beat', title: 'Beat time', hint: 'sets the tempo' },
+  { card: 'dynamics', title: 'Other palm up or down', hint: 'louder or softer' },
+  { card: 'cue', title: 'Point and hold', hint: 'brings a section in' },
+  { card: 'rest', title: 'One palm in a third', hint: 'rests that section' },
+  { card: 'pause', title: 'Both palms, held', hint: 'pauses the room' },
+  { card: 'resume', title: 'One big downbeat', hint: 'plays on' },
+  { card: 'build', title: 'Both palms up, rising', hint: 'build' },
+  { card: 'drop', title: 'Both hands down fast', hint: 'drop' },
+  { card: 'loop', title: 'Circle with a finger', hint: 'loops the bar' },
+  { card: 'kilukkam', title: 'Shake like a bell', hint: 'Kilukkam!' },
+];
+
+const HOLD_LABEL: Record<Hold['kind'], string> = {
+  cue: 'In',
+  rest: 'Rest',
+  pause: 'Pause',
+  crescendo: 'Louder',
+  diminuendo: 'Softer',
+  build: 'Build',
+  drop: 'Drop',
+  loop: 'Loop',
+  kilukkam: 'Kilukkam!',
 };
 
-type Feedback = { text: string; at: number } | null;
+type Lit = { card: Card; text: string; at: number } | null;
 
-export function CameraConductor({ piece, startedAt }: { piece: Score; startedAt: number | null }) {
+export interface CameraRoom {
+  piece: Score;
+  paused: boolean;
+  muted: readonly string[];
+  dynamics: DynamicsLevel;
+}
+
+export function CameraConductor({ room, onCamera }: { room: CameraRoom; onCamera?: (on: boolean) => void }) {
+  const { piece } = room;
   const [on, setOn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [readout, setReadout] = useState<{ bpm: number | null; dyn: string | null; last: Feedback }>({ bpm: null, dyn: null, last: null });
+  const [readout, setReadout] = useState<{ bpm: number | null; dyn: string | null; lit: Lit }>({ bpm: null, dyn: null, lit: null });
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const tracking = useRef<HandTracking | null>(null);
+  const conductor = useRef<Conductor | null>(null);
   const flash = useRef<{ side: CueSide; t: number } | null>(null);
   const zones = useRef(newZoneState());
   const pulse = useRef(0);
+  const looping = useRef(false);
   const sections = sectionsFor(piece);
-  const latest = useRef({ piece, startedAt, sections });
-  latest.current = { piece, startedAt, sections };
+  const latest = useRef({ room, sections });
+  latest.current = { room, sections };
 
   useEffect(() => () => tracking.current?.stop(), []);
+  useEffect(() => onCamera?.(on), [on, onCamera]);
+  // The room is the truth: a pause from the button, or a resume, reaches the gesture reader too.
+  useEffect(() => {
+    if (conductor.current) conductor.current.paused = room.paused;
+  }, [room.paused]);
+  useEffect(() => {
+    if (conductor.current) conductor.current.dynamics = room.dynamics;
+  }, [room.dynamics]);
+  useEffect(
+    () =>
+      onLive('dj', (e) => {
+        if (e.cue === 'loop_on') looping.current = true;
+        if (e.cue === 'loop_off') looping.current = false;
+      }),
+    [],
+  );
+
+  // A fired gesture stays lit on its card for a moment, then the card goes back to its hint.
+  useEffect(() => {
+    if (!readout.lit) return;
+    const id = setTimeout(() => setReadout((r) => ({ ...r, lit: null })), 4000);
+    return () => clearTimeout(id);
+  }, [readout.lit]);
+
+  const light = (card: Card, text: string) => setReadout((r) => ({ ...r, lit: { card, text, at: Date.now() } }));
+
+  const dispatch = (msg: ClientMessage) => {
+    switch (msg.type) {
+      case 'set_tempo':
+        return actions.setTempo(msg.bpm);
+      case 'set_dynamics':
+        return actions.setDynamics(msg.level);
+      case 'set_section':
+        return actions.setSection(msg.trackId, msg.muted);
+      case 'pause_piece':
+        return actions.pausePiece();
+      case 'resume_piece':
+        return actions.resumePiece();
+      case 'dj':
+        return actions.dj(msg.cue);
+      case 'kilukkam':
+        return actions.kilukkam();
+      default:
+        return undefined;
+    }
+  };
+
+  const onCue = (cue: ConductorCue) => {
+    const { room: r, sections: sec } = latest.current;
+    if (cue.kind === 'beat') pulse.current = performance.now();
+    const msgs = messagesFor(cue, { sections: sec, playAlong: r.piece.id === PLAYALONG_ID, paused: r.paused, looping: looping.current });
+    for (const m of msgs) dispatch(m);
+    switch (cue.kind) {
+      case 'tempo':
+        if (msgs.length) setReadout((x) => ({ ...x, bpm: cue.bpm }));
+        return;
+      case 'dynamics':
+        setReadout((x) => ({ ...x, dyn: DYNAMICS_LABEL[cue.level] }));
+        return;
+      case 'kilukkam':
+        if (msgs.length) light('kilukkam', 'Kilukkam!');
+        return;
+      case 'cue':
+        flash.current = { side: cue.side, t: performance.now() };
+        light('cue', `${sec[cue.side].label} in`);
+        return;
+      case 'rest':
+        light('rest', `${sec[cue.side].label} rest`);
+        return;
+      case 'pause':
+        if (msgs.length) light('pause', 'Paused');
+        return;
+      case 'resume':
+        if (msgs.length) light('resume', 'Playing on');
+        return;
+      case 'build':
+      case 'drop':
+        if (msgs.length) light(cue.kind, cue.kind === 'build' ? 'Build' : 'Drop');
+        return;
+      case 'loop':
+        if (msgs.length) light('loop', looping.current ? 'Loop off' : 'Looping');
+        return;
+    }
+  };
 
   const start = async () => {
     const video = videoRef.current;
     if (!video) return;
     setBusy(true);
     setError(null);
-    const conductor = createConductor(
-      (cue) => {
-        const { piece: p, startedAt: t0, sections: sec } = latest.current;
-        switch (cue.kind) {
-          case 'beat':
-            pulse.current = performance.now();
-            return;
-          case 'tempo':
-            // A Spotify recording cannot follow tempo changes; leave the room locked to it.
-            if (p.id === PLAYALONG_ID) return;
-            actions.setTempo(cue.bpm);
-            setReadout((r) => ({ ...r, bpm: cue.bpm }));
-            return;
-          case 'dynamics':
-            actions.setDynamics(cue.level);
-            setReadout((r) => ({ ...r, dyn: DYNAMICS_LABEL[cue.level] }));
-            return;
-          case 'cue': {
-            const group = sec[cue.side];
-            for (const id of group.ids) actions.setSection(id, false);
-            flash.current = { side: cue.side, t: performance.now() };
-            setReadout((r) => ({ ...r, last: { text: `${group.label} in`, at: Date.now() } }));
-            return;
-          }
-          case 'cutoff':
-            if (t0 !== null && Date.now() - t0 < CUTOFF_GRACE_MS) return;
-            setReadout((r) => ({ ...r, last: { text: 'Cut off', at: Date.now() } }));
-            actions.stopPiece();
-            return;
-        }
-      },
-      { tempo: piece.bpm },
-    );
-    // ?camdemo drives the live stage with a scripted hand instead of the camera:
-    // big beats at 120 bpm, small beats at 90, a point into the left third, a
-    // held fist. For demos without a webcam, and to test that gestures reach the room.
+    const c = createConductor(onCue, { tempo: piece.bpm });
+    c.paused = latest.current.room.paused;
+    c.dynamics = latest.current.room.dynamics;
+    conductor.current = c;
     if (new URLSearchParams(location.search).has('camdemo')) {
       const t0 = performance.now();
       let raf = 0;
       const step = (now: number) => {
         raf = requestAnimationFrame(step);
-        const e = now - t0;
-        const beatAt = (bpm: number, from: number) => ((e - from) * bpm) / 60_000;
-        let p = { x: 0.62, y: 0.5 };
-        let fingers: [boolean, boolean, boolean, boolean, boolean] = [true, true, true, true, true];
-        let fist = false;
-        if (e < 8000) {
-          const f = beatAt(120, 0) % 1;
-          p = { x: 0.62, y: 0.3 + 0.42 * (1 - (2 * f - 1) ** 2) };
-        } else if (e < 14000) {
-          const f = beatAt(90, 8000) % 1;
-          p = { x: 0.62, y: 0.5 + 0.1 * (1 - (2 * f - 1) ** 2) };
-        } else if (e < 16500) {
-          p = { x: 0.15, y: 0.42 };
-          fingers = [false, true, false, false, false];
-        } else if (e < 19000) {
-          p = { x: 0.55, y: 0.5 };
-          fingers = [false, false, false, false, false];
-          fist = true;
-        } else {
+        const hands = demoHands(now - t0);
+        if (!hands) {
           cancelAnimationFrame(raf);
           return;
         }
-        const hand = {
-          handedness: 'right' as const,
-          score: 1,
-          wrist: { x: p.x, y: p.y + 0.08 },
-          indexTip: { x: p.x, y: p.y - 0.09 },
-          palmCenter: p,
-          size: 0.12,
-          pinch: false,
-          pinchDistance: 1,
-          fingersUp: fingers,
-          openPalm: !fist && fingers.every(Boolean),
-          fist,
-          landmarks: Array.from({ length: 21 }, () => p),
-        };
-        const frame = { t: now, aspect: 4 / 3, hands: [hand] };
-        conductor.push(frame);
+        const frame = { t: now, aspect: 4 / 3, hands };
+        c.push(frame);
         draw(frame);
       };
       raf = requestAnimationFrame(step);
@@ -154,7 +200,7 @@ export function CameraConductor({ piece, startedAt }: { piece: Score; startedAt:
     }
     try {
       tracking.current = await startHandTracking(video, (frame) => {
-        conductor.push(frame);
+        c.push(frame);
         draw(frame);
       }, {
         numHands: 2,
@@ -174,6 +220,7 @@ export function CameraConductor({ piece, startedAt }: { piece: Score; startedAt:
   const stop = () => {
     tracking.current?.stop();
     tracking.current = null;
+    conductor.current = null;
     setOn(false);
   };
 
@@ -191,18 +238,21 @@ export function CameraConductor({ piece, startedAt }: { piece: Score; startedAt:
     const css = getComputedStyle(document.documentElement);
     const lime = css.getPropertyValue('--accent').trim() || '#b6f400';
     const now = performance.now();
+    const { room: r, sections: sec } = latest.current;
     // Which third cues which section, always labelled, with a hold ring while pointing.
-    const sec = latest.current.sections;
     const colorOf = (side: CueSide) => {
-      const id = latest.current.piece.tracks.find((tr) => sec[side].ids.includes(tr.id))?.instrument;
+      const id = r.piece.tracks.find((tr) => sec[side].ids.includes(tr.id))?.instrument;
       return (id && css.getPropertyValue(`--${id}`).trim()) || lime;
     };
+    const rests = (side: CueSide) => sec[side].ids.length > 0 && sec[side].ids.every((id) => r.muted.includes(id));
+    // A finger tracing the loop circle is not pointing at a section: no section ring meanwhile.
+    const circling = conductor.current?.holds.some((x) => x.kind === 'loop') ?? false;
     drawCueZones(
       ctx,
       w,
       h,
-      SIDES.filter((side) => sec[side].ids.length > 0).map((side) => ({ side, label: sec[side].label, color: colorOf(side) })),
-      frame,
+      SIDES.filter((side) => sec[side].ids.length > 0).map((side) => ({ side, label: rests(side) ? `${sec[side].label} rest` : sec[side].label, color: colorOf(side) })),
+      circling ? { ...frame, hands: [] } : frame,
       zones.current,
       flash.current,
     );
@@ -216,6 +266,32 @@ export function CameraConductor({ piece, startedAt }: { piece: Score; startedAt:
       ctx.fill();
       ctx.shadowBlur = 0;
     }
+    // A progress ring for every held gesture, so you see it land before it fires.
+    const px = Math.max(12, Math.round(h * 0.034));
+    // (The cue zones draw the pointing ring themselves.)
+    for (const hold of (conductor.current?.holds ?? []).filter((x) => x.kind !== 'cue')) {
+      const x = hold.at.x * w;
+      const y = hold.at.y * h;
+      const rad = Math.max(20, h * 0.06);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(x, y, rad, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = hold.side ? colorOf(hold.side) : lime;
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(x, y, rad, -Math.PI / 2, -Math.PI / 2 + hold.progress * Math.PI * 2);
+      ctx.stroke();
+      ctx.font = `800 ${Math.round(px * 0.85)}px "Inter Variable", system-ui, sans-serif`;
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const label = hold.side ? `${sec[hold.side].label} ${hold.kind === 'rest' ? 'rest' : 'in'}` : HOLD_LABEL[hold.kind];
+      ctx.fillText(label, x, y - rad - px);
+      ctx.textBaseline = 'alphabetic';
+    }
     // Beat pulse in the corner.
     const age = now - pulse.current;
     ctx.fillStyle = lime;
@@ -225,6 +301,16 @@ export function CameraConductor({ piece, startedAt }: { piece: Score; startedAt:
     ctx.fill();
     ctx.globalAlpha = 1;
   };
+
+  const lit = readout.lit;
+  const hintFor = (card: Card, hint: string): string => {
+    if (card === 'beat') return readout.bpm !== null ? `${readout.bpm} bpm` : hint;
+    if (card === 'dynamics') return readout.dyn ?? hint;
+    if (card === 'pause' && room.paused) return 'Paused';
+    return lit?.card === card ? lit.text : hint;
+  };
+  const isLit = (card: Card): boolean =>
+    (card === 'beat' && readout.bpm !== null) || (card === 'dynamics' && readout.dyn !== null) || (card === 'pause' && room.paused) || lit?.card === card;
 
   return (
     <section className={s.panel} aria-label="Camera conducting">
@@ -254,24 +340,15 @@ export function CameraConductor({ piece, startedAt }: { piece: Score; startedAt:
           {error}
         </p>
       ) : null}
-      <ul className={s.legend}>
-        <li className={cx(readout.bpm !== null && s.hit)}>
-          <b>Beat time</b>
-          <span>{readout.bpm !== null ? `${readout.bpm} bpm` : 'sets the tempo'}</span>
-        </li>
-        <li className={cx(readout.dyn !== null && s.hit)}>
-          <b>Bigger beats</b>
-          <span>{readout.dyn ?? 'play louder'}</span>
-        </li>
-        <li className={cx(readout.last?.text.endsWith(' in') && s.hit)}>
-          <b>Point and hold</b>
-          <span>{readout.last?.text.endsWith(' in') ? readout.last.text : 'brings a section in'}</span>
-        </li>
-        <li className={cx(readout.last?.text === 'Cut off' && s.hit)}>
-          <b>Hold a fist</b>
-          <span>cuts the room off</span>
-        </li>
+      <ul className={s.legend} aria-label="Gestures">
+        {GUIDE.map(({ card, title, hint }) => (
+          <li key={card} data-card={card} className={cx(isLit(card) && s.hit)}>
+            <b>{title}</b>
+            <span>{hintFor(card, hint)}</span>
+          </li>
+        ))}
       </ul>
+      <p className={s.note}>Only the Stop button ends the piece.</p>
     </section>
   );
 }

@@ -226,42 +226,6 @@ describe('conductor dynamics', () => {
   });
 });
 
-describe('conductor cut-off', () => {
-  it('ends the piece on a fist held still for 400 ms, once', () => {
-    const r = run([...beating({ bpm: 100, beats: 6 }), ...holding(POSES.fist, 900, { start: 3700, y: 0.55, x: 0.6 })]);
-    const cut = r.of('cutoff');
-    expect(cut).toHaveLength(1);
-    expect(cut[0]?.t).toBeGreaterThanOrEqual(3700 + 400);
-    expect(cut[0]?.t).toBeLessThan(3700 + 520);
-  });
-
-  it('does not cut off again while the fist stays closed, but does after it opens', () => {
-    const once = run(holding(POSES.fist, 2000));
-    expect(once.of('cutoff')).toHaveLength(1);
-    const twice = run([...holding(POSES.fist, 600), ...holding(POSES.open, 300, { start: 633 }), ...holding(POSES.fist, 600, { start: 966 })]);
-    expect(twice.of('cutoff')).toHaveLength(2);
-  });
-
-  it('needs the full 400 ms', () => {
-    expect(run(holding(POSES.fist, 330)).of('cutoff')).toHaveLength(0);
-  });
-
-  it('survives a dropped frame mid-hold', () => {
-    const frames = [...holding(POSES.fist, 600)].map((f, i) => (i === 6 ? frame(f.t) : f));
-    expect(run(frames).of('cutoff')).toHaveLength(1);
-  });
-
-  it('is not fooled by a fist that keeps beating, or a hand that hangs loose', () => {
-    expect(run(beating({ bpm: 100, beats: 8, pose: POSES.fist })).of('cutoff')).toHaveLength(0);
-    expect(run(holding(POSES.relaxed, 1500)).of('cutoff')).toHaveLength(0);
-  });
-
-  it('works from the free hand while the baton hand beats', () => {
-    const fist = (t: number) => (t > 2000 ? [makeHand(POSES.fist, { x: 0.25, y: 0.5, handedness: 'left' })] : []);
-    expect(run(beating({ bpm: 100, beats: 6, others: fist })).of('cutoff')).toHaveLength(1);
-  });
-});
-
 describe('conductor cues', () => {
   // A left hand pointing sideways with its fingertip in the given third
   const pointer = (tipX: number, handedness: 'left' | 'right' = 'left') => {
@@ -270,7 +234,7 @@ describe('conductor cues', () => {
     return { pose: POSES.point, at: { x: tipX - dx, y: 0.45, rotate: -90, handedness } };
   };
 
-  it('cues the section the free hand points at, after 500 ms', () => {
+  it('cues the section the free hand points at, after a 1 s hold', () => {
     for (const [x, side] of [
       [0.15, 'left'],
       [0.5, 'center'],
@@ -278,17 +242,18 @@ describe('conductor cues', () => {
     ] as const) {
       const p = pointer(x);
       const point = (t: number) => (t > 1500 ? [makeHand(p.pose, { ...p.at, noise: 0.002 })] : []);
-      const cues = run(beating({ bpm: 100, beats: 6, others: point, at: { x: 0.75 } })).of('cue');
+      const cues = run(beating({ bpm: 100, beats: 6, others: point, at: { x: 0.75 } }), { armMs: 0 }).of('cue');
       expect(cues).toHaveLength(1);
       expect(cues[0]?.side).toBe(side);
-      expect(cues[0]?.t).toBeGreaterThanOrEqual(1500 + 500);
+      // In view 500 ms, then held 1 s.
+      expect(cues[0]?.t).toBeGreaterThanOrEqual(1500 + 1500);
     }
   });
 
   it('cues from a lone hand too, but not from a quick point', () => {
     const p = pointer(0.85, 'right');
-    expect(run(holding(p.pose, 800, p.at)).of('cue').map((c) => c.side)).toEqual(['right']);
-    expect(run(holding(p.pose, 400, p.at)).of('cue')).toHaveLength(0);
+    expect(run(holding(p.pose, 1800, p.at), { armMs: 0 }).of('cue').map((c) => c.side)).toEqual(['right']);
+    expect(run(holding(p.pose, 1300, p.at), { armMs: 0 }).of('cue')).toHaveLength(0);
   });
 
   it('does not flip sections when the finger rests on a boundary', () => {

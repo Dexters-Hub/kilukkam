@@ -5,6 +5,8 @@ import {
   CUSTOM_PIECE_LIMITS,
   MAX_PLAYERS,
   RESULTS_GRACE_MS,
+  KILUKKAM_COOLDOWN_MS,
+  RESUME_COUNT_IN_BEATS,
   aggregateResults,
   getPiece,
   parseClientMessage,
@@ -12,6 +14,7 @@ import {
   type ClientMessage,
   type DynamicsLevel,
   type ErrorCode,
+  type PauseState,
   type PlayerSnapshot,
   type PlayerTally,
   type RoomPhase,
@@ -64,6 +67,10 @@ interface Room {
   mutedTracks: Set<string>;
   customPiece: boolean;
   tempo: TempoAnchor | null;
+  /** The conductor paused the room: the grid stands still until resumed */
+  paused: PauseState | null;
+  /** Server ms of the last kilukkam, for its rate limit */
+  kilukkamAt: number;
   /** Tallies collected after a stop, keyed by trackId; null when no window is open */
   results: { closesAt: number; byTrack: Map<string, PlayerTally[]> } | null;
   /** The room game in progress or just finished; null when none */
@@ -135,6 +142,12 @@ export class RoomEngine {
         return this.asConductor(seat, socketId, msg, this.startPiece);
       case 'stop_piece':
         return this.asConductor(seat, socketId, msg, this.stopPiece);
+      case 'pause_piece':
+        return this.asConductor(seat, socketId, msg, this.pausePiece);
+      case 'resume_piece':
+        return this.asConductor(seat, socketId, msg, this.resumePiece);
+      case 'kilukkam':
+        return this.asConductor(seat, socketId, msg, this.kilukkam);
       case 'set_tempo':
         return this.asConductor(seat, socketId, msg, this.setTempo);
       case 'assign_track':
@@ -232,6 +245,8 @@ export class RoomEngine {
       mutedTracks: new Set(),
       customPiece: false,
       tempo: null,
+      paused: null,
+      kilukkamAt: -Infinity,
       results: null,
       game: null,
     };
@@ -314,6 +329,7 @@ export class RoomEngine {
 
   private notePlayed: Handler<'note_played'> = ({ room, player }, socketId, msg) => {
     if (room.phase !== 'playing') return error(socketId, 'not_started', 'piece is not playing');
+    if (room.paused) return error(socketId, 'not_started', 'the room is paused');
     const track = room.piece.tracks.find((t) => t.id === player.trackId);
     if (!track) return error(socketId, 'track_not_found', 'you have no track');
     if (msg.noteIndex >= track.events.length) {
@@ -340,6 +356,7 @@ export class RoomEngine {
     room.customPiece = false;
     room.phase = 'lobby';
     room.startedAt = null;
+    room.paused = null;
     for (const p of room.players.values()) p.trackId = null;
     return [...this.dropGame(room), this.broadcastState(room)];
   };
@@ -349,6 +366,7 @@ export class RoomEngine {
     room.phase = 'playing';
     room.startedAt = this.now() + (msg.countIn ? COUNT_IN_MS : 0);
     room.tempo = null;
+    room.paused = null;
     room.taps.clear();
     room.results = null;
     return [
@@ -363,6 +381,7 @@ export class RoomEngine {
     // Last taps of the run still count toward everyone's tally.
     const pulse = this.flushPulse(room, this.now());
     room.phase = 'ended';
+    room.paused = null;
     room.results = { closesAt: this.now() + RESULTS_GRACE_MS, byTrack: new Map() };
     return [
       ...(pulse ? [pulse] : []),
@@ -389,6 +408,7 @@ export class RoomEngine {
     room.customPiece = true;
     room.phase = 'lobby';
     room.startedAt = null;
+    room.paused = null;
     for (const p of room.players.values()) p.trackId = null;
     return [
       send(socketsOf(room), { type: 'piece_changed', piece: msg.score }),
@@ -396,14 +416,54 @@ export class RoomEngine {
     ];
   };
 
-  /** Beat index on the room's grid at server time `now` */
+  /**
+   * Beat index on the room's grid at server time `now`: negative during a
+   * count-in, exactly as the phones' BeatGrid counts it, and frozen while paused.
+   */
   private beatAt(room: Room, now: number): number {
+    if (room.paused) return room.paused.beat;
     if (room.tempo) return room.tempo.beat + ((now - room.tempo.at) / 60_000) * room.tempo.bpm;
     if (room.startedAt === null) return 0;
-    return Math.max(0, ((now - room.startedAt) / 60_000) * room.piece.bpm);
+    return ((now - room.startedAt) / 60_000) * room.piece.bpm;
   }
 
+  private bpmOf(room: Room): number {
+    return room.paused?.bpm ?? room.tempo?.bpm ?? room.piece.bpm;
+  }
+
+  private pausePiece: Handler<'pause_piece'> = ({ room }, socketId) => {
+    if (room.phase !== 'playing') return error(socketId, 'not_started', 'piece is not playing');
+    if (room.paused) return error(socketId, 'bad_message', 'already paused');
+    const at = this.now();
+    room.paused = { at, beat: this.beatAt(room, at), bpm: this.bpmOf(room) };
+    return [send(socketsOf(room), { type: 'piece_paused', at, beat: room.paused.beat }), this.broadcastState(room)];
+  };
+
+  /** Play on from the beat the room paused on, after a short count-in at the room tempo. */
+  private resumePiece: Handler<'resume_piece'> = ({ room }, socketId) => {
+    if (room.phase !== 'playing' || !room.paused) return error(socketId, 'not_started', 'the room is not paused');
+    const { beat, bpm } = room.paused;
+    const anchor: TempoAnchor = { bpm, at: this.now() + (RESUME_COUNT_IN_BEATS * 60_000) / bpm, beat };
+    room.paused = null;
+    room.tempo = anchor;
+    return [send(socketsOf(room), { type: 'piece_resumed', ...anchor }), this.broadcastState(room)];
+  };
+
+  /** The room-wide bell. Rate limited: a ring inside the cooldown is dropped without an error. */
+  private kilukkam: Handler<'kilukkam'> = ({ room }, socketId) => {
+    if (room.phase !== 'playing') return error(socketId, 'not_started', 'piece is not playing');
+    const at = this.now();
+    if (at - room.kilukkamAt < KILUKKAM_COOLDOWN_MS) return [];
+    room.kilukkamAt = at;
+    return [send(socketsOf(room), { type: 'kilukkam', at })];
+  };
+
   private setTempo: Handler<'set_tempo'> = ({ room }, _socketId, msg) => {
+    // Paused: the grid stays frozen; the room resumes at the new tempo.
+    if (room.paused) {
+      room.paused.bpm = msg.bpm;
+      return [this.broadcastState(room)];
+    }
     const at = this.now();
     const anchor: TempoAnchor = { bpm: msg.bpm, at, beat: this.beatAt(room, at) };
     room.tempo = anchor;
@@ -428,6 +488,7 @@ export class RoomEngine {
 
   private djCue: Handler<'dj'> = ({ room }, socketId, msg) => {
     if (room.phase !== 'playing') return error(socketId, 'not_started', 'piece is not playing');
+    if (room.paused) return error(socketId, 'not_started', 'the room is paused');
     const out: ServerMessage = msg.bars === undefined
       ? { type: 'dj', cue: msg.cue, at: this.now() }
       : { type: 'dj', cue: msg.cue, at: this.now(), bars: msg.bars };
@@ -587,6 +648,7 @@ function snapshot(room: Room): RoomSnapshot {
     mutedTracks: [...room.mutedTracks],
     customPiece: room.customPiece,
     tempo: room.tempo,
+    paused: room.paused && { ...room.paused },
   };
 }
 

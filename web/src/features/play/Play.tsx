@@ -15,6 +15,7 @@ import { useKeyPlay } from '../../app/useKeyPlay.js';
 import { Avatar } from '../../components/Avatar.js';
 import { cx } from '../../components/Button.js';
 import { Icon } from '../../components/Icon.js';
+import { ConductorCue } from './ConductorCue.js';
 import { RoomView } from './RoomView.js';
 import { FLICK_MS, KEY_CAPS, isFlick, keyLane, laneAt } from './hands.js';
 import { assignLanes, flickNotes, holdNotes } from './lanes.js';
@@ -464,13 +465,7 @@ export function Play() {
           <Icon name="arrows-clockwise" size={16} />
           Loop
         </div>
-        {resting ? (
-          <div className={s.rest} role="status">
-            <Icon name="speaker-slash" size={30} />
-            <strong>Your section is resting</strong>
-            <span>Wait for the conductor to bring you back in.</span>
-          </div>
-        ) : null}
+        <ConductorCue />
       </button>
       {snap && piece ? <RoomView players={snap.players} piece={piece} me={playerId} /> : null}
     </main>

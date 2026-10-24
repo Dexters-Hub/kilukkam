@@ -1,0 +1,31 @@
+.chip {
+  position: absolute; z-index: 5; top: calc(64px + var(--safe-t)); left: 50%; transform: translateX(-50%);
+  padding: 8px 16px; border-radius: 999px; pointer-events: none; white-space: nowrap;
+  background: color-mix(in srgb, var(--tint, var(--accent)) 45%, rgb(0 0 0 / .5)); color: #fff;
+  font-weight: 700; font-size: 1rem; font-variant-numeric: tabular-nums;
+  opacity: 0; visibility: hidden;
+}
+.card {
+  position: absolute; left: 24px; right: 24px; top: 30%; z-index: 4;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; pointer-events: none;
+  padding: 22px 18px; border-radius: var(--radius); background: rgb(255 255 255 / .1);
+  color: rgb(255 255 255 / .85);
+}
+.card strong { font: 700 1.4rem/1.2 var(--font-display); letter-spacing: -.02em; color: #fff; }
+.card span:last-child { font-size: .95rem; color: rgb(255 255 255 / .65); }
+.count {
+  position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; pointer-events: none; color: #fff;
+}
+.count[hidden] { display: none; }
+.count span { font-weight: 700; font-size: 1.1rem; opacity: .8; }
+.count strong { font: 800 clamp(4rem, 30vw, 8rem)/1 var(--font-display); }
+.flash { position: absolute; inset: 0; z-index: 6; pointer-events: none; background: radial-gradient(circle at 50% 45%, #fff, var(--accent) 45%, transparent 80%); opacity: 0; visibility: hidden; }
+.sparks { position: absolute; left: 50%; top: 45%; z-index: 7; width: 0; height: 0; pointer-events: none; }
+.spark { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+.bell {
+  /* Above the rest or pause card (top 30%), so the two never overlap. */
+  position: absolute; z-index: 7; left: 0; right: 0; top: 13%; display: flex; justify-content: center; pointer-events: none;
+  font: 800 clamp(2.4rem, 13vw, 4rem)/1 var(--font-display); letter-spacing: -.02em; color: #fff;
+  opacity: 0; visibility: hidden; white-space: nowrap;
+}

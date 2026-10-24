@@ -214,3 +214,40 @@ export function heroIntro(root: HTMLElement): void {
   tl.fromTo(q('[data-intro="rise"]'), { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, stagger: 0.08, clearProps: 'all' }, '-=0.45');
   tl.fromTo(q('[data-intro="stage"]'), { y: 40, scale: 0.94, opacity: 0, rotate: -1.5 }, { y: 0, scale: 1, opacity: 1, rotate: 0, duration: 1.1, ease: 'expo.out', clearProps: 'all' }, 0.25);
 }
+
+/** A status chip fades in, stays for `holdS`, then fades out. With reduced motion it just shows and hides. */
+export function chipFlash(el: HTMLElement, holdS = 1.6): void {
+  gsap.killTweensOf(el);
+  if (reduced()) {
+    gsap.set(el, { autoAlpha: 1, y: 0 });
+    gsap.set(el, { autoAlpha: 0, delay: holdS });
+    return;
+  }
+  gsap
+    .timeline()
+    .fromTo(el, { autoAlpha: 0, y: -8 }, { autoAlpha: 1, y: 0, duration: 0.25, ease: 'power2.out' })
+    .to(el, { autoAlpha: 0, y: -8, duration: 0.35, ease: 'power2.in' }, `+=${holdS}`);
+}
+
+/**
+ * Kilukkam on a phone: the screen flashes once and sparks fly out from the
+ * middle, like light off a ringing bell. `sparkClass` styles each spark.
+ * Reduced motion keeps a single soft flash.
+ */
+export function kilukkamFlash(flash: HTMLElement, field: HTMLElement, sparkClass: string): void {
+  gsap.killTweensOf(flash);
+  gsap.fromTo(flash, { autoAlpha: reduced() ? 0.35 : 0.8 }, { autoAlpha: 0, duration: reduced() ? 0.6 : 0.9, ease: 'power2.out' });
+  if (reduced() || field.childElementCount > 40) return;
+  for (let i = 0; i < 16; i++) {
+    const spark = document.createElement('span');
+    spark.className = sparkClass;
+    field.appendChild(spark);
+    const angle = (Math.PI * 2 * i) / 16 + Math.random() * 0.3;
+    const dist = 90 + Math.random() * 110;
+    gsap.fromTo(
+      spark,
+      { x: 0, y: 0, opacity: 1, scale: 1.2 },
+      { x: Math.cos(angle) * dist, y: Math.sin(angle) * dist, opacity: 0, scale: 0.3, duration: 0.8 + Math.random() * 0.4, ease: 'power3.out', onComplete: () => spark.remove() },
+    );
+  }
+}

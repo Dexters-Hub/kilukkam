@@ -28,6 +28,12 @@ export interface LiveEvents {
   pulse: EnsemblePulse;
   dj: DjEvent;
   tempo: { bpm: number };
+  /** The conductor paused the room on `beat` (server ms `at`) */
+  paused: { at: number; beat: number };
+  /** The room plays again from server ms `at` at `bpm`, after a count-in */
+  resumed: { at: number; bpm: number };
+  /** The conductor rang the room-wide bell at server ms `at` */
+  kilukkam: { at: number };
   dynamics: DynamicsLevel;
   rtt: number;
 }
@@ -39,6 +45,9 @@ const handlers: { [K in keyof LiveEvents]: Set<Handler<K>> } = {
   pulse: new Set(),
   dj: new Set(),
   tempo: new Set(),
+  paused: new Set(),
+  resumed: new Set(),
+  kilukkam: new Set(),
   dynamics: new Set(),
   rtt: new Set(),
 };

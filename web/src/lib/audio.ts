@@ -599,3 +599,35 @@ export function chime(): void {
   if (!c || !out) return;
   [[76, 0], [83, 0.12]].forEach(([midi, dt]) => renderNote(c, out as GainNode, 'piano', midi ?? 76, 1, 120, c.currentTime + 0.01 + (dt ?? 0), 100));
 }
+
+/**
+ * Kilukkam: a little handbell rung three times, quickly. Inharmonic sine
+ * partials with a fast strike and a long shimmer, so a room of phones
+ * ringing it together sounds like a bell tree, not a beep.
+ */
+export function bell(): void {
+  const c = unlockAudio();
+  const bus = out;
+  if (!c || !bus) return;
+  const partials: readonly [number, number][] = [[1, 0.22], [2.76, 0.12], [5.4, 0.07], [8.93, 0.04]];
+  [0, 0.09, 0.18].forEach((dt, strike) => {
+    const t0 = c.currentTime + 0.01 + dt;
+    const f0 = 1568 * (strike === 1 ? 1.122 : 1);
+    for (const [ratio, level] of partials) {
+      const o = c.createOscillator();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(f0 * ratio, t0);
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(level, t0 + 0.003);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.4 / ratio ** 0.5);
+      o.connect(g).connect(bus);
+      o.start(t0);
+      o.stop(t0 + 1.5);
+      o.onended = () => {
+        o.disconnect();
+        g.disconnect();
+      };
+    }
+  });
+}

@@ -81,3 +81,18 @@
   .desk { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: start; gap: 16px; }
   .desk > section { position: sticky; top: 84px; }
 }
+
+/* Camera on: the same chips as live readouts, lit by the room, not tapped. */
+.readout span {
+  display: grid; place-items: center; min-height: 48px; border-radius: 16px; color: var(--muted);
+  font: italic 700 1.3rem/1 var(--font-serif); transition: background .2s, color .2s;
+}
+.readout span.on { background: var(--surface); color: var(--accent-text); box-shadow: var(--shadow); }
+.meter { position: relative; height: 12px; border-radius: 12px; background: var(--sunk); overflow: hidden; }
+.meterFill { height: 100%; border-radius: 12px; background: linear-gradient(90deg, var(--accent-3), var(--accent)); transition: width .4s var(--ease); }
+.meterMark { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; background: var(--text); opacity: .5; }
+span.cue { text-align: center; }
+.fallback { border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+.fallback > summary { min-height: var(--tap); display: flex; align-items: center; padding: 0 14px; color: var(--muted); font-weight: 600; cursor: pointer; }
+.fallback > summary:focus-visible { box-shadow: var(--ring); outline: none; border-radius: var(--radius); }
+.fallbackBody { display: flex; flex-direction: column; gap: 12px; padding: 0 8px 8px; }

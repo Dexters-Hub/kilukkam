@@ -83,7 +83,6 @@ let palm: Point | null = null;
 const arrivals: { beat: number; off: number }[] = [];
 let streak = 0;
 let bestStreak = 0;
-let fistSince: number | null = null;
 const trail: { p: Point; t: number }[] = [];
 const flashes: { p: Point; t: number; text: string; color: string }[] = [];
 /** Grade pops, particles and cheers: the show that answers every beat */
@@ -146,7 +145,7 @@ const conductLegend = h(
   legendCard('beat', 'metronome', 'Hit the targets', 'Move your hand into each numbered circle as its ring closes: down, left, right, up.'),
   legendCard('size', 'waveform', 'Bigger is louder', 'Big sweeping beats play loud, small careful ones soft.'),
   legendCard('cue', 'hand-pointing', 'Point to cue', 'Point into a third of the picture and hold: violins, flutes or cellos.'),
-  legendCard('cutoff', 'hand-grabbing', 'Fist to start over', 'Close your fist and hold it to cut off and place the pattern again.'),
+  legendCard('cutoff', 'hand-tap', 'Both palms to start over', 'Show both palms to the camera and hold to place the pattern again.'),
 );
 const meterChips = h(
   'div',
@@ -344,8 +343,10 @@ const conductor = createConductor(
         lightCard('cue');
         cueFlash = { side: cue.side, t: performance.now() };
         break;
-      case 'cutoff':
-        live.textContent = 'Cut off';
+      case 'pause':
+        // In the lab both palms held start the pattern over; there is no room to pause.
+        conductor.paused = false;
+        live.textContent = 'Start over';
         lightCard('cutoff');
         resetConduct();
         break;
@@ -693,16 +694,14 @@ function drawConduct(frame: HandFrame, w: number, hh: number, P: (p: Point) => r
     }
   }
 
-  // Fist hold ring: fills while a cut-off is building.
-  if (hand?.fist) fistSince ??= now;
-  else fistSince = null;
-  if (fistSince !== null && palm) {
-    const p = Math.min(1, (now - fistSince) / 400);
-    const [px, py] = P(palm);
+  // Both-palms hold ring: fills while a start-over is building.
+  const hold = conductor.holds.find((x) => x.kind === 'pause');
+  if (hold && palm) {
+    const [px, py] = P(hold.at);
     c.strokeStyle = accent;
     c.lineWidth = 5;
     c.beginPath();
-    c.arc(px, py, R * 1.4, -Math.PI / 2, -Math.PI / 2 + p * Math.PI * 2);
+    c.arc(px, py, R * 1.4, -Math.PI / 2, -Math.PI / 2 + hold.progress * Math.PI * 2);
     c.stroke();
   }
   drawFreeHand(c, P);
