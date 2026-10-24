@@ -167,8 +167,9 @@ House rules worth knowing up front (see [AGENTS.md](AGENTS.md)):
 ## Credits
 
 - **Icons:** most icons are [Phosphor Icons](https://phosphoricons.com)
-  (MIT, Copyright (c) 2023 Phosphor Icons), vendored as path data. The
-  violin, cello and flute are drawn in the same duotone style.
+  (MIT, Copyright (c) 2023 Phosphor Icons), vendored as path data and
+  drawn as plain lines. The violin, cello, flute, guitar and drums are
+  drawn here in the same line style.
 - **Composer portraits:** sourced from Wikimedia Commons, cropped and
   resized to 256x256. Full per-file attribution lives in
   [web/public/composers/CREDITS.md](web/public/composers/CREDITS.md).

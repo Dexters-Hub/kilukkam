@@ -81,7 +81,7 @@
 }
 .host:hover { transform: translateY(-2px); }
 .host:active { transform: scale(.98); }
-.hostIcon { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 16px; background: color-mix(in srgb, var(--bg) 14%, transparent); color: var(--accent); }
+.hostIcon { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 16px; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
 .hostText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .hostText strong { font: 800 1.25rem/1.15 var(--font-display); letter-spacing: -.03em; }
 .hostText span { font-size: .88rem; opacity: .72; line-height: 1.35; }

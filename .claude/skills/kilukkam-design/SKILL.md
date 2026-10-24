@@ -34,7 +34,7 @@ The first screen is the game. Phones first, then laptops and projectors.
   Calligraphy for the Malayalam wordmark കിലുക്കം. Give Malayalam enough line
   height and padding so its tall vowel signs are never clipped, especially
   under `background-clip: text`.
-- Icons: Phosphor duotone (MIT), vendored in `icons`; instrument glyphs are
+- Icons: Phosphor line icons (MIT, no duotone tint), vendored in `icons`; instrument glyphs are
   drawn on the same 256 grid. No emoji as UI icons.
 - Avatars are the composer roster (real portraits in `public/composers`,
   credited in its CREDITS.md). Never generic emoji.
