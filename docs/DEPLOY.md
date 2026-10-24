@@ -41,6 +41,12 @@ everything else ──▶ ASSETS (web/dist, single-page-application fallback)
 
 ## Workers Builds (dashboard)
 
+Before anything else: the Cloudflare GitHub app must have access to this
+repository. If it was installed for one repo only, add this one under
+GitHub > Settings > Applications > Cloudflare Workers and Pages >
+Configure > Repository access, or the project shows "disconnected from
+your Git account" and pushes never build.
+
 Connect the GitHub repo under Workers & Pages, then set:
 
 | Setting | Value |
