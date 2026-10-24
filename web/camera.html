@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!--
+    connect-src 'self' keeps every request on this origin: the self-hosted
+    model and wasm load, and MediaPipe's usage metrics (posted to Google once
+    a minute) are blocked. 'wasm-unsafe-eval' lets the hand model compile.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob: mediastream:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Kilukkam · camera lab</title>
+  <meta name="description" content="Conduct with your hands or play in the air. Your camera stays on this device.">
+  <meta name="theme-color" content="#f6f5f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#09090f" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <style>
+    .lab { gap: 18px; padding-bottom: calc(32px + var(--safe-b)); }
+    .lab-head { display: flex; flex-direction: column; gap: 6px; }
+    .lab-head .title { margin: 4px 0 0; }
+    .privacy { margin: 0; color: var(--muted); font-size: .92rem; }
+
+    .cam-stage {
+      position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden;
+      border-radius: var(--radius); background: var(--sunk); box-shadow: var(--shadow);
+    }
+    .cam-stage video, .cam-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .cam-stage video { object-fit: fill; transform: scaleX(-1); opacity: 0; transition: opacity .3s var(--ease); }
+    .cam-stage.live video { opacity: 1; }
+    .cam-empty {
+      position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center;
+      color: var(--muted); font-weight: 500;
+    }
+    .cam-stage.live .cam-empty { display: none; }
+    .zones { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); pointer-events: none; }
+    .zone { opacity: 0; background: color-mix(in srgb, var(--accent) 22%, transparent); }
+    .beat-dot {
+      position: absolute; top: 14px; right: 14px; width: 14px; height: 14px; border-radius: 50%;
+      background: var(--accent); opacity: .3;
+    }
+
+    .readouts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .readout { padding: 14px 16px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); min-width: 0; }
+    .readout-line { display: flex; align-items: baseline; gap: 2px; flex-wrap: wrap; }
+    .readout-value { display: inline-block; font: 700 1.9rem/1.1 var(--font-display); letter-spacing: var(--track-display); font-variant-numeric: tabular-nums; }
+    .readout-unit { font: 600 .9rem/1 var(--font-body); color: var(--muted); margin-left: 4px; }
+
+    .switch {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%;
+      min-height: var(--tap); padding: 10px 16px; border-radius: var(--radius);
+      background: var(--surface); box-shadow: var(--shadow); text-align: left;
+    }
+    .switch-text { display: flex; flex-direction: column; }
+    .switch-title { font-weight: 650; }
+    .switch-hint { color: var(--muted); font-size: .9rem; }
+    .switch-track {
+      flex: none; position: relative; width: 52px; height: 32px; border-radius: 999px; background: var(--sunk);
+      transition: background .2s var(--ease);
+    }
+    .switch-track::after {
+      content: ''; position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%;
+      background: var(--surface); box-shadow: var(--shadow); transition: transform .2s var(--ease);
+    }
+    .switch[aria-checked="true"] .switch-track { background: var(--accent); }
+    .switch[aria-checked="true"] .switch-track::after { transform: translateX(20px); }
+    .switch:disabled { opacity: .5; }
+
+    .actions { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .gestures { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+    .gestures li { display: flex; gap: 10px; align-items: baseline; }
+    .gestures b { font-weight: 650; min-width: 6.5em; }
+    .gestures span { color: var(--muted); }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    @media (prefers-reduced-motion: reduce) { .cam-stage video, .switch-track, .switch-track::after { transition: none; } }
+  </style>
+</head>
+<body>
+  <main id="lab" class="screen lab"></main>
+  <script type="module" src="/src/camera-lab.ts"></script>
+</body>
+</html>

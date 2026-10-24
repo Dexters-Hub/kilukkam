@@ -21,6 +21,7 @@ import {
   type TempoAnchor,
   type Track,
 } from '@kilukkam/shared';
+import { gameAnswer, gameHint, gameTap, gameTick, startGame, type GameSession, type GameStep } from './game-engine.js';
 
 /**
  * Socket-free room core. Every input returns the outbound effects as data so
@@ -65,6 +66,8 @@ interface Room {
   tempo: TempoAnchor | null;
   /** Tallies collected after a stop, keyed by trackId; null when no window is open */
   results: { closesAt: number; byTrack: Map<string, PlayerTally[]> } | null;
+  /** The room game in progress or just finished; null when none */
+  game: GameSession | null;
 }
 
 interface Seat {
@@ -147,12 +150,15 @@ export class RoomEngine {
       case 'remove_player':
         return this.asConductor(seat, socketId, msg, this.removePlayer);
       case 'start_game':
+        return this.asConductor(seat, socketId, msg, this.startGame);
       case 'game_tap':
+        return this.inGame(seat, socketId, (game) => gameTap(game, seat.player.id, msg, activePlayers(seat.room).map((p) => p.id)));
       case 'game_hint':
+        return this.asConductor(seat, socketId, msg, (s) => this.inGame(s, socketId, (game) => gameHint(game, msg.kind)));
       case 'game_answer':
+        return this.inGame(seat, socketId, (game) => gameAnswer(game, msg.song));
       case 'end_game':
-        // Room games land with the game engine (docs/specs/room-games.md).
-        return error(socketId, 'bad_message', 'room games are not available yet');
+        return this.asConductor(seat, socketId, msg, this.endGame);
     }
   }
 
@@ -189,6 +195,10 @@ export class RoomEngine {
         actions.push(send(socketsOf(room), { type: 'piece_results', results: aggregateResults(room.results.byTrack) }));
         room.results = null;
       }
+      if (room.game) {
+        const out = gameTick(room.game, now);
+        if (out.length > 0) actions.push(...out.map((m) => send(socketsOf(room), m)));
+      }
       if (room.phase !== 'playing') continue;
       const pulse = this.flushPulse(room, now);
       if (pulse) actions.push(pulse);
@@ -223,6 +233,7 @@ export class RoomEngine {
       customPiece: false,
       tempo: null,
       results: null,
+      game: null,
     };
     this.rooms.set(code, room);
     this.seats.set(socketId, { room, player: conductor });
@@ -330,7 +341,7 @@ export class RoomEngine {
     room.phase = 'lobby';
     room.startedAt = null;
     for (const p of room.players.values()) p.trackId = null;
-    return [this.broadcastState(room)];
+    return [...this.dropGame(room), this.broadcastState(room)];
   };
 
   private startPiece: Handler<'start_piece'> = ({ room }, socketId, msg) => {
@@ -341,6 +352,7 @@ export class RoomEngine {
     room.taps.clear();
     room.results = null;
     return [
+      ...this.dropGame(room),
       send(socketsOf(room), { type: 'piece_started', startedAt: room.startedAt, bpm: room.piece.bpm }),
       this.broadcastState(room),
     ];
@@ -467,6 +479,43 @@ export class RoomEngine {
     }
     return actions;
   };
+
+  private startGame: Handler<'start_game'> = ({ room }, socketId, msg) => {
+    if (room.phase === 'playing') return error(socketId, 'already_started', 'stop the piece first');
+    const phase = room.game?.state.phase;
+    if (phase === 'listen' || phase === 'guess') return error(socketId, 'already_started', 'a game is running');
+    const players = activePlayers(room).map((p) => p.id);
+    if (players.length === 0) return error(socketId, 'bad_message', 'no players to play with');
+    const { session, out } = startGame({
+      mode: msg.mode,
+      seed: msg.seed ?? new Date(this.now()).toISOString().slice(0, 10),
+      level: msg.level ?? 'easy',
+      players,
+      now: this.now(),
+    });
+    room.game = session;
+    return out.map((m) => send(socketsOf(room), m));
+  };
+
+  private endGame: Handler<'end_game'> = ({ room }, socketId) => {
+    if (!room.game) return error(socketId, 'not_started', 'no game running');
+    return [...this.dropGame(room), this.broadcastState(room)];
+  };
+
+  /** Run a game move and broadcast its messages, or answer the sender with its error */
+  private inGame(seat: Seat, socketId: string, move: (game: GameSession) => GameStep): EngineAction[] {
+    const { room } = seat;
+    if (!room.game) return error(socketId, 'not_started', 'no game running');
+    const step = move(room.game);
+    if (!step.ok) return error(socketId, step.code, step.message);
+    return step.out.map((m) => send(socketsOf(room), m));
+  }
+
+  private dropGame(room: Room): EngineAction[] {
+    if (!room.game) return [];
+    room.game = null;
+    return [send(socketsOf(room), { type: 'game_ended' })];
+  }
 
   private asConductor<T extends ClientMessage['type']>(
     seat: Seat,

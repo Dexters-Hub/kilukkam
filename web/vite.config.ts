@@ -50,6 +50,7 @@ export default defineConfig({
       input: {
         app: resolve(import.meta.dirname, 'index.html'),
         demo: resolve(import.meta.dirname, 'demo.html'),
+        camera: resolve(import.meta.dirname, 'camera.html'),
       },
     },
   },

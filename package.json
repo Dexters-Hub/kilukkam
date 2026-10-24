@@ -10,11 +10,13 @@
   "workspaces": [
     "shared",
     "server",
-    "web"
+    "web",
+    "worker"
   ],
   "scripts": {
     "dev": "npm run dev --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build --workspace web",
+    "cf:dev": "npm run build && npm run start --workspace worker",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "sim": "tsx scripts/room-sim.ts",
