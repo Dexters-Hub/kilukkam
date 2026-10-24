@@ -5,6 +5,27 @@ before the docs commit are backfilled from `git log`.
 
 ## Unreleased
 
+- 2026-10-25 04:10: The Spotify play-along tab is locked as "Coming soon"
+  until sign-in and playback are solid on every device. The code stays;
+  one flag in the music picker turns it back on.
+
+- 2026-10-25 03:48: The camera conductor controls the room live and can
+  no longer end it. Root cause of the "Well played" bug: a held fist was a
+  cut-off that sent `stop_piece`, and its 3 s grace counted from the piece
+  start, not the camera start, so a closed hand raised into view mid-piece
+  ended the run. Now a fist made and held 800 ms pauses the room (ignored
+  for 3 s after the camera starts and for a hand that arrived closed); an
+  open palm or two beats resume it after a 2 beat count-in. New gestures:
+  the stop hand rests a section, both palms rising build, both hands
+  sweeping down drop, both index fingers level loop the bar, each with a
+  progress ring. New `pause_piece` and `resume_piece` messages,
+  `piece_paused` and `piece_resumed` events and a `paused` snapshot field
+  (worker shares the engine). Phones show a tempo chip ("Slower · 92
+  bpm"), a "Cello rests" card, "Paused by the conductor" and the count
+  back in. With the camera on, the stage shows live readouts and folds the
+  buttons into "No camera? Use buttons". `?camdemo` performs every gesture.
+  Only Stop ends a piece.
+
 - 2026-10-25 03:34: Play mode is now Piano Tiles with glass tiles.
   A Level picker (Easy, Normal, Hard, Expert) sets 1, 2 or 4 columns;
   Expert adds hold tiles that fill while held and arrow tiles you swipe

@@ -7,6 +7,8 @@
 .tabs { display: inline-flex; align-self: flex-start; gap: 4px; padding: 4px; border-radius: 999px; background: var(--sunk); }
 .tabs button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 999px; font-weight: 650; color: var(--muted); transition: background .2s, color .2s; }
 .tabs .tabOn { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.tabs .locked { cursor: default; opacity: .75; }
+.soon { padding: 2px 8px; border-radius: 999px; background: var(--accent); color: #0a0a0a; font-size: .7rem; font-weight: 800; letter-spacing: .02em; }
 .spot { width: 14px; height: 14px; border-radius: 50%; background: #1ed760; }
 
 .layout { display: flex; flex-direction: column; gap: 26px; }

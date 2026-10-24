@@ -14,9 +14,11 @@ import s from './Create.module.css';
 
 // The music shelf: one big cover for the piece you are looking at, with a
 // preview and the button that opens the room, and a shelf of the others.
-// Spotify play-along sits on its own tab.
+// Spotify play-along sits on its own tab, locked as "Coming soon" until it
+// is solid on every device.
 
 type Tab = 'pieces' | 'spotify';
+const SPOTIFY_READY = false;
 
 function PlayButton({ playing, onClick, label }: { playing: boolean; onClick: () => void; label: string }) {
   return (
@@ -108,14 +110,17 @@ export function Create() {
             type="button"
             role="tab"
             aria-selected={tab === 'spotify'}
-            className={cx(tab === 'spotify' && s.tabOn)}
+            aria-disabled={!SPOTIFY_READY}
+            className={cx(tab === 'spotify' && s.tabOn, !SPOTIFY_READY && s.locked)}
             onClick={() => {
+              if (!SPOTIFY_READY) return;
               preview.stop();
               setTab('spotify');
             }}
           >
             <span className={s.spot} aria-hidden="true" />
             Any song (Spotify)
+            {SPOTIFY_READY ? null : <span className={s.soon}>Coming soon</span>}
           </button>
         </div>
       </header>
