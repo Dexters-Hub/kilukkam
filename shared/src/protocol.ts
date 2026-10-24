@@ -6,7 +6,8 @@ export const PROTOCOL_VERSION = 1;
 export const MAX_PLAYERS = 100;
 export const CODE_LEN = 4;
 export const MAX_NAME_LEN = 20;
-export const MAX_AVATAR_LEN = 8;
+/** Composer avatar ids (e.g. 'beethoven', 'tchaikovsky') or a short emoji */
+export const MAX_AVATAR_LEN = 24;
 /** Unambiguous alphabet: no 0/O, 1/I */
 export const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
