@@ -2,6 +2,7 @@ import {
   CODE_ALPHABET,
   CODE_LEN,
   COUNT_IN_MS,
+  CUSTOM_PIECE_LIMITS,
   MAX_PLAYERS,
   RESULTS_GRACE_MS,
   aggregateResults,
@@ -364,11 +365,12 @@ export class RoomEngine {
     }
     const errs = validateScore(msg.score);
     if (errs.length) return error(socketId, 'bad_message', errs.join('; '));
-    if (msg.score.tracks.length > 8) return error(socketId, 'bad_message', 'too many tracks (max 8)');
-    if (msg.score.title.length > 80) return error(socketId, 'bad_message', 'title too long (max 80)');
+    const lim = CUSTOM_PIECE_LIMITS;
+    if (msg.score.tracks.length > lim.maxTracks) return error(socketId, 'bad_message', `too many tracks (max ${lim.maxTracks})`);
+    if (msg.score.title.length > lim.maxTitleLen) return error(socketId, 'bad_message', `title too long (max ${lim.maxTitleLen})`);
     for (const t of msg.score.tracks) {
-      if (t.events.length > 2000) {
-        return error(socketId, 'bad_message', `track ${t.id} has too many events (max 2000)`);
+      if (t.events.length > lim.maxEventsPerTrack) {
+        return error(socketId, 'bad_message', `track ${t.id} has too many events (max ${lim.maxEventsPerTrack})`);
       }
     }
     room.piece = msg.score;

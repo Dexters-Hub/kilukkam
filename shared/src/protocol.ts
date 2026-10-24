@@ -28,6 +28,11 @@ export interface TempoAnchor {
   beat: number;
 }
 
+/** Limits for conductor-uploaded custom scores; enforced server-side, mirrored by the importer */
+export const CUSTOM_PIECE_LIMITS: Readonly<{
+  maxTracks: number; maxEventsPerTrack: number; maxTitleLen: number; maxFrameBytes: number;
+}> = { maxTracks: 8, maxEventsPerTrack: 2000, maxTitleLen: 80, maxFrameBytes: 256 * 1024 };
+
 /** How long the server waits for player tallies after a stop before emitting piece_results */
 export const RESULTS_GRACE_MS = 1500;
 

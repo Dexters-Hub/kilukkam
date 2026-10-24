@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
-import { encodeMessage } from '@kilukkam/shared';
+import { CUSTOM_PIECE_LIMITS, encodeMessage } from '@kilukkam/shared';
 import { RoomEngine, type EngineAction } from './room-engine.js';
 
 export const WS_PATH = '/ws';
 /** Largest legit frame is a join_room (~150 bytes); anything far bigger is abuse. */
-const MAX_FRAME_BYTES = 256 * 1024;
+const MAX_FRAME_BYTES = CUSTOM_PIECE_LIMITS.maxFrameBytes;
 const HEARTBEAT_MS = 30_000;
 /** ensemble_pulse cadence (~4 Hz) */
 const TICK_MS = 250;
