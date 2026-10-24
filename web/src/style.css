@@ -482,7 +482,7 @@ h1, h2, .title, .subtitle { font-family: var(--font-display); letter-spacing: va
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
 .tap-surface:focus-visible { box-shadow: none; }
-.tap-surface > .lane { position: absolute; inset: calc(64px + var(--safe-t)) 0 calc(110px + var(--safe-b)); width: 100%; height: calc(100% - 174px - var(--safe-t) - var(--safe-b)); }
+.tap-surface > .note-lane { position: absolute; inset: calc(64px + var(--safe-t)) 0 calc(110px + var(--safe-b)); width: 100%; height: calc(100% - 174px - var(--safe-t) - var(--safe-b)); }
 .tap-surface > .tap-glow {
   position: absolute; inset: 0; opacity: 0; pointer-events: none;
   background: radial-gradient(circle at 50% 72%, color-mix(in srgb, var(--tint) 70%, transparent), transparent 65%);
@@ -495,8 +495,8 @@ h1, h2, .title, .subtitle { font-family: var(--font-display); letter-spacing: va
 .tap-surface.done .play-now { color: var(--tint); }
 
 .tap-surface > .coach {
-  position: absolute; left: 50%; bottom: calc(170px + var(--safe-b)); transform: translateX(-50%);
-  display: flex; align-items: center; gap: 12px; padding: 12px 18px 12px 14px; white-space: nowrap;
+  position: absolute; left: 0; right: 0; bottom: calc(170px + var(--safe-b)); margin: 0 auto; width: max-content; max-width: calc(100% - 32px);
+  display: flex; align-items: center; gap: 12px; padding: 12px 18px 12px 14px;
   border-radius: 999px; background: #fff; color: #111; z-index: 3;
   font-weight: 650; box-shadow: var(--shadow-lift); pointer-events: none;
 }

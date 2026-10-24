@@ -90,7 +90,7 @@ export const playScreen: ScreenFactory = (s, a) => {
   const who = h('div', { class: 'play-who' });
   const combo = h('div', { class: 'play-combo', 'aria-live': 'polite' });
   const assist = h('button', { class: 'play-assist', type: 'button', 'aria-pressed': 'true' }, icon('magic-wand', 18), 'Assist');
-  const canvas = h('canvas', { class: 'lane', 'aria-hidden': 'true' });
+  const canvas = h('canvas', { class: 'note-lane', 'aria-hidden': 'true' });
   const now = h('div', { class: 'play-now', 'aria-live': 'polite' });
   const bar = h('div', { class: 'progress-fill' });
   const glow = h('div', { class: 'tap-glow', 'aria-hidden': 'true' });
@@ -116,7 +116,11 @@ export const playScreen: ScreenFactory = (s, a) => {
     lane?.destroy();
     lane = null;
     laneKey = key;
-    if (track && rhythm) lane = createLane(canvas, { events: track.events, grid: rhythm.grid, clock: rhythm.clock, tint: getComputedStyle(el).getPropertyValue('--tint').trim() || '#ff5b1f' });
+    if (track && rhythm) {
+      // Resolve the instrument's colour token from the theme: the screen may not be attached yet.
+      const tint = getComputedStyle(document.documentElement).getPropertyValue(`--${track.instrument}`).trim() || '#ff5b1f';
+      lane = createLane(canvas, { events: track.events, grid: rhythm.grid, clock: rhythm.clock, tint });
+    }
   };
 
   // First-timers get one pulsing nudge; the first tap (which also plays) retires it.
