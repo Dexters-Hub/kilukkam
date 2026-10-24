@@ -42,6 +42,9 @@ const BY_ID: ReadonlyMap<string, Composer> = new Map(COMPOSERS.map((c) => [c.id,
 
 export const composerFor = (id: string): Composer | undefined => BY_ID.get(id);
 
+/** Square portrait served from public/composers (credits in CREDITS.md there). */
+export const portraitUrl = (composer: Composer): string => `/composers/${composer.id}.jpg`;
+
 /** A stored or random choice, always a valid roster id. */
 export const pickComposer = (preferred: string | null, rand: () => number = Math.random): Composer =>
   (preferred === null ? undefined : composerFor(preferred)) ??

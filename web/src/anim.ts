@@ -108,3 +108,79 @@ export function lanePulse(el: HTMLElement): void {
   if (reduced()) return;
   gsap.fromTo(el, { '--glow': 1 }, { '--glow': 0, duration: 0.45, ease: 'power2.out', overwrite: 'auto' });
 }
+
+/** Cards fade up the first time they scroll into view. */
+export function revealOnScroll(els: Iterable<Element>): void {
+  const list = [...els];
+  if (reduced() || !list.length || !('IntersectionObserver' in window)) return;
+  gsap.set(list, { autoAlpha: 0, y: 28 });
+  const io = new IntersectionObserver(
+    (entries) => {
+      const batch = entries.filter((e) => e.isIntersecting).map((e) => e.target);
+      if (!batch.length) return;
+      for (const el of batch) io.unobserve(el);
+      gsap.to(batch, { autoAlpha: 1, y: 0, duration: 0.7, ease: 'power3.out', stagger: 0.07, overwrite: true, clearProps: 'transform' });
+    },
+    { rootMargin: '0px 0px -40px 0px' },
+  );
+  for (const el of list) io.observe(el);
+}
+
+/** A number ticks up from zero when it scrolls into view. */
+export function countUp(el: HTMLElement, value: number): void {
+  el.textContent = reduced() ? value.toLocaleString() : '0';
+  if (reduced() || !('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver(([entry]) => {
+    if (!entry?.isIntersecting) return;
+    io.disconnect();
+    const n = { v: 0 };
+    gsap.to(n, { v: value, duration: 1.4, ease: 'power2.out', onUpdate: () => (el.textContent = Math.round(n.v).toLocaleString()) });
+  });
+  io.observe(el);
+}
+
+/** A ring expands out of a tap point, in the current tint. */
+export function ring(host: HTMLElement): void {
+  if (reduced()) return;
+  const r = document.createElement('span');
+  r.className = 'tap-ring';
+  host.append(r);
+  gsap.fromTo(r, { scale: 0.6, opacity: 0.55 }, { scale: 2.6, opacity: 0, duration: 0.9, ease: 'power2.out', onComplete: () => r.remove() });
+}
+
+/** A note glyph drifts up and fades, like a sound leaving the phone. */
+export function floatNote(host: HTMLElement, glyph = '♪'): void {
+  if (reduced() || host.childElementCount > 24) return;
+  const n = document.createElement('span');
+  n.className = 'float-note';
+  n.textContent = glyph;
+  n.style.left = `${20 + Math.random() * 60}%`;
+  host.append(n);
+  gsap.fromTo(
+    n,
+    { y: 0, x: 0, opacity: 0.9, rotate: -10 + Math.random() * 20, scale: 0.8 },
+    { y: -120 - Math.random() * 60, x: -30 + Math.random() * 60, opacity: 0, scale: 1.3, duration: 1.6, ease: 'power1.out', onComplete: () => n.remove() },
+  );
+}
+
+/** Endless horizontal drift of a row that is rendered twice back to back. Returns a stop function. */
+export function marquee(track: HTMLElement, secondsPerLoop = 40): () => void {
+  if (reduced()) return () => {};
+  const tween = gsap.to(track, { xPercent: -50, duration: secondsPerLoop, ease: 'none', repeat: -1 });
+  return () => tween.kill();
+}
+
+/** Text swaps with a soft blur, used for the rotating hero word. */
+export function swapText(el: HTMLElement, text: string): void {
+  if (reduced()) {
+    el.textContent = text;
+    return;
+  }
+  gsap
+    .timeline()
+    .to(el, { yPercent: -35, opacity: 0, filter: 'blur(6px)', duration: 0.3, ease: 'power2.in' })
+    .call(() => {
+      el.textContent = text;
+    })
+    .fromTo(el, { yPercent: 35, opacity: 0, filter: 'blur(6px)' }, { yPercent: 0, opacity: 1, filter: 'blur(0px)', duration: 0.55, ease: 'expo.out' });
+}

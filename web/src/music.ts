@@ -25,13 +25,15 @@ export interface InstrumentMeta {
   emoji: string;
   /** CSS custom property holding this instrument's tint */
   color: string;
+  /** How it sounds, in three words or so */
+  blurb: string;
 }
 
 export const INSTRUMENTS: Record<InstrumentId, InstrumentMeta> = {
-  violin: { label: 'Violin', emoji: '🎻', color: 'var(--violin)' },
-  cello: { label: 'Cello', emoji: '🎻', color: 'var(--cello)' },
-  flute: { label: 'Flute', emoji: '🪈', color: 'var(--flute)' },
-  piano: { label: 'Piano', emoji: '🎹', color: 'var(--piano)' },
+  violin: { label: 'Violin', emoji: '🎻', color: 'var(--violin)', blurb: 'Bright and singing' },
+  cello: { label: 'Cello', emoji: '🎻', color: 'var(--cello)', blurb: 'Deep and warm' },
+  flute: { label: 'Flute', emoji: '🪈', color: 'var(--flute)', blurb: 'Airy and sweet' },
+  piano: { label: 'Piano', emoji: '🎹', color: 'var(--piano)', blurb: 'Crisp and bright' },
 };
 
 export function instrumentMeta(id: string): InstrumentMeta {
@@ -39,5 +41,6 @@ export function instrumentMeta(id: string): InstrumentMeta {
     label: id,
     emoji: '🎵',
     color: 'var(--accent)',
+    blurb: '',
   };
 }

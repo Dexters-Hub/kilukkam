@@ -14,5 +14,5 @@ Cropped and resized to 256×256 for the avatar discs. Sources: Wikimedia Commons
 | `schumann-c` | [Franz_Hanfstaengl_-_Clara_Schumann_(1857).jpg](https://commons.wikimedia.org/wiki/File:Franz_Hanfstaengl_-_Clara_Schumann_(1857).jpg) | Franz Hanfstaengl | Public domain |
 | `brahms` | [JohannesBrahms_(cropped).jpg](https://commons.wikimedia.org/wiki/File:JohannesBrahms_(cropped).jpg) | C. Brasch, Berlin (biography) | Public domain |
 | `tchaikovsky` | [Tchaikovsky_by_Reutlinger_(cropped).jpg](https://commons.wikimedia.org/wiki/File:Tchaikovsky_by_Reutlinger_(cropped).jpg) | Émile Reutlinger | Public domain |
-| `debussy` | [Claude_Debussy_by_Atelier_Nadar.jpg](https://commons.wikimedia.org/wiki/File:Claude_Debussy_by_Atelier_Nadar.jpg) | Adam Cuerden | Public domain |
+| `debussy` | [Claude_Debussy_by_Atelier_Nadar.jpg](https://commons.wikimedia.org/wiki/File:Claude_Debussy_by_Atelier_Nadar.jpg) | Atelier Nadar (restoration by Adam Cuerden) | Public domain |
 | `rahman` | [AR_Rahman_at_Premier_Futsal_Press_Meet_(cropped).jpg](https://commons.wikimedia.org/wiki/File:AR_Rahman_at_Premier_Futsal_Press_Meet_(cropped).jpg) | Sriram Narasimhan | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) (cropped, resized) |

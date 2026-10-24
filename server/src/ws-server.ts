@@ -6,7 +6,7 @@ import { RoomEngine, type EngineAction } from './room-engine.js';
 
 export const WS_PATH = '/ws';
 /** Largest legit frame is a join_room (~150 bytes); anything far bigger is abuse. */
-const MAX_FRAME_BYTES = 4 * 1024;
+const MAX_FRAME_BYTES = 256 * 1024;
 const HEARTBEAT_MS = 30_000;
 /** ensemble_pulse cadence (~4 Hz) */
 const TICK_MS = 250;

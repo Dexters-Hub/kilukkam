@@ -2,11 +2,13 @@
 
 # Kilukkam · കിലുക്കം
 
-**A room full of phones becomes an orchestra.**
+**Kilukkam turns a room full of devices into an orchestra - one
+conductor, an entry code, and every tap plays the next note of a
+classical piece together.**
 
 One person conducts. Everyone else joins with a 4-letter code and gets
 an instrument. Every tap plays the next note of your part: a
-hundred-phone handbell choir playing Pachelbel in your living room.
+hundred-device handbell choir playing Pachelbel in your living room.
 
 </div>
 

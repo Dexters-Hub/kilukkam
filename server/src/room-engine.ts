@@ -4,6 +4,7 @@ import {
   MAX_PLAYERS,
   getPiece,
   parseClientMessage,
+  validateScore,
   type ClientMessage,
   type DynamicsLevel,
   type ErrorCode,
@@ -54,6 +55,7 @@ interface Room {
   taps: Map<string, number>;
   dynamics: DynamicsLevel;
   mutedTracks: Set<string>;
+  customPiece: boolean;
 }
 
 interface Seat {
@@ -119,6 +121,8 @@ export class RoomEngine {
         return this.asConductor(seat, socketId, msg, this.startPiece);
       case 'stop_piece':
         return this.asConductor(seat, socketId, msg, this.stopPiece);
+      case 'set_custom_piece':
+        return this.asConductor(seat, socketId, msg, this.setCustomPiece);
       case 'set_dynamics':
         return this.asConductor(seat, socketId, msg, this.setDynamics);
       case 'set_section':
@@ -188,6 +192,7 @@ export class RoomEngine {
       taps: new Map(),
       dynamics: 'mf',
       mutedTracks: new Set(),
+      customPiece: false,
     };
     this.rooms.set(code, room);
     this.seats.set(socketId, { room, player: conductor });
@@ -291,6 +296,7 @@ export class RoomEngine {
     const piece = getPiece(msg.pieceId);
     if (!piece) return error(socketId, 'unknown_piece', `unknown piece: ${msg.pieceId}`);
     room.piece = piece;
+    room.customPiece = false;
     room.phase = 'lobby';
     room.startedAt = null;
     for (const p of room.players.values()) p.trackId = null;
@@ -316,6 +322,30 @@ export class RoomEngine {
     return [
       ...(pulse ? [pulse] : []),
       send(socketsOf(room), { type: 'piece_stopped' }),
+      this.broadcastState(room),
+    ];
+  };
+
+  private setCustomPiece: Handler<'set_custom_piece'> = ({ room }, socketId, msg) => {
+    if (room.phase === 'playing') {
+      return error(socketId, 'already_started', 'stop the piece first');
+    }
+    const errs = validateScore(msg.score);
+    if (errs.length) return error(socketId, 'bad_message', errs.join('; '));
+    if (msg.score.tracks.length > 8) return error(socketId, 'bad_message', 'too many tracks (max 8)');
+    if (msg.score.title.length > 80) return error(socketId, 'bad_message', 'title too long (max 80)');
+    for (const t of msg.score.tracks) {
+      if (t.events.length > 2000) {
+        return error(socketId, 'bad_message', `track ${t.id} has too many events (max 2000)`);
+      }
+    }
+    room.piece = msg.score;
+    room.customPiece = true;
+    room.phase = 'lobby';
+    room.startedAt = null;
+    for (const p of room.players.values()) p.trackId = null;
+    return [
+      send(socketsOf(room), { type: 'piece_changed', piece: msg.score }),
       this.broadcastState(room),
     ];
   };
@@ -422,6 +452,7 @@ function snapshot(room: Room): RoomSnapshot {
     startedAt: room.startedAt,
     dynamics: room.dynamics,
     mutedTracks: [...room.mutedTracks],
+    customPiece: room.customPiece,
   };
 }
 

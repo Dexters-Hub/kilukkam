@@ -1,19 +1,33 @@
 import type { InstrumentId } from '@kilukkam/shared';
 import { beatsToSeconds, midiToFreq } from './music.js';
 
-// WebAudio synth voices, no samples. Each tap builds a short-lived node
-// graph that disconnects itself when the note ends.
+// WebAudio synth voices, no samples. Each note builds a short-lived graph:
+//   voice → expression (slide to swell) → gate (lift to release) → out
+// Voices schedule against a start time on any BaseAudioContext, so the same
+// code plays live and renders the conductor's recording offline.
 
 let ctx: AudioContext | null = null;
 let out: GainNode | null = null;
-let noise: AudioBuffer | null = null;
+const noiseByRate = new Map<number, AudioBuffer>();
 
 type Ctor = typeof AudioContext;
 
-function audioCtor(): Ctor | undefined {
+const audioCtor = (): Ctor | undefined => {
   const w = window as { AudioContext?: Ctor; webkitAudioContext?: Ctor };
   return w.AudioContext ?? w.webkitAudioContext;
-}
+};
+
+/** A master bus with gentle compression so a crowd of notes never clips. */
+const masterBus = (c: BaseAudioContext, level = 0.8): GainNode => {
+  const comp = c.createDynamicsCompressor();
+  comp.threshold.value = -14;
+  comp.knee.value = 12;
+  comp.ratio.value = 4;
+  const bus = c.createGain();
+  bus.gain.value = level;
+  bus.connect(comp).connect(c.destination);
+  return bus;
+};
 
 /**
  * Create or resume the AudioContext. Must run inside a user gesture
@@ -24,13 +38,7 @@ export function unlockAudio(): AudioContext | null {
     const C = audioCtor();
     if (!C) return null;
     ctx = new C({ latencyHint: 'interactive' });
-    const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -14;
-    comp.knee.value = 12;
-    comp.ratio.value = 4;
-    out = ctx.createGain();
-    out.gain.value = 0.8;
-    out.connect(comp).connect(ctx.destination);
+    out = masterBus(ctx);
     // iOS: a silent buffer played in the gesture fully unlocks output.
     const src = ctx.createBufferSource();
     src.buffer = ctx.createBuffer(1, 1, 22050);
@@ -41,19 +49,18 @@ export function unlockAudio(): AudioContext | null {
   return ctx;
 }
 
-export function audioReady(): boolean {
-  return ctx !== null && ctx.state === 'running';
-}
+export const audioReady = (): boolean => ctx !== null && ctx.state === 'running';
 
-function noiseBuffer(c: AudioContext): AudioBuffer {
-  if (!noise || noise.sampleRate !== c.sampleRate) {
-    const len = Math.floor(c.sampleRate * 1.5);
-    noise = c.createBuffer(1, len, c.sampleRate);
-    const data = noise.getChannelData(0);
-    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-  }
-  return noise;
-}
+const noiseBuffer = (c: BaseAudioContext): AudioBuffer => {
+  const cached = noiseByRate.get(c.sampleRate);
+  if (cached) return cached;
+  const len = Math.floor(c.sampleRate * 1.5);
+  const buf = c.createBuffer(1, len, c.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  noiseByRate.set(c.sampleRate, buf);
+  return buf;
+};
 
 interface Envelope {
   attack: number;
@@ -61,8 +68,8 @@ interface Envelope {
   release: number;
 }
 
-/** Linear attack to peak, hold at sustain level, exponential release. */
-function envelope(g: AudioParam, t0: number, hold: number, peak: number, env: Envelope): number {
+/** Linear attack to peak, hold at sustain level, exponential release. Returns the end time. */
+const envelope = (g: AudioParam, t0: number, hold: number, peak: number, env: Envelope): number => {
   const end = t0 + Math.max(hold, env.attack) + env.release;
   g.setValueAtTime(0.0001, t0);
   g.linearRampToValueAtTime(peak, t0 + env.attack);
@@ -70,10 +77,22 @@ function envelope(g: AudioParam, t0: number, hold: number, peak: number, env: En
   g.setValueAtTime(peak * env.sustain, t0 + Math.max(hold, env.attack));
   g.exponentialRampToValueAtTime(0.0001, end);
   return end;
+};
+
+/** What a voice hands back so a held note can be shaped and let go. */
+interface Built {
+  sources: AudioScheduledSourceNode[];
+  nodes: AudioNode[];
+  /** Vibrato depth control, null for instruments without vibrato */
+  vibrato: GainNode | null;
+  vibratoBase: number;
+  /** Seconds the voice takes to ring off once released */
+  release: number;
+  end: number;
 }
 
 /** Sine LFO on oscillator frequency, faded in after `delay` like a player's vibrato. */
-function vibrato(c: AudioContext, targets: OscillatorNode[], t0: number, end: number, rate: number, depthHz: number, delay: number): void {
+const vibrato = (c: BaseAudioContext, targets: OscillatorNode[], t0: number, end: number, rate: number, depthHz: number, delay: number) => {
   const lfo = c.createOscillator();
   lfo.frequency.value = rate;
   const depth = c.createGain();
@@ -84,18 +103,11 @@ function vibrato(c: AudioContext, targets: OscillatorNode[], t0: number, end: nu
   for (const o of targets) depth.connect(o.frequency);
   lfo.start(t0);
   lfo.stop(end);
-}
+  return { lfo, depth };
+};
 
-function cleanup(last: AudioScheduledSourceNode, nodes: AudioNode[]): void {
-  last.onended = () => {
-    for (const n of nodes) n.disconnect();
-  };
-}
-
-function bowed(c: AudioContext, dest: AudioNode, f: number, t0: number, hold: number, peak: number, dark: boolean): void {
-  const env: Envelope = dark
-    ? { attack: 0.12, sustain: 0.75, release: 0.6 }
-    : { attack: 0.07, sustain: 0.7, release: 0.28 };
+const bowed = (c: BaseAudioContext, dest: AudioNode, f: number, t0: number, hold: number, peak: number, dark: boolean): Built => {
+  const env: Envelope = dark ? { attack: 0.12, sustain: 0.75, release: 0.6 } : { attack: 0.07, sustain: 0.7, release: 0.28 };
   const vca = c.createGain();
   const end = envelope(vca.gain, t0, hold, peak, env);
 
@@ -119,15 +131,12 @@ function bowed(c: AudioContext, dest: AudioNode, f: number, t0: number, hold: nu
   b.connect(mix);
   mix.connect(lp).connect(vca).connect(dest);
 
-  vibrato(c, [a, b], t0, end, dark ? 4.8 : 5.6, f * (dark ? 0.004 : 0.006), 0.18);
-  a.start(t0);
-  b.start(t0);
-  a.stop(end);
-  b.stop(end);
-  cleanup(b, [a, b, mix, lp, vca]);
-}
+  const base = f * (dark ? 0.004 : 0.006);
+  const vib = vibrato(c, [a, b], t0, end, dark ? 4.8 : 5.6, base, 0.18);
+  return { sources: [a, b, vib.lfo], nodes: [mix, lp, vca, vib.depth], vibrato: vib.depth, vibratoBase: base, release: env.release, end };
+};
 
-function flute(c: AudioContext, dest: AudioNode, f: number, t0: number, hold: number, peak: number): void {
+const flute = (c: BaseAudioContext, dest: AudioNode, f: number, t0: number, hold: number, peak: number): Built => {
   const env: Envelope = { attack: 0.06, sustain: 0.8, release: 0.18 };
   const vca = c.createGain();
   const end = envelope(vca.gain, t0, hold, peak, env);
@@ -135,15 +144,16 @@ function flute(c: AudioContext, dest: AudioNode, f: number, t0: number, hold: nu
   const o = c.createOscillator();
   o.type = 'sine';
   o.frequency.value = f;
-  const h = c.createOscillator();
-  h.type = 'sine';
-  h.frequency.value = f * 2;
+  const harm = c.createOscillator();
+  harm.type = 'sine';
+  harm.frequency.value = f * 2;
   const hg = c.createGain();
   hg.gain.value = 0.12;
   o.connect(vca);
-  h.connect(hg).connect(vca);
+  harm.connect(hg).connect(vca);
   vca.connect(dest);
-  vibrato(c, [o, h], t0, end, 4.6, f * 0.004, 0.22);
+  const base = f * 0.004;
+  const vib = vibrato(c, [o, harm], t0, end, 4.6, base, 0.22);
 
   // Breath: band-passed noise, loudest in the chiff then settling low.
   const n = c.createBufferSource();
@@ -161,16 +171,13 @@ function flute(c: AudioContext, dest: AudioNode, f: number, t0: number, hold: nu
   ng.gain.exponentialRampToValueAtTime(0.0001, end);
   n.connect(bp).connect(ng).connect(dest);
 
-  for (const s of [o, h, n]) {
-    s.start(t0);
-    s.stop(end);
-  }
-  cleanup(o, [o, h, hg, vca, n, bp, ng]);
-}
+  return { sources: [o, harm, n, vib.lfo], nodes: [hg, vca, bp, ng, vib.depth], vibrato: vib.depth, vibratoBase: base, release: env.release, end };
+};
 
-function piano(c: AudioContext, dest: AudioNode, f: number, t0: number, hold: number, peak: number): void {
+const piano = (c: BaseAudioContext, dest: AudioNode, f: number, t0: number, hold: number, peak: number): Built => {
   // Percussive: near-instant attack, decay that shortens up the keyboard.
-  const decay = Math.min(2.4, Math.max(0.5, hold + 0.4) * (f > 600 ? 0.7 : 1));
+  // Holding acts like the sustain pedal: the tail lasts as long as the hold.
+  const decay = Math.min(6, Math.max(0.5, hold + 0.4) * (f > 600 ? 0.7 : 1));
   const end = t0 + decay;
   const vca = c.createGain();
   vca.gain.setValueAtTime(0.0001, t0);
@@ -183,51 +190,111 @@ function piano(c: AudioContext, dest: AudioNode, f: number, t0: number, hold: nu
   lp.frequency.setValueAtTime(Math.min(9000, f * 10), t0);
   lp.frequency.exponentialRampToValueAtTime(Math.min(3000, f * 3), t0 + 0.3);
 
-  const partials: [number, OscillatorType, number][] = [
-    [1, 'triangle', 1],
-    [2, 'sine', 0.35],
-    [3, 'sine', 0.12],
-  ];
+  const sources: AudioScheduledSourceNode[] = [];
   const nodes: AudioNode[] = [vca, lp];
-  let last: OscillatorNode | null = null;
-  for (const [mult, type, gain] of partials) {
+  for (const [mult, type, gain] of [[1, 'triangle', 1], [2, 'sine', 0.35], [3, 'sine', 0.12]] as const) {
     const o = c.createOscillator();
     o.type = type;
     o.frequency.value = f * mult;
     const g = c.createGain();
     g.gain.value = gain;
     o.connect(g).connect(lp);
-    o.start(t0);
-    o.stop(end);
-    nodes.push(o, g);
-    last = o;
+    sources.push(o);
+    nodes.push(g);
   }
   lp.connect(vca).connect(dest);
-  if (last) cleanup(last, nodes);
-}
+  return { sources, nodes, vibrato: null, vibratoBase: 0, release: 0.25, end };
+};
 
-/**
- * Play one score event on this phone. `beats` and `bpm` come straight
- * from the Score so a half note rings twice as long as a quarter.
- */
-export function playNote(instrument: InstrumentId, midi: number, beats: number, bpm: number, velocity = 96): void {
-  const c = unlockAudio();
-  if (!c || !out) return;
-  const f = midiToFreq(midi);
-  const t0 = c.currentTime + 0.005;
-  const hold = Math.min(4, Math.max(0.12, beatsToSeconds(beats, bpm)));
-  const peak = 0.32 * Math.min(1, Math.max(0.1, velocity / 127));
+const LEVEL: Record<InstrumentId, number> = { violin: 1, cello: 1.15, flute: 1, piano: 1.1 };
+
+const build = (c: BaseAudioContext, dest: AudioNode, instrument: InstrumentId, f: number, t0: number, hold: number, peak: number): Built => {
   switch (instrument) {
     case 'violin':
-      return bowed(c, out, f, t0, hold, peak, false);
+      return bowed(c, dest, f, t0, hold, peak, false);
     case 'cello':
-      return bowed(c, out, f, t0, hold, peak * 1.15, true);
+      return bowed(c, dest, f, t0, hold, peak, true);
     case 'flute':
-      return flute(c, out, f, t0, hold, peak);
+      return flute(c, dest, f, t0, hold, peak);
     case 'piano':
-      return piano(c, out, f, t0, hold, peak * 1.1);
+      return piano(c, dest, f, t0, hold, peak);
+  }
+};
+
+const peakFor = (instrument: InstrumentId, velocity: number, level = 1): number =>
+  0.32 * LEVEL[instrument] * level * Math.min(1, Math.max(0.1, velocity / 127));
+
+/** Written length in seconds, clamped so very short notes still speak and long ones end. */
+export const noteSeconds = (beats: number, bpm: number): number => Math.min(4, Math.max(0.12, beatsToSeconds(beats, bpm)));
+
+/** Longest a held note may sustain before it lets go by itself */
+const MAX_HOLD = 8;
+
+export interface Voice {
+  /** Finger lifted: ring off, but never before the note's written length */
+  release(): void;
+  /** Slide gesture: 0.3 (whisper) to 1.6 (full), 1 is as written */
+  express(level: number): void;
+  /** Wiggle gesture: 0 (none) to 1 (wide vibrato) */
+  wobble(amount: number): void;
+}
+
+const SILENT: Voice = { release: () => {}, express: () => {}, wobble: () => {} };
+
+/**
+ * Play one score event on this phone. `beats` and `bpm` come straight from
+ * the Score. With `held`, the note sustains until release() (or MAX_HOLD).
+ */
+export function playNote(instrument: InstrumentId, midi: number, beats: number, bpm: number, velocity = 96, opts: { held?: boolean; level?: number } = {}): Voice {
+  const c = unlockAudio();
+  if (!c || !out) return SILENT;
+  const t0 = c.currentTime + 0.005;
+  const written = noteSeconds(beats, bpm);
+  const hold = opts.held ? MAX_HOLD : written;
+
+  const gate = c.createGain();
+  const expr = c.createGain();
+  expr.connect(gate).connect(out);
+  const v = build(c, expr, instrument, midiToFreq(midi), t0, hold, peakFor(instrument, velocity, opts.level));
+  const all = [...v.nodes, expr, gate];
+  const last = v.sources[0];
+  if (last) last.onended = () => all.forEach((n) => n.disconnect());
+  for (const s of v.sources) {
+    s.start(t0);
+    s.stop(v.end);
+  }
+
+  let released = !opts.held;
+  return {
+    release: () => {
+      if (released) return;
+      released = true;
+      const at = Math.max(c.currentTime, t0 + written);
+      gate.gain.setTargetAtTime(0, at, v.release / 3);
+      const stop = at + v.release * 2.5;
+      for (const s of v.sources) {
+        try {
+          s.stop(stop);
+        } catch {
+          // already stopped on its own
+        }
+      }
+    },
+    express: (level) => expr.gain.setTargetAtTime(Math.max(0.3, Math.min(1.6, level)), c.currentTime, 0.06),
+    wobble: (amount) => v.vibrato?.gain.setTargetAtTime(v.vibratoBase * (1 + Math.max(0, Math.min(1, amount)) * 4), c.currentTime, 0.05),
+  };
+}
+
+/** Schedule a note at an exact time on any context: used to render recordings offline. */
+export function renderNote(c: BaseAudioContext, dest: AudioNode, instrument: InstrumentId, midi: number, beats: number, bpm: number, t0: number, velocity = 96, level = 1): void {
+  const v = build(c, dest, instrument, midiToFreq(midi), t0, noteSeconds(beats, bpm), peakFor(instrument, velocity, level));
+  for (const s of v.sources) {
+    s.start(t0);
+    s.stop(v.end);
   }
 }
+
+export { masterBus };
 
 /** A soft, dull knock for taps that can't play (not started, no track, finished). */
 export function thunk(): void {
@@ -245,5 +312,15 @@ export function thunk(): void {
   o.connect(g).connect(out);
   o.start(t0);
   o.stop(t0 + 0.15);
-  cleanup(o, [o, g]);
+  o.onended = () => {
+    o.disconnect();
+    g.disconnect();
+  };
+}
+
+/** A bright two-note chime for the sound check: if you hear this, you're ready. */
+export function chime(): void {
+  const c = unlockAudio();
+  if (!c || !out) return;
+  [[76, 0], [83, 0.12]].forEach(([midi, dt]) => renderNote(c, out as GainNode, 'piano', midi ?? 76, 1, 120, c.currentTime + 0.01 + (dt ?? 0), 100));
 }

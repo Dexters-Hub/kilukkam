@@ -255,7 +255,7 @@ function leaveToHome(notice: string | null): void {
 const actions: Actions = {
   goHome: () => store.set({ route: 'home', notice: null, intent: null }),
   goCreate: () => store.set({ route: 'create', notice: null }),
-  goJoin: () => store.set({ route: 'join', notice: null }),
+  goJoin: (code) => store.set({ route: 'join', notice: null, ...(code ? { joinCode: code } : {}) }),
 
   createRoom(pieceId) {
     unlockAudio();

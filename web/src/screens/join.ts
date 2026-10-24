@@ -118,6 +118,6 @@ export const joinScreen: ScreenFactory = (s, a) => {
     refresh(st.intent?.kind === 'join');
   };
   update(s);
-  if (!code.value) queueMicrotask(() => code.focus());
+  queueMicrotask(() => (code.value ? name : code).focus());
   return { el, update };
 };

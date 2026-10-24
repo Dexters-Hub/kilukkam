@@ -2,11 +2,11 @@ export type InstrumentId = 'violin' | 'cello' | 'flute' | 'piano';
 
 export interface NoteEvent {
   kind: 'note';
-  /** MIDI note number, 0–127 */
+  /** MIDI note number, 0-127 */
   midi: number;
   /** Duration in beats (quarter note = 1) */
   beats: number;
-  /** 0–127, defaults to a mid value at playback */
+  /** 0-127, defaults to a mid value at playback */
   velocity?: number;
 }
 

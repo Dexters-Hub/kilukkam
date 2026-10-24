@@ -1,4 +1,4 @@
-import { CONDUCTOR_AVATAR, composerFor } from './composers.js';
+import { CONDUCTOR_AVATAR, composerFor, portraitUrl } from './composers.js';
 import type { AppState } from './store.js';
 
 // Tiny DOM helpers. Strings always go in as text nodes, never HTML, so
@@ -64,7 +64,8 @@ export interface Screen {
 export interface Actions {
   goHome(): void;
   goCreate(): void;
-  goJoin(): void;
+  /** Open the join screen, optionally with a code already typed on home */
+  goJoin(code?: string): void;
   createRoom(pieceId: string): void;
   joinRoom(code: string, name: string, avatar: string): void;
   pickTrack(trackId: string): void;
@@ -115,7 +116,13 @@ export const avatar = (id: string, opts: AvatarOptions = {}): HTMLElement => {
     },
     h('span', { class: 'av-mono', 'aria-hidden': 'true' }, mark),
   );
-  if (composer) el.style.setProperty('--era', composer.eraColor);
+  if (composer) {
+    el.style.setProperty('--era', composer.eraColor);
+    // The monogram stays underneath as the fallback if the portrait can't load.
+    const img = h('img', { class: 'av-portrait', src: portraitUrl(composer), alt: '', loading: 'lazy', decoding: 'async', draggable: 'false' });
+    img.addEventListener('error', () => img.remove(), { once: true });
+    el.append(img);
+  }
   return el;
 };
 
@@ -141,6 +148,7 @@ export const wordmark = (size: 'bar' | 'hero' = 'bar'): HTMLElement =>
   h(
     'span',
     { class: cx('wordmark', `wordmark-${size}`) },
+    size === 'bar' ? h('img', { class: 'wordmark-mark', src: '/icon.svg', alt: '', width: 30, height: 30 }) : null,
     h('span', { class: 'wordmark-en' }, 'Kilukkam'),
     h('span', { class: 'wordmark-ml', lang: 'ml' }, 'കിലുക്കം'),
   );

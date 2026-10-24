@@ -8,11 +8,11 @@ const MELODY: ScoreEvent[] = [
   note(64, 1), note(64, 1), note(65, 1), note(67, 1), // E E F G
   note(67, 1), note(65, 1), note(64, 1), note(62, 1), // G F E D
   note(60, 1), note(60, 1), note(62, 1), note(64, 1), // C C D E
-  note(64, 1.5), note(62, 0.5), note(62, 2),          // E. D D–
+  note(64, 1.5), note(62, 0.5), note(62, 2),          // E. D D-
   note(64, 1), note(64, 1), note(65, 1), note(67, 1),
   note(67, 1), note(65, 1), note(64, 1), note(62, 1),
   note(60, 1), note(60, 1), note(62, 1), note(64, 1),
-  note(62, 1.5), note(60, 0.5), note(60, 2),          // D. C C–
+  note(62, 1.5), note(60, 0.5), note(60, 2),          // D. C C-
 ];
 
 // Violin: harmony a third below the melody
@@ -36,7 +36,7 @@ const PIANO: ScoreEvent[] = [
   note(60, 1), note(64, 1), note(67, 1), note(64, 1),
   note(55, 1), note(59, 1), note(62, 1), note(59, 1),
   note(60, 1), note(64, 1), note(67, 1), note(64, 1),
-  note(60, 4),                                       // C–
+  note(60, 4),                                       // C-
 ];
 
 // Cello: roots, half notes
@@ -48,7 +48,7 @@ const BASS: ScoreEvent[] = [
   note(48, 2), note(52, 2),
   note(43, 2), note(50, 2),
   note(48, 2), note(52, 2),
-  note(48, 4),              // C–
+  note(48, 4),              // C-
 ];
 
 export const odeToJoy: Score = {

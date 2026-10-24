@@ -38,6 +38,8 @@ export interface RoomSnapshot {
   dynamics: DynamicsLevel;
   /** Tracks silenced by the conductor */
   mutedTracks: string[];
+  /** True when the piece is a conductor-uploaded custom score, not a library piece */
+  customPiece: boolean;
 }
 
 export type ClientMessage =
@@ -46,6 +48,7 @@ export type ClientMessage =
   | { type: 'pick_track'; trackId: string }
   | { type: 'auto_assign' }
   | { type: 'set_piece'; pieceId: string }
+  | { type: 'set_custom_piece'; score: Score }
   | { type: 'start_piece' }
   | { type: 'stop_piece' }
   | { type: 'remove_player'; playerId: string }
@@ -72,6 +75,7 @@ export type ServerMessage =
   | { type: 'room_created'; code: string; playerId: string; snapshot: RoomSnapshot }
   | { type: 'joined'; playerId: string; snapshot: RoomSnapshot; piece: Score }
   | { type: 'room_state'; snapshot: RoomSnapshot }
+  | { type: 'piece_changed'; piece: Score }
   | { type: 'piece_started'; startedAt: number }
   | { type: 'piece_stopped' }
   | { type: 'dynamics'; level: DynamicsLevel }
@@ -123,7 +127,8 @@ function isSnapshot(v: unknown): v is RoomSnapshot {
     (v.startedAt === null || typeof v.startedAt === 'number') &&
     (DYNAMICS_LEVELS as unknown[]).includes(v.dynamics) &&
     Array.isArray(v.mutedTracks) &&
-    v.mutedTracks.every((t) => typeof t === 'string')
+    v.mutedTracks.every((t) => typeof t === 'string') &&
+    typeof v.customPiece === 'boolean'
   );
 }
 
@@ -161,6 +166,8 @@ export function parseClientMessage(raw: string): ClientMessage | null {
       return { type: 'auto_assign' };
     case 'set_piece':
       return isStr(v.pieceId, 64) ? { type: 'set_piece', pieceId: v.pieceId } : null;
+    case 'set_custom_piece':
+      return isScore(v.score) ? { type: 'set_custom_piece', score: v.score } : null;
     case 'start_piece':
       return { type: 'start_piece' };
     case 'stop_piece':
@@ -206,6 +213,8 @@ export function parseServerMessage(raw: string): ServerMessage | null {
         : null;
     case 'room_state':
       return isSnapshot(v.snapshot) ? { type: 'room_state', snapshot: v.snapshot } : null;
+    case 'piece_changed':
+      return isScore(v.piece) ? { type: 'piece_changed', piece: v.piece } : null;
     case 'piece_started':
       return typeof v.startedAt === 'number' ? { type: 'piece_started', startedAt: v.startedAt } : null;
     case 'piece_stopped':

@@ -35,6 +35,7 @@ describe('rejoinPlan', () => {
     pieceId: 'ode-to-joy',
     dynamics: 'mf',
     mutedTracks: [],
+    customPiece: false,
     players: [],
     maxPlayers: 100,
     startedAt,
