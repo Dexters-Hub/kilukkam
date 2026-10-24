@@ -71,10 +71,17 @@ note of any song, together."
   play-along mode (conductor mic detects beat + key, phones get rhythm,
   bass and chord parts). Protocol asks (`beat`, mode, queue) sent to Devin.
   Owner creates the Spotify developer app (client ID only, no secret).
-- Cloudflare: one Worker serving web/dist plus a Durable Object hosting the
-  same RoomEngine, deployed by Workers Builds on push. Pending a worker.
-
-## Ownership (Orca run `run_86dcc70d4f45`)
+- Cloudflare (owner, 2026-10-24): Workers Builds connected to GitHub, free
+  workers.dev address first, custom domain later. One Durable Object per
+  room (idFromName(code)) hosting the unchanged RoomEngine; static web/dist
+  via assets binding. Devin dispatches the worker/ adapter; deploy is gated
+  on local wrangler dev + the sim matrix.
+- Game music: no copyrighted songs (e.g. Hollow Knight) in the repo or
+  built-in pieces. Owner may load their own MIDI locally via the importer.
+  Original game-style pieces + an 8-bit voice pack instead.
+- Brand: tilted handbell with ringing arcs on the sunset gradient
+  (public/icon.svg), simplified favicon.svg for 16 to 32 px, maskable icon,
+  og.png share card. Malayalam wordmark in Nupuram Calligraphy.
 
 - Coordinator: Devin. Owns shared/ and server/ contracts, docs/, commits.
 - QA lead + web owner (`term_61bc4fb3`): web/ end to end, the pitch deck

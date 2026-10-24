@@ -4,13 +4,9 @@ import { instrumentMeta } from '../../lib/music.js';
 import { actions } from '../../app/controller.js';
 import { useStore } from '../../app/useStore.js';
 import { cx } from '../../components/Button.js';
-import { Icon } from '../../components/Icon.js';
+import { Icon, instrumentIcon } from '../../components/Icon.js';
 import { Hint, Screen, Title, TopBar } from '../../components/Screen.js';
-import type { IconName } from '../../ui/icons.js';
 import s from './Create.module.css';
-
-/** Instrument glyph for a track; unknown instruments fall back to a note. */
-export const instrumentIcon = (id: string): IconName => (id === 'violin' || id === 'cello' || id === 'flute' || id === 'piano' ? id : 'music-note');
 
 export function Create() {
   const busy = useStore((st) => (st.intent?.kind === 'create' ? st.intent.pieceId : null));

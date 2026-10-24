@@ -4,11 +4,16 @@ import { instrumentMeta } from '../../lib/music.js';
 import { actions } from '../../app/controller.js';
 import { Avatar } from '../../components/Avatar.js';
 import { cx } from '../../components/Button.js';
-import { Icon } from '../../components/Icon.js';
-import { instrumentIcon } from '../create/Create.js';
+import { Icon, instrumentIcon } from '../../components/Icon.js';
 import s from './Lobby.module.css';
 
 const DRAG_TYPE = 'application/x-kilukkam-player';
+
+/** Makes a player row or dot draggable onto another section. */
+export const dragSource = (playerId: string) => ({
+  draggable: true,
+  onDragStart: (e: DragEvent) => e.dataTransfer.setData(DRAG_TYPE, playerId),
+});
 
 /** Rows drop onto another section to reassign; `null` is "still choosing". */
 export const dropTarget = (trackId: string | null, onHover: (on: boolean) => void) => ({
@@ -62,7 +67,7 @@ export function Roster({ title, tint, capacity, trackId, players, tracks }: Rost
       {players.length ? (
         <ul className={s.rosterList}>
           {players.map((p) => (
-            <li key={p.id} data-pid={p.id} className={cx(!p.connected && s.away)} draggable onDragStart={(e) => e.dataTransfer.setData(DRAG_TYPE, p.id)}>
+            <li key={p.id} data-pid={p.id} className={cx(!p.connected && s.away)} {...dragSource(p.id)}>
               <div className={s.row}>
                 <Avatar id={p.avatar} name={p.name} away={!p.connected} />
                 <span className={s.name}>{p.name}</span>

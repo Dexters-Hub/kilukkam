@@ -1,11 +1,11 @@
 {
   "name": "Kilukkam",
   "short_name": "Kilukkam",
-  "description": "A room full of phones becomes an orchestra.",
+  "description": "Kilukkam turns a room full of phones into an orchestra: one conductor, one entry code, and every tap plays the next note of any song, together.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f6f5f2",
+  "background_color": "#09090f",
   "theme_color": "#f6f5f2",
   "icons": [
     {
@@ -24,7 +24,7 @@
       "type": "image/png"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

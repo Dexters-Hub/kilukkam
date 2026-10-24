@@ -1,0 +1,84 @@
+.screen { padding-bottom: 0; }
+.body { display: flex; flex-direction: column; gap: 12px; }
+.muted { color: var(--muted); margin: 0; }
+.small { display: block; color: var(--muted); font-size: .85rem; }
+.grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.count { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; }
+.pieceLine { text-align: center; }
+.subtitle { font-size: 1.25rem; font-weight: 600; margin: 8px 0 0; }
+
+.segmented { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.segmented button {
+  min-height: var(--tap); padding: 10px 12px; text-align: left;
+  border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow);
+  transition: background .2s, box-shadow .2s;
+}
+.segmented button.on { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); box-shadow: var(--shadow-lift); }
+.segmented button.on strong { color: var(--accent-text); }
+
+/* ---------- conductor seating chart ---------- */
+
+.roster {
+  border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px;
+  background: linear-gradient(color-mix(in srgb, var(--tint) 10%, var(--surface)), var(--surface) 64px);
+  transition: box-shadow .2s;
+}
+.over { box-shadow: var(--shadow-lift), 0 0 0 4px color-mix(in srgb, var(--tint) 45%, transparent); }
+.rosterHead { display: flex; justify-content: space-between; align-items: center; padding: 0 4px 8px; }
+.rosterTitle { display: inline-flex; align-items: center; gap: 8px; }
+.rosterTitle > span:first-child { color: var(--tint); }
+.rosterList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.rosterList li { border-radius: var(--radius-sm); background: var(--sunk); cursor: grab; }
+.row { display: flex; align-items: center; gap: 10px; min-height: var(--tap); padding-left: 10px; }
+.away .name { color: var(--muted); }
+.name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rowBtn {
+  display: grid; place-items: center; width: var(--tap); height: var(--tap); flex: none;
+  background: transparent; color: var(--muted); border-radius: var(--radius-sm);
+}
+.armed { width: auto; padding: 0 14px; font-size: .95rem; font-weight: 700; color: #fff; background: var(--danger); margin: 6px 6px 6px 0; height: 52px; }
+.picker { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 10px 10px; }
+.chip {
+  --tint: var(--muted);
+  display: inline-flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 14px; border-radius: 999px;
+  background: color-mix(in srgb, var(--tint) 14%, var(--surface)); font-weight: 600; font-size: .92rem;
+}
+.chip > span:first-child { color: var(--tint); }
+.empty { margin: 0; padding: 0 4px; color: var(--muted); font-size: .85rem; }
+
+.start { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.switch {
+  display: flex; align-items: center; gap: 10px; min-height: var(--tap); padding: 0 6px 0 16px;
+  border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); font-weight: 600; text-align: left;
+}
+.switch > span:nth-child(2) { flex: 1; }
+.switch > span:first-child { color: var(--muted); }
+.knob {
+  position: relative; width: 52px; height: 32px; margin-right: 10px; border-radius: 999px; background: var(--sunk);
+  transition: background .2s;
+}
+.knob::after {
+  content: ''; position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--surface); box-shadow: var(--shadow); transition: transform .2s var(--ease);
+}
+.switchOn .knob { background: var(--accent); }
+.switchOn .knob::after { transform: translateX(20px); }
+.switchOn > span:first-child { color: var(--accent); }
+
+/* ---------- player instrument cards ---------- */
+
+.card {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px;
+  width: 100%; min-height: 84px; padding: 16px; text-align: left;
+  border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow);
+  transition: transform .12s var(--ease), background .2s, box-shadow .2s;
+}
+.card:active:not(:disabled) { transform: scale(.985); }
+.card:disabled { opacity: .5; }
+.mine { background: color-mix(in srgb, var(--tint) 18%, var(--surface)); box-shadow: var(--shadow-lift); }
+.glyph {
+  display: grid; place-items: center; width: 52px; height: 52px; border-radius: 14px;
+  color: var(--tint); background: color-mix(in srgb, var(--tint) 18%, var(--sunk));
+}
+.sub { color: var(--muted); }
+.avatars { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px; }

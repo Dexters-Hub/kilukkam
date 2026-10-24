@@ -36,7 +36,7 @@ export default defineConfig({
     host: '0.0.0.0',
     proxy: {
       '/ws': {
-        target: 'ws://localhost:8787',
+        target: process.env.KILUKKAM_WS ?? 'ws://localhost:8787',
         ws: true,
       },
     },

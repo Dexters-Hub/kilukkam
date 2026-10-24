@@ -1,0 +1,12 @@
+.screen { padding-bottom: 0; }
+.body { display: flex; flex-direction: column; align-items: center; gap: 12px; padding-top: 24px; text-align: center; }
+.bravo {
+  display: grid; place-items: center; width: 104px; height: 104px; border-radius: 34px;
+  color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 12%, var(--sunk));
+  animation: bob 1.6s var(--ease) infinite;
+}
+@keyframes bob { 50% { transform: translateY(-6px) rotate(-4deg); } }
+.lede { font-size: 1.1rem; color: var(--muted); margin: 0; }
+.stat { margin: 0; font: 600 1.15rem/1.3 var(--font-display); letter-spacing: -.015em; }
+.stat strong { background: var(--brand); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: 1.5rem; }
+.avatars { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }

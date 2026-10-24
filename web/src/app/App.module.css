@@ -1,0 +1,12 @@
+.banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  padding: calc(8px + var(--safe-t)) 16px 8px; text-align: center;
+  background: var(--warn-bg); color: var(--warn); font-weight: 600; font-size: .95rem;
+  box-shadow: var(--shadow);
+}
+.rtt {
+  position: fixed; right: calc(10px + var(--safe-r)); bottom: calc(10px + var(--safe-b)); z-index: 40;
+  padding: 2px 8px; border-radius: 999px; font-size: .72rem; font-variant-numeric: tabular-nums;
+  background: rgb(255 255 255 / .08); color: rgb(255 255 255 / .55); pointer-events: none;
+}
+.rtt:empty { display: none; }

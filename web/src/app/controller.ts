@@ -51,21 +51,21 @@ const startRun = (startedAt: number | null): void => {
 // ---------- rhythm: one shared clock and beat grid for the whole room ----------
 
 export const clock = new ServerClock();
-/** Every phone counts in the same 4 beats after startedAt, so the room starts on one downbeat */
+/** Beats the countdown counts aloud before the first downbeat (a count-in start leaves ~3 s for it) */
 export const COUNT_IN_BEATS = 4;
 let grid: { key: string; grid: BeatGrid } | null = null;
 const onsetCache = new Map<string, number[]>();
 
+/** The room's beat grid: beat 0 is startedAt, then the server's tempo anchors. */
 const currentGrid = (): BeatGrid | null => {
   const piece = store.state.piece;
   if (runStartedAt === null || !piece) return null;
   const key = `${runStartedAt}|${piece.id}`;
   if (grid?.key !== key) {
+    const g = new BeatGrid(runStartedAt, piece.bpm);
+    // Arriving mid-run after a tempo change: adopt the room's current anchor.
     const tempo = store.state.snapshot?.tempo;
-    // Arriving mid-run after a tempo change: continue from the room's anchor, not the piece tempo.
-    const g = tempo
-      ? new BeatGrid(tempo.at - ((tempo.beat - COUNT_IN_BEATS) * 60_000) / tempo.bpm, tempo.bpm)
-      : new BeatGrid(runStartedAt + (COUNT_IN_BEATS * 60_000) / piece.bpm, piece.bpm);
+    if (tempo) g.anchor(tempo);
     grid = { key, grid: g };
   }
   return grid.grid;
@@ -216,8 +216,8 @@ function onMessage(msg: ServerMessage): void {
       return; // room_state carries the phase change
 
     case 'tempo':
-      // Re-anchor without a jump: the grid keeps the beat it has reached at `at`.
-      currentGrid()?.setTempo(msg.bpm, msg.at);
+      // The server's anchor is the truth: beat `beat` at `at`, then `bpm`, on every phone alike.
+      currentGrid()?.anchor({ bpm: msg.bpm, at: msg.at, beat: msg.beat });
       emitLive('tempo', { bpm: msg.bpm });
       return;
 
