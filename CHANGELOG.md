@@ -5,6 +5,10 @@ before the docs commit are backfilled from `git log`.
 
 ## Unreleased
 
+- 2026-10-25 05:12: Camera practice levels end. Clearing level 8 stops
+  the guide and shows "All 8 levels cleared!" with your best streak and
+  accuracy, plus a Play again button that starts from level 1.
+
 - 2026-10-25 04:58: The camera page puts Start camera beside its
   heading, keeps the header bar solid so headings never show through on
   scroll, and shows the help button as an icon on phones so the theme

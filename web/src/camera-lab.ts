@@ -56,6 +56,8 @@ const recentScores: number[] = [];
 let level = 0;
 let levels = true;
 let levelUpAt = -Infinity;
+/** When the top level was cleared: the guide stops and the finale shows until Play again */
+let clearedAt: number | null = null;
 /** The four fingertips the thumb touches to play: index, middle, ring, little */
 const TIPS = [LM.index[3], LM.middle[3], LM.ring[3], LM.pinky[3]] as const;
 const FINGER_NAMES = TOUCH_FINGERS;
@@ -156,7 +158,8 @@ const meterChips = h(
 );
 const levelText = h('span', { class: 'level-text' }, 'Level 1 · 4/4 at 60');
 const levelToggle = h('button', { class: 'chip', type: 'button', role: 'switch', 'aria-checked': 'true', onclick: () => setLevels(!levels) }, 'Levels on');
-const levelRow = h('div', { class: 'panel-row' }, levelText, levelToggle);
+const playAgain = h('button', { class: 'chip play-again', type: 'button', hidden: true, onclick: () => replayLevels() }, 'Play again');
+const levelRow = h('div', { class: 'panel-row' }, levelText, h('span', { class: 'top-right' }, playAgain, levelToggle));
 
 // Scores sit right under the camera view, where the eyes already are.
 const hudStats = h('div', { class: 'stats hud-stats' }, accStat.el, tempoStat.el, dynStat.el, streakStat.el);
@@ -252,6 +255,7 @@ function setPattern(m: Meter, bpm: number, manual: boolean): void {
 
 function setLevels(on: boolean): void {
   levels = on;
+  if (!on) clearFinale();
   levelToggle.setAttribute('aria-checked', String(on));
   levelToggle.textContent = on ? 'Levels on' : 'Levels off';
   paintLevel();
@@ -260,11 +264,40 @@ function setLevels(on: boolean): void {
 const paintLevel = () => {
   const good = recentScores.filter((x) => x >= 40).length;
   const progress = level < LEVELS.length - 1 ? ` · ${Math.min(good, LEVEL_HITS)} of ${LEVEL_HITS} good beats` : ' · top level';
-  levelText.textContent = levels ? `Level ${level + 1} of ${LEVELS.length} · ${METER_NAME[METER]} at ${targetBpm}${progress}` : `Free practice · ${METER_NAME[METER]} at ${targetBpm}`;
+  levelText.textContent = !levels
+    ? `Free practice · ${METER_NAME[METER]} at ${targetBpm}`
+    : clearedAt !== null
+      ? `All ${LEVELS.length} levels cleared`
+      : `Level ${level + 1} of ${LEVELS.length} · ${METER_NAME[METER]} at ${targetBpm}${progress}`;
 };
 
+/** The top level is cleared: stop the guide, celebrate, and offer a fresh run. */
+function finishLevels(now: number): void {
+  clearedAt = now;
+  playAgain.hidden = false;
+  live.textContent = `All ${LEVELS.length} levels cleared. Best streak ${bestStreak}.`;
+  paintLevel();
+}
+
+function clearFinale(): void {
+  clearedAt = null;
+  playAgain.hidden = true;
+}
+
+/** Back to level 1 for another run through all of them. */
+function replayLevels(): void {
+  level = 0;
+  const first = LEVELS[0];
+  if (first) setPattern(first.meter, first.bpm, false);
+  levelUpAt = performance.now();
+}
+
 function levelUp(now: number): void {
-  if (!levels || level >= LEVELS.length - 1) return;
+  if (!levels) return;
+  if (level >= LEVELS.length - 1) {
+    finishLevels(now);
+    return;
+  }
   level++;
   const next = LEVELS[level];
   if (!next) return;
@@ -276,6 +309,7 @@ function levelUp(now: number): void {
 
 /** Keep the placed pattern, restart the guide with a count-in in the current meter and tempo. */
 function restartPattern(): void {
+  clearFinale();
   recentScores.length = 0;
   guideStart = performance.now();
   lastTick = -1;
@@ -533,6 +567,28 @@ function drawConduct(frame: HandFrame, w: number, hh: number, P: (p: Point) => r
   const F = (u: Point) => P(toFrame(u, b, frame.aspect));
   const unit = (b.size * hh);
   const R = TARGET_RADIUS * unit;
+
+  // All levels cleared: the targets give way to the finale until Play again.
+  if (clearedAt !== null) {
+    const t = now - clearedAt;
+    if (t < 1200 && Math.random() < 0.6) {
+      const a = Math.random() * Math.PI * 2;
+      const v = 0.2 + Math.random() * 0.5;
+      sparks.push({ x: w / 2, y: hh * 0.42, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 0.2, t: now, color: Math.random() < 0.3 ? '#ffffff' : accent });
+    }
+    c.globalAlpha = Math.min(1, t / 400);
+    c.fillStyle = accent;
+    c.font = font(Math.max(26, hh * 0.085), 900);
+    c.fillText(`All ${LEVELS.length} levels cleared!`, w / 2, hh * 0.42);
+    c.fillStyle = '#fff';
+    c.font = font(Math.max(15, hh * 0.035), 700);
+    c.fillText(`Best streak ${bestStreak} · baton accuracy ${coach.accuracy}%`, w / 2, hh * 0.52);
+    c.fillText('Press Play again to start from level 1', w / 2, hh * 0.59);
+    c.globalAlpha = 1;
+    drawFx(c, w, hh, P, now, R, true);
+    c.textBaseline = 'alphabetic';
+    return;
+  }
 
   // Click on each beat, accented on beat 1, so there is a pulse to move to.
   const whole = Math.floor(beat);
