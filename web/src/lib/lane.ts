@@ -291,9 +291,9 @@ export const createLane = (canvas: HTMLCanvasElement, opts: LaneOptions): Lane =
   ro.observe(canvas);
   resize();
 
-  /** Columns fill the surface; one column (Easy) sits in the middle. The hit zone sits above the big note name. */
+  /** Columns fill the surface; one column (Easy) sits in the middle. The hit zone sits low, as in Piano Tiles, where a thumb rests. */
   const layout = () => {
-    const hitY = Math.min(h * 0.7, h - 250);
+    const hitY = h - Math.max(100, h * 0.13);
     const topY = Math.max(64, h * 0.08);
     const colW = count === 1 ? Math.min(w * 0.5, 220) : w / count;
     return { cx: w / 2, hitY, topY, perBeat: (hitY - topY) / lookahead, colW, left: count === 1 ? (w - colW) / 2 : 0 };
