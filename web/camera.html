@@ -20,6 +20,8 @@
     .lab-head .title { margin: 4px 0 0; }
     .top .pill { white-space: nowrap; }
     .top-right { display: inline-flex; gap: 8px; }
+    /* On a phone the help button keeps its icon (and its aria-label) so the theme switch fits. */
+    @media (max-width: 430px) { .top-right .pill-label { display: none; } }
     .home-link { color: inherit; text-decoration: none; }
 
     .mode-tabs { display: inline-grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 999px; background: var(--sunk); }
@@ -47,7 +49,7 @@
       background: radial-gradient(70% 60% at 50% 40%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%);
     }
     .cam-empty strong { color: #f6f1e8; font: 750 1.25rem/1.2 var(--font-display); letter-spacing: -.02em; }
-    .cam-empty-icon { display: grid; place-items: center; width: 72px; height: 72px; margin-bottom: 6px; border-radius: 22px; color: var(--accent); background: rgb(255 255 255 / .08); }
+    .cam-empty-icon { display: grid; place-items: center; width: 72px; height: 72px; margin-bottom: 6px; border-radius: 22px; color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
     .cam-stage.live .cam-empty { display: none; }
     .hud {
       position: absolute; bottom: 12px; left: 12px; z-index: 2; display: inline-flex; align-items: center; gap: 8px;
@@ -58,8 +60,10 @@
     .hud.found .hud-dot { background: var(--ok); box-shadow: 0 0 10px var(--ok); }
     .cam-stage:not(.live) .hud { display: none; }
 
-    .actions { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .cam-start { min-width: 220px; }
+    /* Start camera sits beside the heading, where the eye lands first. */
+    .lab-title { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+    .lab-title .cam-start { min-height: 48px; padding: 0 22px; }
+    .lab-main > .hint:empty { display: none; }
 
     .panel { display: flex; flex-direction: column; gap: 14px; }
     .panel-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }

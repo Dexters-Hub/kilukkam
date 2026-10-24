@@ -5,6 +5,20 @@ before the docs commit are backfilled from `git log`.
 
 ## Unreleased
 
+- 2026-10-25 04:58: The camera page puts Start camera beside its
+  heading, keeps the header bar solid so headings never show through on
+  scroll, and shows the help button as an icon on phones so the theme
+  switch fits.
+
+- 2026-10-25 04:56: Icons are clean lines: the faint duotone tint that
+  read as a grey box behind the tick, the X and others is gone, and the
+  camera and Host a room icon tiles are lime tinted instead of grey.
+
+- 2026-10-25 04:54: The tap line sits low, as in Piano Tiles (about 87%
+  down the screen), where thumbs rest. The next note moves to the top,
+  the first-run hint is a small pill under it, and the room's other
+  players are one row along the bottom.
+
 - 2026-10-25 04:40: The camera conductor controls the room live and can
   no longer end it. Root cause of the "Well played" bug: a held fist was a
   cut-off that sent `stop_piece`, and its 3 s grace counted from the piece

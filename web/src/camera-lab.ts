@@ -202,7 +202,7 @@ const help = h(
   ),
   h('form', { method: 'dialog' }, h('button', { class: 'btn btn-primary', type: 'submit' }, 'Got it')),
 );
-const helpBtn = h('button', { class: 'pill', type: 'button', 'aria-label': 'How to play', onclick: () => help.showModal() }, icon('sparkle', 16), 'How to play');
+const helpBtn = h('button', { class: 'pill', type: 'button', 'aria-label': 'How to play', onclick: () => help.showModal() }, icon('sparkle', 16), h('span', { class: 'pill-label' }, 'How to play'));
 
 const themeBtn = h('button', { class: 'pill theme', type: 'button', 'aria-label': 'Switch theme' }, savedTheme() === 'dark' ? 'Light' : 'Dark');
 themeBtn.addEventListener('click', () => {
@@ -214,8 +214,8 @@ themeBtn.addEventListener('click', () => {
 const live = h('p', { class: 'sr-only', 'aria-live': 'polite' });
 document.getElementById('lab')?.append(
   h('header', { class: 'top' }, h('a', { class: 'home-link', href: '/', 'aria-label': 'Kilukkam home' }, wordmark()), h('span', { class: 'top-right' }, helpBtn, themeBtn)),
-  h('div', { class: 'lab-head' }, h('h1', { class: 'title' }, 'Play with your hands'), tabs),
-  h('div', { class: 'lab-grid' }, h('div', { class: 'lab-main' }, stage, hudStats, h('div', { class: 'actions' }, start, stop, status)), h('div', { class: 'lab-side' }, conductPanel, playPanel)),
+  h('div', { class: 'lab-head' }, h('div', { class: 'lab-title' }, h('h1', { class: 'title' }, 'Play with your hands'), start, stop), tabs),
+  h('div', { class: 'lab-grid' }, h('div', { class: 'lab-main' }, stage, hudStats, status), h('div', { class: 'lab-side' }, conductPanel, playPanel)),
   help,
   live,
 );

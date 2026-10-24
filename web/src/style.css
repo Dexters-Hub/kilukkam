@@ -58,7 +58,8 @@ input { -webkit-appearance: none; appearance: none; }
   margin: 0 calc(-1 * var(--pad));
   padding: 8px var(--pad);
   padding-top: calc(8px + var(--safe-t));
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  /* Nearly solid: the page scrolls under it, and headings must not show through. */
+  background: color-mix(in srgb, var(--bg) 96%, transparent);
   backdrop-filter: saturate(1.4) blur(16px);
   -webkit-backdrop-filter: saturate(1.4) blur(16px);
 }
