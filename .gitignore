@@ -8,10 +8,12 @@ coverage/
 .vite/
 .atlan/
 .playwright-mcp/
-*.png
+/*.png
+.wrangler/
 .claude/worktrees/
 !.env.example
 
 # MediaPipe model + wasm (21 MB): fetched by scripts/fetch-mediapipe.sh, not versioned
 web/public/mediapipe/*.task
 web/public/mediapipe/wasm/*.wasm
+.wrangler/
