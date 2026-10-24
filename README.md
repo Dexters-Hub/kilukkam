@@ -182,7 +182,7 @@ House rules worth knowing up front (see [AGENTS.md](AGENTS.md)):
 - **Hand tracking:** MediaPipe Tasks Vision (Apache 2.0), self-hosted.
   Video never leaves the device, and the library's usage metrics are
   blocked by the page's Content Security Policy.
-- **Fonts:** Inter via Fontsource; RIT Kutty (Rachana Institute of
+- **Fonts:** Inter via Fontsource; RIT Ala (Rachana Institute of
   Typography) for the Malayalam name; Anek Malayalam (EK Type) for other
   Malayalam text. All under the SIL Open Font License; licence texts
   are in [web/public/fonts](web/public/fonts).

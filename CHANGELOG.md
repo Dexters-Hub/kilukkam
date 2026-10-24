@@ -5,27 +5,32 @@ before the docs commit are backfilled from `git log`.
 
 ## Unreleased
 
+- 2026-10-25 04:25: The Malayalam name in the logo is now set in RIT Ala
+  (Rachana Institute of Typography, OFL), a clean rounded line, in the
+  header, the camera page and the share card. RIT Kutty is removed.
+
 - 2026-10-25 04:10: The Spotify play-along tab is locked as "Coming soon"
   until sign-in and playback are solid on every device. The code stays;
   one flag in the music picker turns it back on.
 
-- 2026-10-25 03:48: The camera conductor controls the room live and can
+- 2026-10-25 04:20: The camera conductor controls the room live and can
   no longer end it. Root cause of the "Well played" bug: a held fist was a
   cut-off that sent `stop_piece`, and its 3 s grace counted from the piece
-  start, not the camera start, so a closed hand raised into view mid-piece
-  ended the run. Now a fist made and held 800 ms pauses the room (ignored
-  for 3 s after the camera starts and for a hand that arrived closed); an
-  open palm or two beats resume it after a 2 beat count-in. New gestures:
-  the stop hand rests a section, both palms rising build, both hands
-  sweeping down drop, both index fingers level loop the bar, each with a
-  progress ring. New `pause_piece` and `resume_piece` messages,
-  `piece_paused` and `piece_resumed` events and a `paused` snapshot field
-  (worker shares the engine). Phones show a tempo chip ("Slower · 92
-  bpm"), a "Cello rests" card, "Paused by the conductor" and the count
-  back in. With the camera on, the stage shows live readouts and folds the
-  buttons into "No camera? Use buttons". `?camdemo` performs every gesture.
-  Only Stop ends a piece.
-
+  start, not the camera start, so a hand raised into view mid-piece ended
+  the run. The fist gesture is gone. The owner-approved set: beat time
+  (tempo), the off-hand palm lifted or pressed (one dynamics step), point
+  and hold (section in), one stop hand in a third (section rests), both
+  stop hands (pause), one big downbeat (resume after a 2 beat count-in),
+  both palms rising (build), both hands down fast (drop), a circle with the
+  finger (loop bar) and a bell shake (Kilukkam!). Each has a gate and a
+  fill-up ring; nothing counts in the first 3 s or from a hand in view
+  under 500 ms. New `pause_piece`, `resume_piece` and `kilukkam` messages,
+  `piece_paused`, `piece_resumed` and `kilukkam` events and a `paused`
+  snapshot field (the worker shares the engine). Phones show a tempo chip
+  ("Slower · 92 bpm"), "Cello rests", "Paused by the conductor", the count
+  back in, and flash, sparkle and ring together on Kilukkam. With the
+  camera on, the stage shows live readouts and folds the buttons into "No
+  camera? Use buttons". `?camdemo` performs all ten. Only Stop ends a piece.
 - 2026-10-25 03:34: Play mode is now Piano Tiles with glass tiles.
   A Level picker (Easy, Normal, Hard, Expert) sets 1, 2 or 4 columns;
   Expert adds hold tiles that fill while held and arrow tiles you swipe

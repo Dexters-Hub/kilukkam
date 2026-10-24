@@ -24,7 +24,7 @@
 .en { font: 800 1.2rem/1 var(--font-brand); letter-spacing: -.035em; }
 /* Malayalam vowel signs are tall: room above and below so background-clip never cuts them. */
 .ml {
-  font: 700 1.3rem/1.3 var(--font-brand-ml); padding: .1em 0 .15em; color: var(--text);
+  font: 400 1.45rem/1.3 var(--font-brand-ml); padding: .1em 0 .15em; color: var(--text);
 }
 
 .title { font-size: 2.1rem; line-height: 1.04; margin: 8px 0 0; }

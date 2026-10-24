@@ -37,7 +37,7 @@ export async function drawCard(d: CardData): Promise<Blob | null> {
   g.font = '800 54px "Inter Variable", sans-serif';
   g.fillText('Kilukkam', 80, 130);
   const en = g.measureText('Kilukkam ').width;
-  g.font = '700 52px "RIT Kutty", sans-serif';
+  g.font = '400 58px "RIT Ala", sans-serif';
   g.fillStyle = 'rgba(255,255,255,0.7)';
   g.fillText('കിലുക്കം', 80 + en, 130);
 

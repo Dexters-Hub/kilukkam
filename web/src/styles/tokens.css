@@ -1,11 +1,11 @@
 /* Kilukkam design tokens: neon lime on paper and ink. */
 
-/* The Malayalam name is set in Anek Malayalam: modern, variable weight and width (OFL). */
-/* The Malayalam name in the logo: RIT Kutty Bold (Rachana Institute of Typography, OFL). */
+/* The Malayalam name in the logo: RIT Ala (Rachana Institute of Typography, OFL), one rounded weight. */
+/* Other Malayalam text is set in Anek Malayalam: modern, variable weight and width (OFL). */
 @font-face {
-  font-family: "RIT Kutty";
-  src: url("/fonts/rit-kutty.woff2") format("woff2");
-  font-weight: 700;
+  font-family: "RIT Ala";
+  src: url("/fonts/rit-ala.woff2") format("woff2");
+  font-weight: 400;
   font-display: swap;
 }
 @font-face {
@@ -48,9 +48,9 @@
 
   --font-display: "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-body: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  /* The wordmark: Inter set heavy and tight for the English, RIT Kutty for the Malayalam */
+  /* The wordmark: Inter set heavy and tight for the English, RIT Ala for the Malayalam */
   --font-brand: "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-brand-ml: "RIT Kutty", "Anek Malayalam", "Noto Sans Malayalam", sans-serif;
+  --font-brand-ml: "RIT Ala", "Anek Malayalam", "Noto Sans Malayalam", sans-serif;
   --font-malayalam: "Anek Malayalam", "Noto Sans Malayalam", "Malayalam Sangam MN", "Malayalam MN", Manjari, Kartika, sans-serif;
   /* Composer monograms: a classical serif against the geometric UI type */
   --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
