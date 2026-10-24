@@ -12,7 +12,7 @@ const WS_PATH = '/ws';
  * MediaPipe's telemetry to odml.pa.googleapis.com is deliberately not
  * on it, so the browser blocks it. Keep in sync with web/index.html.
  */
-export const CSP = [
+const CSP = [
   "default-src 'self'",
   "script-src 'self' 'wasm-unsafe-eval' https://sdk.scdn.co",
   "style-src 'self' 'unsafe-inline'",

@@ -7,7 +7,7 @@
     "directory": "./web/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/ws"]
+    "run_worker_first": true
   },
   // One Room per room code; one Registry instance reserves the codes.
   "durable_objects": {
