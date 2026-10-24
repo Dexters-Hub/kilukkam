@@ -47,7 +47,12 @@ const LEVELS: readonly { meter: Meter; bpm: number }[] = [
   { meter: 3, bpm: 112 },
   { meter: 2, bpm: 126 },
 ];
-const LEVEL_UP_STREAK = 8;
+/** Level up on recent form: of the last 8 beats, at least 6 hits averaging 65 or better */
+const LEVEL_WINDOW = 8;
+const LEVEL_HITS = 6;
+const LEVEL_AVERAGE = 65;
+/** The scores of the latest beats in this level, newest last */
+const recentScores: number[] = [];
 let level = 0;
 let levels = true;
 let levelUpAt = -Infinity;
@@ -241,7 +246,6 @@ function setMode(m: Mode): void {
 function setPattern(m: Meter, bpm: number, manual: boolean): void {
   METER = m;
   targetBpm = bpm;
-  if (manual) setLevels(false);
   for (const c of meterChips.querySelectorAll<HTMLElement>('.chip')) c.setAttribute('aria-checked', String(Number(c.dataset.meter) === m));
   for (const c of tempoChips.querySelectorAll<HTMLElement>('.chip')) c.setAttribute('aria-checked', String(Number(c.dataset.bpm) === bpm));
   restartPattern();
@@ -255,7 +259,9 @@ function setLevels(on: boolean): void {
 }
 
 const paintLevel = () => {
-  levelText.textContent = levels ? `Level ${level + 1} of ${LEVELS.length} · ${METER_NAME[METER]} at ${targetBpm}` : `Free practice · ${METER_NAME[METER]} at ${targetBpm}`;
+  const good = recentScores.filter((x) => x >= 40).length;
+  const progress = level < LEVELS.length - 1 ? ` · ${Math.min(good, LEVEL_HITS)} of ${LEVEL_HITS} good beats` : ' · top level';
+  levelText.textContent = levels ? `Level ${level + 1} of ${LEVELS.length} · ${METER_NAME[METER]} at ${targetBpm}${progress}` : `Free practice · ${METER_NAME[METER]} at ${targetBpm}`;
 };
 
 function levelUp(now: number): void {
@@ -271,6 +277,7 @@ function levelUp(now: number): void {
 
 /** Keep the placed pattern, restart the guide with a count-in in the current meter and tempo. */
 function restartPattern(): void {
+  recentScores.length = 0;
   guideStart = performance.now();
   lastTick = -1;
   coach = new TargetCoach(METER, 60_000 / targetBpm);
@@ -673,8 +680,14 @@ function drawConduct(frame: HandFrame, w: number, hh: number, P: (p: Point) => r
       lightCard('beat');
     }
     const cheerText = CHEERS[streak];
-    if (cheerText && !(levels && streak >= LEVEL_UP_STREAK)) cheer = { text: cheerText, t: now };
-    if (streak >= LEVEL_UP_STREAK && levels) {
+    recentScores.push(r.score);
+    if (recentScores.length > LEVEL_WINDOW) recentScores.shift();
+    const hits = recentScores.filter((x) => x >= 40).length;
+    const average = recentScores.reduce((a, x) => a + x, 0) / Math.max(1, recentScores.length);
+    const readyToLevel = levels && recentScores.length >= LEVEL_WINDOW && hits >= LEVEL_HITS && average >= LEVEL_AVERAGE;
+    paintLevel();
+    if (cheerText && !readyToLevel) cheer = { text: cheerText, t: now };
+    if (readyToLevel) {
       levelUp(now);
       break;
     }

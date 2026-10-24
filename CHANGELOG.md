@@ -5,6 +5,11 @@ before the docs commit are backfilled from `git log`.
 
 ## Unreleased
 
+- 2026-10-25 03:30: Camera practice levels advance again. Picking a
+  tempo or pattern no longer switches Levels off, and moving up now reads
+  your last 8 beats (6 good, average 65 or more) instead of 8 perfect
+  beats in a row. The level line shows "N of 6 good beats".
+
 - 2026-10-25 02:55: The camera page and the deck were orange in
   production: the old page stylesheet carried its own copy of the colour
   tokens, and the production build loaded it after the shared tokens.
