@@ -1,6 +1,5 @@
 import '@fontsource-variable/inter';
 import './style.css';
-import './styles/tokens.css';
 import { gsap } from 'gsap';
 import { playNote, preloadInstrument, renderNote, unlockAudio, type Voice } from './lib/audio.js';
 import type { Dynamics } from './lib/baton.js';

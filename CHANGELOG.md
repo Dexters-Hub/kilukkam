@@ -5,6 +5,12 @@ before the docs commit are backfilled from `git log`.
 
 ## Unreleased
 
+- 2026-10-25 02:55: The camera page and the deck were orange in
+  production: the old page stylesheet carried its own copy of the colour
+  tokens, and the production build loaded it after the shared tokens.
+  It now imports the shared tokens itself, so every page has one source
+  of colour in any build.
+
 - 2026-10-25 02:44: Ship the camera model with every deploy. `npm run
   build` now runs `scripts/fetch-mediapipe.sh` first (wasm copied from the
   installed package, model downloaded, both hash checked), so the live

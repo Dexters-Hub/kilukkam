@@ -1,6 +1,5 @@
 import '@fontsource-variable/inter';
 import '../style.css';
-import '../styles/tokens.css';
 import './deck.css';
 import { gsap } from 'gsap';
 import { MAX_PLAYERS, PIECES, type InstrumentId } from '@kilukkam/shared';
