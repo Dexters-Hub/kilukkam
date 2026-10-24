@@ -58,3 +58,24 @@ never an exception, never a disconnect.
 - Inbound rate limit: ~20 msgs/s per socket; excess frames are dropped.
 - `note_played` carries the player's own cursor index; the server does
   not validate musicality, only bounds (`0 <= i < events.length`).
+
+## Room games (v1 contract; engine lands separately)
+
+See `docs/specs/room-games.md`. Reuses rooms, codes and seating.
+
+| dir | type | fields | notes |
+|---|---|---|---|
+| C→S | `start_game` | `mode, seed?, level?` | conductor, lobby or ended; mode = thaalam, echo, tempo; seed defaults to today |
+| C→S | `game_tap` | `midi?` or `bpm?` | player; thaalam/echo send the midi they hold, tempo sends a bpm |
+| C→S | `game_hint` | `kind` | conductor; replay, era, first_interval; each spends a try |
+| C→S | `game_answer` | `song` | optional bonus after solving; right doubles the score |
+| C→S | `end_game` | (none) | conductor; back to lobby |
+| S→C | `game_state` | `game` | full state on every change; the engine judges, phones render |
+| S→C | `game_row` | `row{guess,tiles}, playback[{midi,playerIds}]` | after each submitted guess; each phone in playback sounds its note in order |
+| S→C | `game_result` | `score, solved, grid, bonusAvailable` | grid is the spoiler-free emoji share card |
+| S→C | `game_ended` | (none) | |
+
+Tiles: green = right note right slot; amber = in the phrase, wrong slot;
+teal = octave, 4th or 5th of the right note (pitchd partial credit);
+grey = not in the phrase. `GAME_TRIES = 6`.
+

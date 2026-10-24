@@ -54,6 +54,49 @@ export interface PieceResults {
   room: { notes: number; accuracy: number; grade: Grade };
 }
 
+// ---------- room games (docs/specs/room-games.md) ----------
+
+export type GameMode = 'thaalam' | 'echo' | 'tempo';
+export type GameLevel = 'easy' | 'medium' | 'hard';
+export type GamePhase = 'listen' | 'guess' | 'reveal' | 'done';
+export type GameTile = 'green' | 'amber' | 'teal' | 'grey';
+export type GameHint = 'replay' | 'era' | 'first_interval';
+export const GAME_TRIES = 6;
+
+/** One slot of the current guess: which phone (track) holds it and what was tapped */
+export interface GameSlot {
+  midi: number | null;
+  playerId: string | null;
+}
+
+export interface GameRow {
+  guess: number[];
+  tiles: GameTile[];
+}
+
+export interface GameState {
+  mode: GameMode;
+  level: GameLevel;
+  seed: string;
+  phase: GamePhase;
+  round: number;
+  triesLeft: number;
+  slots: GameSlot[];
+  rows: GameRow[];
+  /** Which midi each seated player holds in this game (thaalam/echo) */
+  notes: Record<string, number>;
+  /** Filled at reveal/done */
+  answer: number[] | null;
+  song: { title: string; by: string; genre: string } | null;
+}
+
+export interface GameResult {
+  score: number;
+  solved: boolean;
+  grid: string;
+  bonusAvailable: boolean;
+}
+
 /** Conductor expression level */
 export type DynamicsLevel = 'pp' | 'p' | 'mf' | 'f' | 'ff';
 const DYNAMICS_LEVELS: readonly DynamicsLevel[] = ['pp', 'p', 'mf', 'f', 'ff'];
@@ -102,6 +145,11 @@ export type ClientMessage =
   | { type: 'set_section'; trackId: string; muted: boolean }
   | { type: 'note_played'; noteIndex: number }
   | { type: 'player_tally'; tally: PlayerTally }
+  | { type: 'start_game'; mode: GameMode; seed?: string; level?: GameLevel }
+  | { type: 'game_tap'; midi?: number; bpm?: number }
+  | { type: 'game_hint'; kind: GameHint }
+  | { type: 'game_answer'; song: string }
+  | { type: 'end_game' }
   | { type: 'ping'; t: number };
 
 export type ErrorCode =
@@ -126,6 +174,10 @@ export type ServerMessage =
   | { type: 'piece_started'; startedAt: number; bpm: number }
   | { type: 'piece_stopped' }
   | { type: 'piece_results'; results: PieceResults }
+  | { type: 'game_state'; game: GameState }
+  | { type: 'game_row'; row: GameRow; playback: { midi: number; playerIds: string[] }[] }
+  | { type: 'game_result'; result: GameResult }
+  | { type: 'game_ended' }
   | { type: 'tempo'; bpm: number; at: number; beat: number }
   | { type: 'dj'; cue: DjCue; at: number; bars?: number }
   | { type: 'dynamics'; level: DynamicsLevel }
@@ -181,6 +233,32 @@ function isSnapshot(v: unknown): v is RoomSnapshot {
     typeof v.customPiece === 'boolean' &&
     (v.tempo === null || isTempo(v.tempo))
   );
+}
+
+const GAME_MODES: readonly GameMode[] = ['thaalam', 'echo', 'tempo'];
+const GAME_LEVELS: readonly GameLevel[] = ['easy', 'medium', 'hard'];
+const GAME_HINTS: readonly GameHint[] = ['replay', 'era', 'first_interval'];
+const GAME_TILES: readonly GameTile[] = ['green', 'amber', 'teal', 'grey'];
+const isMidi = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 127;
+const isMidiArr = (v: unknown): v is number[] => Array.isArray(v) && v.every(isMidi);
+
+function isGameRow(v: unknown): v is GameRow {
+  return isObj(v) && isMidiArr(v.guess) && Array.isArray(v.tiles) &&
+    v.tiles.every((t) => (GAME_TILES as unknown[]).includes(t));
+}
+
+function isGameState(v: unknown): v is GameState {
+  return isObj(v) &&
+    (GAME_MODES as unknown[]).includes(v.mode) &&
+    (GAME_LEVELS as unknown[]).includes(v.level) &&
+    isStr(v.seed, 64) &&
+    ['listen', 'guess', 'reveal', 'done'].includes(v.phase as string) &&
+    typeof v.round === 'number' && typeof v.triesLeft === 'number' &&
+    Array.isArray(v.slots) && v.slots.every((sl) => isObj(sl) && (sl.midi === null || isMidi(sl.midi)) && (sl.playerId === null || typeof sl.playerId === 'string')) &&
+    Array.isArray(v.rows) && v.rows.every(isGameRow) &&
+    isObj(v.notes) && Object.values(v.notes).every(isMidi) &&
+    (v.answer === null || isMidiArr(v.answer)) &&
+    (v.song === null || (isObj(v.song) && typeof v.song.title === 'string' && typeof v.song.by === 'string' && typeof v.song.genre === 'string'));
 }
 
 const isCount = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 100_000;
@@ -278,6 +356,25 @@ export function parseClientMessage(raw: string): ClientMessage | null {
         : null;
     case 'player_tally':
       return isTally(v.tally) ? { type: 'player_tally', tally: v.tally } : null;
+    case 'start_game': {
+      if (!(GAME_MODES as unknown[]).includes(v.mode)) return null;
+      const out: Extract<ClientMessage, { type: 'start_game' }> = { type: 'start_game', mode: v.mode as GameMode };
+      if (v.seed !== undefined) { if (!isStr(v.seed, 64)) return null; out.seed = v.seed; }
+      if (v.level !== undefined) { if (!(GAME_LEVELS as unknown[]).includes(v.level)) return null; out.level = v.level as GameLevel; }
+      return out;
+    }
+    case 'game_tap': {
+      const out: Extract<ClientMessage, { type: 'game_tap' }> = { type: 'game_tap' };
+      if (v.midi !== undefined) { if (!isMidi(v.midi)) return null; out.midi = v.midi; }
+      if (v.bpm !== undefined) { if (typeof v.bpm !== 'number' || v.bpm < 20 || v.bpm > 300) return null; out.bpm = v.bpm; }
+      return out;
+    }
+    case 'game_hint':
+      return (GAME_HINTS as unknown[]).includes(v.kind) ? { type: 'game_hint', kind: v.kind as GameHint } : null;
+    case 'game_answer':
+      return isStr(v.song, 120) ? { type: 'game_answer', song: v.song } : null;
+    case 'end_game':
+      return { type: 'end_game' };
     case 'note_played':
       return typeof v.noteIndex === 'number' && Number.isInteger(v.noteIndex) && v.noteIndex >= 0
         ? { type: 'note_played', noteIndex: v.noteIndex }
@@ -319,6 +416,22 @@ export function parseServerMessage(raw: string): ServerMessage | null {
       return { type: 'piece_stopped' };
     case 'piece_results':
       return isResults(v.results) ? { type: 'piece_results', results: v.results } : null;
+    case 'game_state':
+      return isGameState(v.game) ? { type: 'game_state', game: v.game } : null;
+    case 'game_row':
+      return isGameRow(v.row) && Array.isArray(v.playback) &&
+        v.playback.every((p) => isObj(p) && isMidi(p.midi) && Array.isArray(p.playerIds) && p.playerIds.every((x) => typeof x === 'string'))
+        ? { type: 'game_row', row: v.row, playback: v.playback as { midi: number; playerIds: string[] }[] }
+        : null;
+    case 'game_result': {
+      const r = v.result;
+      return isObj(r) && typeof r.score === 'number' && typeof r.solved === 'boolean' &&
+        typeof r.grid === 'string' && typeof r.bonusAvailable === 'boolean'
+        ? { type: 'game_result', result: { score: r.score, solved: r.solved, grid: r.grid, bonusAvailable: r.bonusAvailable } }
+        : null;
+    }
+    case 'game_ended':
+      return { type: 'game_ended' };
     case 'tempo':
       return isTempo(v) ? { type: 'tempo', bpm: v.bpm, at: v.at, beat: v.beat } : null;
     case 'dj': {

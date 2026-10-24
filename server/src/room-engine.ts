@@ -145,6 +145,13 @@ export class RoomEngine {
         return this.asConductor(seat, socketId, msg, this.setSection);
       case 'remove_player':
         return this.asConductor(seat, socketId, msg, this.removePlayer);
+      case 'start_game':
+      case 'game_tap':
+      case 'game_hint':
+      case 'game_answer':
+      case 'end_game':
+        // Room games land with the game engine (docs/specs/room-games.md).
+        return error(socketId, 'bad_message', 'room games are not available yet');
     }
   }
 
