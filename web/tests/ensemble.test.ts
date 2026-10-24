@@ -36,6 +36,7 @@ describe('rejoinPlan', () => {
     dynamics: 'mf',
     mutedTracks: [],
     customPiece: false,
+    tempo: null,
     players: [],
     maxPlayers: 100,
     startedAt,

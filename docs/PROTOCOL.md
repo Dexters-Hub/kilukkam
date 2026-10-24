@@ -14,9 +14,12 @@ never an exception, never a disconnect.
 | `pick_track` | `trackId` | player | any phase; fails if track full |
 | `auto_assign` | (none) | player | least-occupied open track |
 | `set_piece` | `pieceId` | conductor | lobby or ended; from ended returns to lobby and clears track picks |
-| `start_piece` | (none) | conductor | lobby or ended → playing |
+| `start_piece` | `countIn?` | conductor | lobby or ended → playing; countIn schedules startedAt = now + 3000 ms so every phone starts on one downbeat |
 | `stop_piece` | (none) | conductor | playing → ended |
 | `remove_player` | `playerId` | conductor | kicks; kicked socket gets `room_state` minus them then close |
+| `set_tempo` | `bpm` (40..200) | conductor | any time after start; broadcasts a `tempo` anchor, snapshot carries `tempo` |
+| `assign_track` | `playerId, trackId\|null` | conductor | any phase incl. mid-piece; same capacity rules as pick_track |
+| `dj` | `cue, bars?` | conductor | playing only; cue = drop \| build \| loop_on \| loop_off; broadcast with server `at` |
 | `set_dynamics` | `level` (pp..ff) | conductor | any phase; broadcasts `dynamics` |
 | `set_section` | `trackId, muted` | conductor | any phase; snapshot carries `mutedTracks` |
 | `note_played` | `noteIndex` | player | playing only; echoes to room |
@@ -29,7 +32,9 @@ never an exception, never a disconnect.
 | `room_created` | `code, playerId, snapshot` | socket is now the conductor |
 | `joined` | `playerId, snapshot, piece` | includes the full Score so the client needs no fetch |
 | `room_state` | `snapshot` | broadcast on every membership/phase change |
-| `piece_started` | `startedAt` | server ms timestamp |
+| `piece_started` | `startedAt, bpm` | server ms (may be in the future with countIn); bpm = piece tempo |
+| `tempo` | `bpm, at, beat` | new anchor: beat index `beat` falls at server ms `at`, then `bpm` from there; phones re-anchor without jumps |
+| `dj` | `cue, at, bars?` | phones apply locally: drop = silence to next bar, loop = repeat current bar, build = sections fade in by track order |
 | `piece_stopped` | (none) | room phase → ended |
 | `dynamics` | `level` | conductor changed expression; phones scale velocity + show the cue |
 | `note_echo` | `playerId, trackId, noteIndex` | conductor only; raw fan-out does not scale to 100 |

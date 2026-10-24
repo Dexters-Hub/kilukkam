@@ -1,6 +1,7 @@
 import {
   CODE_ALPHABET,
   CODE_LEN,
+  COUNT_IN_MS,
   MAX_PLAYERS,
   getPiece,
   parseClientMessage,
@@ -13,6 +14,7 @@ import {
   type RoomSnapshot,
   type Score,
   type ServerMessage,
+  type TempoAnchor,
   type Track,
 } from '@kilukkam/shared';
 
@@ -56,6 +58,7 @@ interface Room {
   dynamics: DynamicsLevel;
   mutedTracks: Set<string>;
   customPiece: boolean;
+  tempo: TempoAnchor | null;
 }
 
 interface Seat {
@@ -121,6 +124,12 @@ export class RoomEngine {
         return this.asConductor(seat, socketId, msg, this.startPiece);
       case 'stop_piece':
         return this.asConductor(seat, socketId, msg, this.stopPiece);
+      case 'set_tempo':
+        return this.asConductor(seat, socketId, msg, this.setTempo);
+      case 'assign_track':
+        return this.asConductor(seat, socketId, msg, this.assignTrack);
+      case 'dj':
+        return this.asConductor(seat, socketId, msg, this.djCue);
       case 'set_custom_piece':
         return this.asConductor(seat, socketId, msg, this.setCustomPiece);
       case 'set_dynamics':
@@ -193,6 +202,7 @@ export class RoomEngine {
       dynamics: 'mf',
       mutedTracks: new Set(),
       customPiece: false,
+      tempo: null,
     };
     this.rooms.set(code, room);
     this.seats.set(socketId, { room, player: conductor });
@@ -303,13 +313,14 @@ export class RoomEngine {
     return [this.broadcastState(room)];
   };
 
-  private startPiece: Handler<'start_piece'> = ({ room }, socketId) => {
+  private startPiece: Handler<'start_piece'> = ({ room }, socketId, msg) => {
     if (room.phase === 'playing') return error(socketId, 'already_started', 'already playing');
     room.phase = 'playing';
-    room.startedAt = this.now();
+    room.startedAt = this.now() + (msg.countIn ? COUNT_IN_MS : 0);
+    room.tempo = null;
     room.taps.clear();
     return [
-      send(socketsOf(room), { type: 'piece_started', startedAt: room.startedAt }),
+      send(socketsOf(room), { type: 'piece_started', startedAt: room.startedAt, bpm: room.piece.bpm }),
       this.broadcastState(room),
     ];
   };
@@ -348,6 +359,44 @@ export class RoomEngine {
       send(socketsOf(room), { type: 'piece_changed', piece: msg.score }),
       this.broadcastState(room),
     ];
+  };
+
+  /** Beat index on the room's grid at server time `now` */
+  private beatAt(room: Room, now: number): number {
+    if (room.tempo) return room.tempo.beat + ((now - room.tempo.at) / 60_000) * room.tempo.bpm;
+    if (room.startedAt === null) return 0;
+    return Math.max(0, ((now - room.startedAt) / 60_000) * room.piece.bpm);
+  }
+
+  private setTempo: Handler<'set_tempo'> = ({ room }, _socketId, msg) => {
+    const at = this.now();
+    const anchor: TempoAnchor = { bpm: msg.bpm, at, beat: this.beatAt(room, at) };
+    room.tempo = anchor;
+    return [send(socketsOf(room), { type: 'tempo', ...anchor }), this.broadcastState(room)];
+  };
+
+  private assignTrack: Handler<'assign_track'> = ({ room }, socketId, msg) => {
+    const target = room.players.get(msg.playerId);
+    if (!target || target.conductor) return error(socketId, 'bad_message', 'no such player');
+    if (msg.trackId === null) {
+      target.trackId = null;
+      return [this.broadcastState(room)];
+    }
+    const track = room.piece.tracks.find((t) => t.id === msg.trackId);
+    if (!track) return error(socketId, 'track_not_found', `no track ${msg.trackId}`);
+    if (target.trackId !== track.id && occupancy(room, track.id) >= track.maxPlayers) {
+      return error(socketId, 'track_full', `${track.name} is full`);
+    }
+    target.trackId = track.id;
+    return [this.broadcastState(room)];
+  };
+
+  private djCue: Handler<'dj'> = ({ room }, socketId, msg) => {
+    if (room.phase !== 'playing') return error(socketId, 'not_started', 'piece is not playing');
+    const out: ServerMessage = msg.bars === undefined
+      ? { type: 'dj', cue: msg.cue, at: this.now() }
+      : { type: 'dj', cue: msg.cue, at: this.now(), bars: msg.bars };
+    return [send(socketsOf(room), out)];
   };
 
   private setDynamics: Handler<'set_dynamics'> = ({ room }, socketId, msg) => {
@@ -453,6 +502,7 @@ function snapshot(room: Room): RoomSnapshot {
     dynamics: room.dynamics,
     mutedTracks: [...room.mutedTracks],
     customPiece: room.customPiece,
+    tempo: room.tempo,
   };
 }
 

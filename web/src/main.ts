@@ -5,7 +5,9 @@ import type { ClientMessage, RoomSnapshot, ServerMessage } from '@kilukkam/share
 import { enterScreen } from './lib/anim.js';
 import { playNote, preloadInstrument, thunk, unlockAudio } from './lib/audio.js';
 import { CONDUCTOR_AVATAR } from './data/composers.js';
+import { ServerClock } from './lib/clock.js';
 import { Net, wsUrl } from './lib/net.js';
+import { BeatGrid, WINDOWS, emptyTally, judge, onsets, record, type Judgement } from './lib/rhythm.js';
 import { createScreen } from './screens/create.js';
 import { endedScreen } from './screens/ended.js';
 import { homeScreen } from './screens/home.js';
@@ -60,6 +62,41 @@ let runNotes = 0;
 const startRun = (startedAt: number | null): void => {
   runStartedAt = startedAt;
   runNotes = 0;
+  store.set({ tally: emptyTally() });
+};
+
+// ---------- rhythm: one shared clock and beat grid for the whole room ----------
+
+const clock = new ServerClock();
+/** Every phone counts in the same 4 beats after startedAt, so the room starts on one downbeat */
+const COUNT_IN_BEATS = 4;
+let grid: { key: string; grid: BeatGrid } | null = null;
+const onsetCache = new Map<string, number[]>();
+
+const currentGrid = (): BeatGrid | null => {
+  const piece = store.state.piece;
+  if (runStartedAt === null || !piece) return null;
+  const key = `${runStartedAt}|${piece.id}`;
+  if (grid?.key !== key) {
+    const beat0 = runStartedAt + (COUNT_IN_BEATS * 60_000) / piece.bpm;
+    grid = { key, grid: new BeatGrid(beat0, piece.bpm) };
+  }
+  return grid.grid;
+};
+
+const onsetsFor = (trackKey: string, events: Parameters<typeof onsets>[0]): number[] => {
+  const hit = onsetCache.get(trackKey);
+  if (hit) return hit;
+  const o = onsets(events);
+  onsetCache.set(trackKey, o);
+  return o;
+};
+
+/** Offset in ms of a note played now from where the beat grid puts it, or null if unsynced. */
+const offsetNow = (trackKey: string, events: Parameters<typeof onsets>[0], index: number): number | null => {
+  const g = currentGrid();
+  if (!g || !clock.ready) return null;
+  return clock.now() - g.timeOf(onsetsFor(trackKey, events)[index] ?? 0);
 };
 
 /** The phone kicks like an instrument on a note and stutters on a dud. */
@@ -184,6 +221,7 @@ function onMessage(msg: ServerMessage): void {
       return;
 
     case 'pong':
+      clock.add(msg.t, msg.serverTime);
       return;
 
     case 'error':
@@ -255,6 +293,44 @@ function leaveToHome(notice: string | null): void {
   net.reset();
 }
 
+const playSafely = (...args: Parameters<typeof playNote>): void => {
+  try {
+    playNote(...args);
+  } catch (err) {
+    // A sound glitch must never stall the room: the note still counts and the cursor moves on.
+    console.error('playNote failed', err);
+  }
+};
+
+/**
+ * Keeps each phone in time with the room: once a note's window has passed
+ * without a tap, it counts as a miss and the cursor moves on. With assist on,
+ * the phone plays that note on the beat so the music stays whole.
+ */
+const MISS_CHECK_MS = 40;
+setInterval(() => {
+  const s = store.state;
+  const track = myTrack(s);
+  const piece = s.piece;
+  if (s.snapshot?.phase !== 'playing' || !track || !piece || !clock.ready) return;
+  const key = `${piece.id}/${track.id}`;
+  let cursor = s.cursor;
+  let tally = s.tally;
+  for (;;) {
+    const at = skipRests(track.events, cursor);
+    const ev = track.events[at];
+    const offset = ev?.kind === 'note' ? offsetNow(key, track.events, at) : null;
+    if (!ev || ev.kind !== 'note' || offset === null || offset <= WINDOWS.good) break;
+    if (s.assist && offset < WINDOWS.good * 3) {
+      playSafely(track.instrument, ev.midi, ev.beats, piece.bpm, Math.round((ev.velocity ?? 96) * 0.8));
+      net.send({ type: 'note_played', noteIndex: at });
+    }
+    tally = record(tally, 'miss');
+    cursor = advanceCursor(track.events, at);
+  }
+  if (cursor !== s.cursor) store.set({ cursor, tally });
+}, MISS_CHECK_MS);
+
 const actions: Actions = {
   goHome: () => store.set({ route: 'home', notice: null, intent: null }),
   goCreate: () => store.set({ route: 'create', notice: null }),
@@ -289,20 +365,24 @@ const actions: Actions = {
     if (s.snapshot?.phase !== 'playing' || !track || !piece || ev?.kind !== 'note') {
       thunk();
       navigator.vibrate?.(HAPTIC_DUD);
-      return false;
+      return { played: false, judgement: null };
     }
-    try {
-      playNote(track.instrument, ev.midi, ev.beats, piece.bpm, ev.velocity);
-    } catch (err) {
-      // A sound glitch must never stall the room: the note still counts and the cursor moves on.
-      console.error('playNote failed', err);
-    }
+    playSafely(track.instrument, ev.midi, ev.beats, piece.bpm, ev.velocity);
     // Fire-and-forget: the note already sounded locally, a dropped echo is fine.
     net.send({ type: 'note_played', noteIndex: at });
     navigator.vibrate?.(HAPTIC_NOTE);
-    store.set({ cursor: advanceCursor(track.events, at) });
-    return true;
+    const offset = offsetNow(`${piece.id}/${track.id}`, track.events, at);
+    const judgement: Judgement | null = offset === null ? null : judge(offset);
+    store.set({ cursor: advanceCursor(track.events, at), ...(judgement ? { tally: record(s.tally, judgement) } : {}) });
+    return { played: true, judgement };
   },
+
+  rhythm: () => {
+    const g = currentGrid();
+    return g ? { grid: g, clock } : null;
+  },
+
+  setAssist: (on) => store.set({ assist: on }),
 
   leave() {
     const conductor = store.state.session?.role === 'conductor';

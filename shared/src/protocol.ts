@@ -13,6 +13,21 @@ export const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 export type RoomPhase = 'lobby' | 'playing' | 'ended';
 
+export const MIN_BPM = 40;
+export const MAX_BPM = 200;
+/** Default lead-in before a scheduled start, in ms */
+export const COUNT_IN_MS = 3000;
+
+export type DjCue = 'drop' | 'build' | 'loop_on' | 'loop_off';
+const DJ_CUES: readonly DjCue[] = ['drop', 'build', 'loop_on', 'loop_off'];
+
+/** Room tempo anchor: beat `beat` falls on server time `at`, then `bpm` from there */
+export interface TempoAnchor {
+  bpm: number;
+  at: number;
+  beat: number;
+}
+
 /** Conductor expression level */
 export type DynamicsLevel = 'pp' | 'p' | 'mf' | 'f' | 'ff';
 const DYNAMICS_LEVELS: readonly DynamicsLevel[] = ['pp', 'p', 'mf', 'f', 'ff'];
@@ -40,6 +55,8 @@ export interface RoomSnapshot {
   mutedTracks: string[];
   /** True when the piece is a conductor-uploaded custom score, not a library piece */
   customPiece: boolean;
+  /** Room tempo; null means use the piece's bpm from startedAt */
+  tempo: TempoAnchor | null;
 }
 
 export type ClientMessage =
@@ -49,8 +66,11 @@ export type ClientMessage =
   | { type: 'auto_assign' }
   | { type: 'set_piece'; pieceId: string }
   | { type: 'set_custom_piece'; score: Score }
-  | { type: 'start_piece' }
+  | { type: 'start_piece'; countIn?: boolean }
   | { type: 'stop_piece' }
+  | { type: 'set_tempo'; bpm: number }
+  | { type: 'assign_track'; playerId: string; trackId: string | null }
+  | { type: 'dj'; cue: DjCue; bars?: number }
   | { type: 'remove_player'; playerId: string }
   | { type: 'set_dynamics'; level: DynamicsLevel }
   | { type: 'set_section'; trackId: string; muted: boolean }
@@ -76,8 +96,10 @@ export type ServerMessage =
   | { type: 'joined'; playerId: string; snapshot: RoomSnapshot; piece: Score }
   | { type: 'room_state'; snapshot: RoomSnapshot }
   | { type: 'piece_changed'; piece: Score }
-  | { type: 'piece_started'; startedAt: number }
+  | { type: 'piece_started'; startedAt: number; bpm: number }
   | { type: 'piece_stopped' }
+  | { type: 'tempo'; bpm: number; at: number; beat: number }
+  | { type: 'dj'; cue: DjCue; at: number; bars?: number }
   | { type: 'dynamics'; level: DynamicsLevel }
   | { type: 'note_echo'; playerId: string; trackId: string; noteIndex: number }
   | {
@@ -128,7 +150,17 @@ function isSnapshot(v: unknown): v is RoomSnapshot {
     (DYNAMICS_LEVELS as unknown[]).includes(v.dynamics) &&
     Array.isArray(v.mutedTracks) &&
     v.mutedTracks.every((t) => typeof t === 'string') &&
-    typeof v.customPiece === 'boolean'
+    typeof v.customPiece === 'boolean' &&
+    (v.tempo === null || isTempo(v.tempo))
+  );
+}
+
+function isTempo(v: unknown): v is TempoAnchor {
+  return (
+    isObj(v) &&
+    typeof v.bpm === 'number' && v.bpm >= MIN_BPM && v.bpm <= MAX_BPM &&
+    typeof v.at === 'number' &&
+    typeof v.beat === 'number'
   );
 }
 
@@ -169,9 +201,27 @@ export function parseClientMessage(raw: string): ClientMessage | null {
     case 'set_custom_piece':
       return isScore(v.score) ? { type: 'set_custom_piece', score: v.score } : null;
     case 'start_piece':
-      return { type: 'start_piece' };
+      return v.countIn === undefined
+        ? { type: 'start_piece' }
+        : typeof v.countIn === 'boolean' ? { type: 'start_piece', countIn: v.countIn } : null;
     case 'stop_piece':
       return { type: 'stop_piece' };
+    case 'set_tempo':
+      return typeof v.bpm === 'number' && v.bpm >= MIN_BPM && v.bpm <= MAX_BPM
+        ? { type: 'set_tempo', bpm: v.bpm }
+        : null;
+    case 'assign_track':
+      return isStr(v.playerId, 64) && (v.trackId === null || isStr(v.trackId, 64))
+        ? { type: 'assign_track', playerId: v.playerId, trackId: v.trackId }
+        : null;
+    case 'dj': {
+      if (!(DJ_CUES as unknown[]).includes(v.cue)) return null;
+      const cue = v.cue as DjCue;
+      if (v.bars === undefined) return { type: 'dj', cue };
+      return typeof v.bars === 'number' && v.bars > 0 && v.bars <= 64
+        ? { type: 'dj', cue, bars: v.bars }
+        : null;
+    }
     case 'remove_player':
       return isStr(v.playerId, 64) ? { type: 'remove_player', playerId: v.playerId } : null;
     case 'set_dynamics':
@@ -216,9 +266,20 @@ export function parseServerMessage(raw: string): ServerMessage | null {
     case 'piece_changed':
       return isScore(v.piece) ? { type: 'piece_changed', piece: v.piece } : null;
     case 'piece_started':
-      return typeof v.startedAt === 'number' ? { type: 'piece_started', startedAt: v.startedAt } : null;
+      return typeof v.startedAt === 'number' && typeof v.bpm === 'number'
+        ? { type: 'piece_started', startedAt: v.startedAt, bpm: v.bpm }
+        : null;
     case 'piece_stopped':
       return { type: 'piece_stopped' };
+    case 'tempo':
+      return isTempo(v) ? { type: 'tempo', bpm: v.bpm, at: v.at, beat: v.beat } : null;
+    case 'dj': {
+      if (!(DJ_CUES as unknown[]).includes(v.cue) || typeof v.at !== 'number') return null;
+      const cue = v.cue as DjCue;
+      return v.bars === undefined
+        ? { type: 'dj', cue, at: v.at }
+        : typeof v.bars === 'number' ? { type: 'dj', cue, at: v.at, bars: v.bars } : null;
+    }
     case 'dynamics':
       return (DYNAMICS_LEVELS as unknown[]).includes(v.level)
         ? { type: 'dynamics', level: v.level as DynamicsLevel }

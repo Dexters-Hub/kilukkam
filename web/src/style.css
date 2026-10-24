@@ -450,57 +450,65 @@ h1, h2, .title, .subtitle { font-family: var(--font-display); letter-spacing: va
 
 .play {
   --tint: var(--accent);
-  max-width: none; padding: 0; gap: 0; height: 100dvh; overflow: hidden;
-  background: color-mix(in srgb, var(--tint) 12%, var(--bg));
+  position: relative; max-width: none; padding: 0; gap: 0; height: 100dvh; overflow: hidden;
+  color: #f6f4f1;
+  background:
+    radial-gradient(90% 60% at 50% 100%, color-mix(in srgb, var(--tint) 34%, transparent), transparent 70%),
+    radial-gradient(70% 45% at 50% 0%, color-mix(in srgb, var(--tint) 16%, transparent), transparent 70%),
+    #0d0d12;
 }
 .progress { height: 6px; background: var(--line); overflow: hidden; flex: none; }
-.play .progress { height: calc(6px + var(--safe-t)); background: color-mix(in srgb, var(--tint) 20%, var(--bg)); }
+.play .progress { height: calc(4px + var(--safe-t)); background: rgb(255 255 255 / .06); }
 .progress.thin { height: 4px; border-radius: 4px; }
 .progress-fill { height: 100%; width: 0; background: var(--tint, var(--accent)); transition: width .25s var(--ease); }
 
+.play-bar {
+  position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px calc(14px + var(--safe-r)) 0 calc(14px + var(--safe-l));
+}
+.play-who { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 650; color: rgb(255 255 255 / .9); }
+.play-combo { display: flex; align-items: baseline; gap: 8px; font: 700 1.05rem/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.play-combo strong { color: var(--tint); font-size: 1.4rem; }
+.play-combo span { color: rgb(255 255 255 / .6); }
+.play-assist {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border-radius: 999px;
+  background: rgb(255 255 255 / .07); color: rgb(255 255 255 / .55); font-weight: 650; font-size: .85rem;
+}
+.play-assist[aria-pressed="true"] { background: color-mix(in srgb, var(--tint) 30%, transparent); color: #fff; }
+
 .tap-surface {
-  flex: 1; width: 100%; border: 0; margin: 0;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
-  padding: 24px calc(24px + var(--safe-r)) calc(24px + var(--safe-b)) calc(24px + var(--safe-l));
-  background: transparent; color: var(--text);
+  position: absolute; inset: 0; z-index: 1; width: 100%; border: 0; margin: 0; padding: 0;
+  display: block; background: transparent; color: inherit; overflow: hidden;
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
-.play-who { display: flex; align-items: center; gap: 10px; font-weight: 600; min-height: 44px; }
-.play-inst { font: 700 1.3rem/1.2 var(--font-display); letter-spacing: -.02em; color: var(--tint); }
-.play-cue { min-height: 1.5em; color: var(--muted); font-weight: 600; }
-.play-now {
-  font: 700 clamp(6rem, 34vw, 14rem)/1 var(--font-display);
-  letter-spacing: -.05em; font-variant-numeric: tabular-nums;
-}
-.play-next { display: flex; gap: 24px; font: 700 2rem/1.3 var(--font-display); letter-spacing: var(--track-display); color: var(--muted); min-height: 1.3em; }
-.next-note:nth-child(2) { opacity: .55; }
-.play-hint { color: var(--muted); }
-.tap-surface { position: relative; overflow: hidden; }
 .tap-surface:focus-visible { box-shadow: none; }
-.tap-surface > * { position: relative; }
+.tap-surface > .lane { position: absolute; inset: calc(64px + var(--safe-t)) 0 calc(110px + var(--safe-b)); width: 100%; height: calc(100% - 174px - var(--safe-t) - var(--safe-b)); }
 .tap-surface > .tap-glow {
   position: absolute; inset: 0; opacity: 0; pointer-events: none;
-  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--tint) 60%, transparent), transparent 70%);
+  background: radial-gradient(circle at 50% 72%, color-mix(in srgb, var(--tint) 70%, transparent), transparent 65%);
 }
-.play-now { will-change: transform; }
+.play-now {
+  position: absolute; left: 0; right: 0; bottom: calc(118px + var(--safe-b)); text-align: center; pointer-events: none;
+  font: 700 clamp(2.6rem, 12vw, 4rem)/1 var(--font-display); letter-spacing: -.05em; color: #fff; will-change: transform;
+}
+.play-idle { position: absolute; left: 24px; right: 24px; top: 42%; margin: 0; text-align: center; color: rgb(255 255 255 / .75); font-size: 1.05rem; pointer-events: none; }
 .tap-surface.done .play-now { color: var(--tint); }
 
 .tap-surface > .coach {
-  position: absolute; left: 50%; bottom: calc(112px + var(--safe-b)); transform: translateX(-50%);
+  position: absolute; left: 50%; bottom: calc(170px + var(--safe-b)); transform: translateX(-50%);
   display: flex; align-items: center; gap: 12px; padding: 12px 18px 12px 14px; white-space: nowrap;
-  border-radius: 999px; background: var(--text); color: var(--bg);
-  font-weight: 600; box-shadow: var(--shadow-lift); pointer-events: none;
+  border-radius: 999px; background: #fff; color: #111; z-index: 3;
+  font-weight: 650; box-shadow: var(--shadow-lift); pointer-events: none;
 }
 /* Live room: everyone else tapping, kept small and clear of the tap target. */
-.tap-surface > .room-view {
-  position: absolute; left: 0; right: 0; bottom: calc(14px + var(--safe-b));
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  pointer-events: none; opacity: .85;
+.play > .room-view {
+  position: absolute; z-index: 2; left: 0; right: 0; bottom: calc(14px + var(--safe-b));
+  display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; opacity: .9;
 }
-.room-row { display: flex; align-items: center; gap: 3px; min-height: 20px; }
-.room-row-label { width: 22px; font-size: .8rem; text-align: center; }
-.room-row .av-xs { box-shadow: 0 0 0 2px color-mix(in srgb, var(--tint) 35%, transparent); }
-.room-more { font-size: .72rem; font-weight: 600; color: var(--muted); padding-left: 4px; font-variant-numeric: tabular-nums; }
+.room-row { display: flex; align-items: center; gap: 3px; min-height: 20px; color: var(--tint); }
+.room-row-label { display: grid; place-items: center; width: 22px; }
+.room-row .av-xs { box-shadow: 0 0 0 2px color-mix(in srgb, var(--tint) 45%, transparent); }
+.room-more { font-size: .72rem; font-weight: 600; color: rgb(255 255 255 / .6); padding-left: 4px; font-variant-numeric: tabular-nums; }
 .room-stat { margin: 0; font: 600 1.15rem/1.3 var(--font-display); letter-spacing: -.015em; color: var(--accent-text); }
 
 .coach-ring {

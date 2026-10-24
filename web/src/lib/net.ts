@@ -5,7 +5,9 @@ import type { ConnStatus } from './store.js';
 // Reconnects with jittered exponential backoff; every inbound frame goes
 // through parseServerMessage and anything that fails validation is dropped.
 
-const PING_EVERY_MS = 5000;
+const PING_EVERY_MS = 4000;
+/** Pings sent back to back on joining, for a fast first clock estimate */
+const SYNC_BURST = 5;
 
 export function wsUrl(loc: { protocol: string; host: string }): string {
   return `${loc.protocol === 'https:' ? 'wss' : 'ws'}://${loc.host}/ws`;
@@ -112,7 +114,8 @@ export class Net {
   private startPing(): void {
     this.stopPing();
     const ping = () => this.send({ type: 'ping', t: Date.now() });
-    ping();
+    // A quick burst first so the shared clock syncs within a second, then steady.
+    for (let i = 0; i < SYNC_BURST; i++) setTimeout(ping, i * 120);
     this.pinger = setInterval(ping, PING_EVERY_MS);
   }
 

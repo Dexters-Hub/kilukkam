@@ -56,7 +56,7 @@ describe('parseServerMessage', () => {
       snapshot: {
         code: 'AB3F', phase: 'lobby', pieceId: 'canon-in-d',
         players: [{ id: 'p1', name: 'A', avatar: '🦊', trackId: 'violin-1', connected: true, conductor: false }],
-        maxPlayers: MAX_PLAYERS, startedAt: null, dynamics: 'mf', mutedTracks: [], customPiece: false,
+        maxPlayers: MAX_PLAYERS, startedAt: null, dynamics: 'mf', mutedTracks: [], customPiece: false, tempo: null,
       },
     };
     expect(parseServerMessage(JSON.stringify(msg))).toEqual(msg);

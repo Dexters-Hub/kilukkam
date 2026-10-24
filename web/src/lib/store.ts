@@ -1,3 +1,4 @@
+import { emptyTally, type Tally } from './rhythm.js';
 import {
   CODE_ALPHABET,
   CODE_LEN,
@@ -193,6 +194,10 @@ export interface AppState {
   joinCode: string;
   /** Notes the whole room played in the run that just ended (summed from ensemble_pulse) */
   runNotes: number | null;
+  /** This phone's timing tally for the current run */
+  tally: Tally;
+  /** Play missed notes on the beat so the music stays whole */
+  assist: boolean;
 }
 
 export function initialState(): AppState {
@@ -208,6 +213,8 @@ export function initialState(): AppState {
     notice: null,
     joinCode: '',
     runNotes: null,
+    tally: emptyTally(),
+    assist: true,
   };
 }
 

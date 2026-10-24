@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CODE_ALPHABET,
   CODE_LEN,
+  COUNT_IN_MS,
   MAX_PLAYERS,
   encodeMessage,
   getPiece,
@@ -576,5 +577,128 @@ describe('handleFrame', () => {
     const h = setup();
     const actions = h.engine.handleFrame('s', encodeMessage({ type: 'create_room', pieceId: 'ode-to-joy' }));
     expect(only(actions, 's', 'room_created').code).toHaveLength(CODE_LEN);
+  });
+});
+
+describe('scheduled start and tempo', () => {
+  it('start_piece with countIn schedules startedAt in the future and carries the piece bpm', () => {
+    const h = setup();
+    const code = createRoom(h, 'cond', 'ode-to-joy');
+    joinRoom(h, 'p', code);
+    h.clock.t = 5_000;
+    const actions = send(h, 'cond', { type: 'start_piece', countIn: true });
+    const started = only(actions, 'p', 'piece_started');
+    expect(started.startedAt).toBe(5_000 + COUNT_IN_MS);
+    expect(started.bpm).toBe(getPiece('ode-to-joy')!.bpm);
+    expect(lastSnapshot(actions, 'p').startedAt).toBe(5_000 + COUNT_IN_MS);
+  });
+
+  it('start_piece without countIn starts now', () => {
+    const h = setup();
+    const code = createRoom(h);
+    joinRoom(h, 'p', code);
+    h.clock.t = 7_000;
+    expect(only(send(h, 'cond', { type: 'start_piece' }), 'p', 'piece_started').startedAt).toBe(7_000);
+  });
+
+  it('set_tempo broadcasts an anchor and stores it in the snapshot', () => {
+    const h = setup();
+    const code = createRoom(h, 'cond', 'ode-to-joy'); // 100 bpm
+    joinRoom(h, 'p', code);
+    h.clock.t = 10_000;
+    send(h, 'cond', { type: 'start_piece' });
+    h.clock.t = 16_000; // 6 s at 100 bpm = beat 10
+    const actions = send(h, 'cond', { type: 'set_tempo', bpm: 120 });
+    const tempo = only(actions, 'p', 'tempo');
+    expect(tempo).toEqual({ type: 'tempo', bpm: 120, at: 16_000, beat: 10 });
+    expect(lastSnapshot(actions, 'p').tempo).toEqual({ bpm: 120, at: 16_000, beat: 10 });
+  });
+
+  it('a second set_tempo continues the beat count from the previous anchor', () => {
+    const h = setup();
+    const code = createRoom(h, 'cond', 'ode-to-joy');
+    joinRoom(h, 'p', code);
+    h.clock.t = 0;
+    send(h, 'cond', { type: 'start_piece' });
+    h.clock.t = 6_000; // beat 10 at 100 bpm
+    send(h, 'cond', { type: 'set_tempo', bpm: 120 });
+    h.clock.t = 11_000; // +5 s at 120 bpm = +10 beats
+    expect(only(send(h, 'cond', { type: 'set_tempo', bpm: 60 }), 'p', 'tempo')).toMatchObject({ bpm: 60, at: 11_000, beat: 20 });
+  });
+
+  it('set_tempo is conductor only', () => {
+    const h = setup();
+    const code = createRoom(h);
+    joinRoom(h, 'p', code);
+    expect(errorCode(send(h, 'p', { type: 'set_tempo', bpm: 90 }), 'p')).toBe('not_conductor');
+  });
+
+  it('a fresh start clears the tempo anchor', () => {
+    const h = setup();
+    const code = createRoom(h);
+    joinRoom(h, 'p', code);
+    send(h, 'cond', { type: 'start_piece' });
+    send(h, 'cond', { type: 'set_tempo', bpm: 90 });
+    send(h, 'cond', { type: 'stop_piece' });
+    expect(lastSnapshot(send(h, 'cond', { type: 'start_piece' }), 'p').tempo).toBeNull();
+  });
+});
+
+describe('assign_track', () => {
+  it('conductor can seat a player, including mid-piece', () => {
+    const h = setup();
+    const code = createRoom(h, 'cond', 'ode-to-joy');
+    const pid = joinRoom(h, 'p', code);
+    send(h, 'cond', { type: 'start_piece' });
+    const actions = send(h, 'cond', { type: 'assign_track', playerId: pid, trackId: 'cello' });
+    expect(lastSnapshot(actions, 'p').players.find((x) => x.id === pid)?.trackId).toBe('cello');
+  });
+
+  it('conductor can unseat a player with null', () => {
+    const h = setup();
+    const code = createRoom(h, 'cond', 'ode-to-joy');
+    const pid = joinRoom(h, 'p', code);
+    send(h, 'p', { type: 'pick_track', trackId: 'flute' });
+    const actions = send(h, 'cond', { type: 'assign_track', playerId: pid, trackId: null });
+    expect(lastSnapshot(actions, 'p').players.find((x) => x.id === pid)?.trackId).toBeNull();
+  });
+
+  it('respects track capacity and rejects unknown players/tracks', () => {
+    const h = setup();
+    const code = createRoom(h, 'cond', 'canon-in-d'); // cello max 10
+    const ids = Array.from({ length: 11 }, (_, i) => joinRoom(h, `p${i}`, code));
+    for (let i = 0; i < 10; i++) send(h, 'cond', { type: 'assign_track', playerId: ids[i]!, trackId: 'cello' });
+    expect(errorCode(send(h, 'cond', { type: 'assign_track', playerId: ids[10]!, trackId: 'cello' }), 'cond')).toBe('track_full');
+    expect(errorCode(send(h, 'cond', { type: 'assign_track', playerId: 'nope', trackId: 'cello' }), 'cond')).toBe('bad_message');
+    expect(errorCode(send(h, 'cond', { type: 'assign_track', playerId: ids[0]!, trackId: 'tuba' }), 'cond')).toBe('track_not_found');
+  });
+
+  it('players cannot assign', () => {
+    const h = setup();
+    const code = createRoom(h);
+    const pid = joinRoom(h, 'p', code);
+    expect(errorCode(send(h, 'p', { type: 'assign_track', playerId: pid, trackId: 'flute' }), 'p')).toBe('not_conductor');
+  });
+});
+
+describe('dj cues', () => {
+  it('broadcasts the cue with a server timestamp while playing', () => {
+    const h = setup();
+    const code = createRoom(h);
+    joinRoom(h, 'p', code);
+    send(h, 'cond', { type: 'start_piece' });
+    h.clock.t = 20_000;
+    const actions = send(h, 'cond', { type: 'dj', cue: 'drop', bars: 2 });
+    expect(only(actions, 'p', 'dj')).toEqual({ type: 'dj', cue: 'drop', at: 20_000, bars: 2 });
+    expect(only(actions, 'cond', 'dj').cue).toBe('drop');
+  });
+
+  it('is refused outside playing and from players', () => {
+    const h = setup();
+    const code = createRoom(h);
+    joinRoom(h, 'p', code);
+    expect(errorCode(send(h, 'cond', { type: 'dj', cue: 'build' }), 'cond')).toBe('not_started');
+    send(h, 'cond', { type: 'start_piece' });
+    expect(errorCode(send(h, 'p', { type: 'dj', cue: 'build' }), 'p')).toBe('not_conductor');
   });
 });

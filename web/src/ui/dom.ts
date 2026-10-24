@@ -1,4 +1,6 @@
 import { CONDUCTOR_AVATAR, composerFor, portraitUrl } from '../data/composers.js';
+import type { ServerClock } from '../lib/clock.js';
+import type { BeatGrid, Judgement } from '../lib/rhythm.js';
 import type { AppState } from '../lib/store.js';
 
 // Tiny DOM helpers. Strings always go in as text nodes, never HTML, so
@@ -74,9 +76,23 @@ export interface Actions {
   startPiece(): void;
   stopPiece(): void;
   kick(playerId: string): void;
-  /** Play my next note; returns false when there was nothing to play */
-  tap(): boolean;
+  /** Play my next note; `played` is false when there was nothing to play */
+  tap(): TapResult;
+  /** Shared clock and beat grid for the current run (null outside a run) */
+  rhythm(): RhythmView | null;
+  setAssist(on: boolean): void;
   leave(): void;
+}
+
+export interface TapResult {
+  played: boolean;
+  /** How close to the beat it landed; null when the clock is not synced yet */
+  judgement: Judgement | null;
+}
+
+export interface RhythmView {
+  grid: BeatGrid;
+  clock: ServerClock;
 }
 
 export type ScreenFactory = (s: AppState, a: Actions) => Screen;
