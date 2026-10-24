@@ -1,11 +1,13 @@
 .block {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
-  text-align: center; padding: 20px 16px; border-radius: var(--radius); background: var(--sunk);
+  text-align: center; padding: 20px 16px; border-radius: var(--radius); background: var(--accent);
 }
-.label { font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.label { font-size: .78rem; font-weight: 600; color: color-mix(in srgb, var(--accent-ink) 70%, transparent); text-transform: uppercase; letter-spacing: .08em; }
 .code {
   font: 700 clamp(4rem, 24vw, 7rem)/1 var(--font-display);
-  letter-spacing: .06em; padding-left: .06em; color: var(--accent);
+  letter-spacing: .06em; padding-left: .06em; color: var(--text);
 }
 .qr { margin-top: 8px; }
-.link { margin: 6px 0 0; color: var(--muted); font-size: .9rem; overflow-wrap: anywhere; }
+.link { margin: 6px 0 0; color: color-mix(in srgb, var(--accent-ink) 70%, transparent); font-size: .9rem; overflow-wrap: anywhere; }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 8px; }
+.copy { color: var(--accent-ink); }

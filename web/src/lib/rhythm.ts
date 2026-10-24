@@ -107,6 +107,9 @@ export const record = (t: Tally, j: Judgement): Tally => {
   return { ...t, notes, [j]: t[j] + 1, combo, bestCombo: Math.max(t.bestCombo, combo), accuracy: notes ? earned / notes : 0 };
 };
 
+/** A tap on the wrong side: the streak ends now, the note itself is scored when it resolves */
+export const breakCombo = (t: Tally): Tally => (t.combo ? { ...t, combo: 0 } : t);
+
 export const grade = (accuracy: number, completion: number): 'S' | 'A' | 'B' | 'C' => {
   const score = accuracy * Math.min(1, completion);
   if (score >= 90) return 'S';

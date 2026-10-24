@@ -1,49 +1,53 @@
-/* Kilukkam: warm neutrals, one hot accent, instrument tints on top. */
-
-/* The Malayalam wordmark is the brand: a real Malayalam display face, system fonts only as fallback. */
+/* The Malayalam name in the logo: RIT Kutty Bold (Rachana Institute of Typography, OFL). */
 @font-face {
-  font-family: "Nupuram";
-  src: url("/fonts/unicode-nupuram-regular.woff2") format("woff2");
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Nupuram";
-  src: url("/fonts/unicode-nupuram-bold.woff2") format("woff2");
+  font-family: "RIT Kutty";
+  src: url("/fonts/rit-kutty.woff2") format("woff2");
   font-weight: 700;
   font-display: swap;
 }
+@font-face {
+  font-family: "Anek Malayalam";
+  src: url("/fonts/anek-malayalam.woff2") format("woff2");
+  font-weight: 100 800;
+  font-stretch: 75% 125%;
+  font-display: swap;
+}
+/* Kilukkam: warm neutrals, one hot accent, instrument tints on top. */
 
+/* The Malayalam wordmark is the brand: a real Malayalam display face, system fonts only as fallback. */
 :root {
   /* Sunset palette: the orange leads, rose and violet carry it into a gradient. */
-  --bg: #f6f5f2;
+  --bg: #fbf8f3;
   --surface: #ffffff;
-  --sunk: #efede9;
-  --line: #e6e3de;
-  --line-strong: #d4d0c9;
-  --text: #111114;
-  --muted: #67646e;
-  --accent: #ff5b1f;
-  --accent-2: #ff3d6e;
-  --accent-3: #7c5cff;
+  --sunk: #f3eee6;
+  --line: #ebe4d8;
+  --line-strong: #dcd3c4;
+  --text: #141210;
+  --muted: #6f685e;
+  --accent: #ff7a1a;
+  --accent-2: #ffd166;
+  --accent-3: #c9952e;
   --accent-ink: #ffffff;
-  --accent-text: #d23d0c;
-  --brand: linear-gradient(120deg, #ff7a1a 0%, #ff3d6e 52%, #7c5cff 100%);
-  --brand-soft: linear-gradient(135deg, color-mix(in srgb, #ff7a1a 16%, var(--surface)), color-mix(in srgb, #7c5cff 12%, var(--surface)));
+  --accent-text: #c2410c;
+  --brand: linear-gradient(120deg, #ff7a1a 0%, #ffd166 52%, #c9952e 100%);
+  --brand-soft: linear-gradient(135deg, color-mix(in srgb, #ff7a1a 16%, var(--surface)), color-mix(in srgb, #c9952e 12%, var(--surface)));
   --danger: #d7263d;
   --warn: #8a5a00;
   --warn-bg: #fbf0d9;
   --ok: #12a37a;
 
   /* One family of instrument hues: similar weight, distinct at a glance. */
-  --violin: #f2780c;
-  --cello: #7c5cff;
-  --flute: #0fa892;
-  --piano: #2f74ff;
+  --violin: #ff7a1a;
+  --cello: #c2264b;
+  --flute: #0f8b7e;
+  --piano: #4f46e5;
 
-  --font-display: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-malayalam: "Nupuram", "Noto Sans Malayalam", "Malayalam Sangam MN", "Malayalam MN", Manjari, Kartika, sans-serif;
+  /* The wordmark: Inter set heavy and tight for the English, RIT Kutty for the Malayalam */
+  --font-brand: "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-brand-ml: "RIT Kutty", "Anek Malayalam", "Noto Sans Malayalam", sans-serif;
+  --font-malayalam: "Anek Malayalam", "Noto Sans Malayalam", "Malayalam Sangam MN", "Malayalam MN", Manjari, Kartika, sans-serif;
   /* Composer monograms: a classical serif against the geometric UI type */
   --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   --track-display: -.03em;
@@ -53,42 +57,41 @@
   --pad: 16px;
   --tap: 64px;
   --ease: cubic-bezier(.2, .8, .2, 1);
-  --shadow: 0 1px 2px rgb(20 16 40 / .04), 0 10px 28px -14px rgb(20 16 40 / .16);
-  --shadow-lift: 0 2px 6px rgb(20 16 40 / .06), 0 18px 40px -16px rgb(20 16 40 / .26);
+  --shadow: 0 1px 2px rgb(40 24 8 / .04), 0 10px 28px -14px rgb(40 24 8 / .16);
+  --shadow-lift: 0 2px 6px rgb(40 24 8 / .06), 0 18px 40px -16px rgb(40 24 8 / .26);
   --glow: 0 14px 34px -14px color-mix(in srgb, var(--accent-2) 70%, transparent);
   --ring: 0 0 0 4px color-mix(in srgb, var(--accent) 40%, transparent), 0 0 18px 2px color-mix(in srgb, var(--accent) 35%, transparent);
   --safe-t: env(safe-area-inset-top);
   --safe-b: env(safe-area-inset-bottom);
   --safe-l: env(safe-area-inset-left);
   --safe-r: env(safe-area-inset-right);
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #09090f;
-    --surface: #14141c;
-    --sunk: #1c1c27;
-    --line: #262633;
-    --line-strong: #363645;
-    --text: #f4f3f8;
-    --muted: #9c99aa;
-    --accent: #ff6a2b;
-    --accent-2: #ff4d8d;
-    --accent-3: #9a7cff;
-    --accent-text: #ff7a3d;
-    --danger: #ff5c6c;
-    --warn: #f0c063;
-    --warn-bg: #2b2210;
-    --ok: #3ad6a5;
-    --violin: #ff9a45;
-    --cello: #a68bff;
-    --flute: #2fd6bd;
-    --piano: #6b9bff;
-    --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 12px 32px -16px rgb(0 0 0 / .7);
-    --shadow-lift: 0 2px 6px rgb(0 0 0 / .5), 0 18px 40px -16px rgb(0 0 0 / .8);
-    color-scheme: dark;
-  }
+/* Light by default; dark only when the viewer picks it (data-theme on <html>). */
+:root[data-theme="dark"] {
+  --bg: #0d0b09;
+  --surface: #18140f;
+  --sunk: #221c15;
+  --line: #2c251c;
+  --line-strong: #3a3126;
+  --text: #f6f1e8;
+  --muted: #a59c8e;
+  --accent: #ff8a2e;
+  --accent-2: #ffd166;
+  --accent-3: #e0b252;
+  --accent-text: #ff9a4a;
+  --danger: #ff5c6c;
+  --warn: #f0c063;
+  --warn-bg: #2b2210;
+  --ok: #3ad6a5;
+  --violin: #ff9a45;
+  --cello: #ff6680;
+  --flute: #34c7b4;
+  --piano: #8b85ff;
+  --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 12px 32px -16px rgb(0 0 0 / .7);
+  --shadow-lift: 0 2px 6px rgb(0 0 0 / .5), 0 18px 40px -16px rgb(0 0 0 / .8);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -155,8 +158,8 @@ input { -webkit-appearance: none; appearance: none; }
 
 .wordmark { display: inline-flex; align-items: baseline; gap: .45em; min-height: var(--tap); align-items: center; }
 .wordmark-mark { width: 30px; height: 30px; border-radius: 8px; align-self: center; }
-.wordmark-en { font: 700 1.2rem/1 var(--font-display); letter-spacing: var(--track-display); }
-.wordmark-ml { font: 700 1rem/1 var(--font-malayalam); background: var(--brand); -webkit-background-clip: text; background-clip: text; color: transparent; padding-bottom: .1em; }
+.wordmark-en { font: 800 1.2rem/1 var(--font-brand); letter-spacing: -.035em; }
+.wordmark-ml { font: 700 1.25rem/1.3 var(--font-brand-ml); color: var(--text); padding-bottom: .1em; }
 .wordmark-hero { flex-direction: column; gap: 10px; min-height: 0; }
 .wordmark-hero .wordmark-en { font-size: clamp(3rem, 15vw, 4.25rem); letter-spacing: -.05em; }
 .wordmark-hero .wordmark-ml { font-size: 1.6rem; }

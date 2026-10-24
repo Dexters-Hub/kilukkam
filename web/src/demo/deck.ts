@@ -1,11 +1,12 @@
-import '@fontsource-variable/space-grotesk';
 import '@fontsource-variable/inter';
 import '../style.css';
+import '../styles/tokens.css';
 import './deck.css';
 import { gsap } from 'gsap';
 import { MAX_PLAYERS, PIECES, type InstrumentId } from '@kilukkam/shared';
 import { COMPOSERS } from '../data/composers.js';
 import { INSTRUMENTS, noteName } from '../lib/music.js';
+import { BANK_NOTES } from '../lib/samples.js';
 import { avatar, h, wordmark } from '../ui/dom.js';
 import { slideFromHash } from './nav.js';
 
@@ -88,13 +89,13 @@ const SLIDES: readonly Slide[] = [
         'slide-idea',
         kicker('The idea'),
         title('A handbell choir, made of phones.'),
-        lede('Each phone holds one part of a song, from Pachelbel to your playlist. Every tap plays your next note. No timing judgement, no scrolling lanes: the people in the room are the tempo.'),
+        lede('Each phone holds one part of a song, from Pachelbel to your playlist. Every tap plays your next note, on the beat, and the room scores like a rhythm game.'),
         h(
           'div',
           { class: 'phones reveal', 'aria-hidden': 'true' },
-          ...(['flute', 'violin', 'piano', 'cello'] as const).map((id, i) => {
+          ...(['flute', 'violin', 'piano', 'cello', 'drums'] as const).map((id, i) => {
             const meta = INSTRUMENTS[id];
-            const track = PIECES[1]?.tracks.find((t) => t.instrument === id);
+            const track = PIECES.flatMap((p) => p.tracks).find((t) => t.instrument === id);
             const first = track?.events.find((e) => e.kind === 'note');
             const phone = h(
               'div',
@@ -120,9 +121,9 @@ const SLIDES: readonly Slide[] = [
         h(
           'ol',
           { class: 'steps-big' },
-          h('li', { class: 'reveal' }, h('span', { class: 'step-n' }, '1'), h('strong', {}, 'A conductor opens a room'), h('span', {}, 'and picks a piece: Pachelbel, Beethoven…')),
-          h('li', { class: 'reveal' }, h('span', { class: 'step-n' }, '2'), h('strong', {}, 'Friends join with a 4-letter code'), h('span', {}, 'choose a composer avatar and an instrument.')),
-          h('li', { class: 'reveal' }, h('span', { class: 'step-n' }, '3'), h('strong', {}, 'Everyone taps'), h('span', {}, 'and the room plays the piece together, live.')),
+          h('li', { class: 'reveal' }, h('span', { class: 'step-n' }, '1'), h('strong', {}, 'A conductor opens a room'), h('span', {}, 'with a piece, a game-style original, or any song on Spotify.')),
+          h('li', { class: 'reveal' }, h('span', { class: 'step-n' }, '2'), h('strong', {}, 'Friends join with a 4-letter code'), h('span', {}, 'pick a composer avatar and get an instrument straight away.')),
+          h('li', { class: 'reveal' }, h('span', { class: 'step-n' }, '3'), h('strong', {}, 'Everyone taps on the beat'), h('span', {}, 'while the conductor leads with a hand in front of the camera.')),
         ),
       ),
   },
@@ -169,6 +170,49 @@ const SLIDES: readonly Slide[] = [
       ),
   },
   {
+    label: 'Your hand is the baton',
+    build: () => {
+      const zone = (label: string, where: string, id: InstrumentId): HTMLElement => {
+        const el = h('div', { class: 'zone reveal' }, h('strong', {}, label), h('span', {}, where));
+        el.style.setProperty('--tint', INSTRUMENTS[id].color);
+        return el;
+      };
+      return slide(
+        'slide-camera',
+        kicker('Camera conductor'),
+        title('Your hand is the baton.'),
+        lede('The laptop camera follows the conductor’s hand, on the device: no video leaves the room. Every gesture drives the whole orchestra.'),
+        h('div', { class: 'zones' }, zone('Violins', 'point left', 'violin'), zone('Flutes', 'point centre', 'flute'), zone('Cellos', 'point right', 'cello')),
+        h(
+          'div',
+          { class: 'grid-2' },
+          card('Beat the pattern', '4/4, 3/4 waltz and 2/4 march. Hit each numbered target as its ring closes; levels get faster and switch the swish.', 'var(--accent)'),
+          card('Bigger is louder', 'Large sweeping beats play forte, small careful ones piano. The room follows your dynamics live.', 'var(--piano)'),
+          card('Point to cue', 'Point into a third of the picture and hold: that section comes in. The labels show which third is which.', 'var(--violin)'),
+          card('Fist to cut off', 'Close your fist and hold it. The whole room stops on your mark.', 'var(--cello)'),
+        ),
+      );
+    },
+  },
+  {
+    label: 'Any song, with drums',
+    build: () =>
+      slide(
+        'slide-songs',
+        kicker('Any song'),
+        title('Bring the track. The room brings the band.'),
+        lede('Search Spotify, tap along to find the beat, and the room plays drums, claps, bass, pads and fingerstyle guitar in time with the real recording.'),
+        h('div', { class: 'chips' }, ...(['drums', 'guitar', 'piano', 'cello', 'flute', 'violin'] as const).map(instrumentChip)),
+        h(
+          'div',
+          { class: 'grid-3' },
+          card('Drums', 'A synthesised kit: kick, snare, hats, toms and crash, on its own phones.', 'var(--drums)'),
+          card('Game-style originals', 'Boss Rush, Pixel Plains and Hallowed Depths, written for the room, with drum parts.', 'var(--accent)'),
+          card('The classics', 'Canon in D in true canon, Ode to Joy for a first run.', 'var(--flute)'),
+        ),
+      ),
+  },
+  {
     label: 'The lineup',
     build: () =>
       slide(
@@ -196,7 +240,7 @@ const SLIDES: readonly Slide[] = [
           h(
             'ul',
             { class: 'tech-list reveal' },
-            h('li', {}, h('strong', {}, 'Every phone synthesises its own instrument'), ' in WebAudio: violin, cello, flute and piano voices built from oscillators. No samples, no downloads.'),
+            h('li', {}, h('strong', {}, 'Every phone plays its own instrument'), ' in WebAudio: real recordings (VSCO 2 CE, public domain) for strings, flute and piano, a synthesised drum kit and a plucked-string guitar.'),
             h('li', {}, h('strong', {}, 'One small WebSocket server'), ' owns rooms, seats and phases. A tap is a single tiny message, so latency barely matters.'),
             h('li', {}, h('strong', {}, 'Built for a full room'), ' with aggregated ensemble pulses instead of a hundred-fold echo storm.'),
             h('li', {}, h('strong', {}, 'Scores are code'), ': canon offsets are computed, not copied, and validated by tests.'),
@@ -208,8 +252,8 @@ const SLIDES: readonly Slide[] = [
             stat(lib.pieces, 'pieces'),
             stat(lib.tracks, 'instrument parts'),
             stat(lib.notes.toLocaleString(), 'playable notes'),
-            stat(0, 'audio files'),
-            stat(lib.instruments.length, 'synth voices'),
+            stat(Object.values(BANK_NOTES).reduce((n, b) => n + b.length, 0), 'recorded notes'),
+            stat(lib.instruments.length, 'instruments'),
           ),
         ),
         h('div', { class: 'chips' }, ...lib.instruments.map(instrumentChip)),
@@ -226,9 +270,9 @@ const SLIDES: readonly Slide[] = [
         h(
           'div',
           { class: 'stack-chips' },
-          ...['TypeScript (strict)', 'Vite', 'WebAudio', 'WebSocket (ws)', 'GSAP', 'Vitest', 'Playwright'].map((t) => h('span', { class: 'chip chip-lg reveal' }, t)),
+          ...['TypeScript (strict)', 'React 19', 'Vite', 'WebAudio', 'WebSocket', 'GSAP', 'MediaPipe hands', 'Spotify Web API', 'Vitest', 'Playwright'].map((t) => h('span', { class: 'chip chip-lg reveal' }, t)),
         ),
-        lede('No framework, no accounts, no cloud. One laptop on the room’s Wi-Fi runs the whole show.'),
+        lede('No accounts to play. One laptop on the room’s Wi-Fi runs the whole show; hand tracking runs on the device.'),
       ),
   },
   {
@@ -241,10 +285,10 @@ const SLIDES: readonly Slide[] = [
         h(
           'div',
           { class: 'grid-2' },
-          card('Play with movement', 'Shake for tremolo, tilt for dynamics: device motion as expression.'),
-          card('A bigger library', 'Vivaldi’s Spring, Für Elise, film themes. Any score can be split into parts.'),
-          card('Sampled instruments', 'Real recordings behind the same instrument interface, loaded once per phone.'),
-          card('Rooms anywhere', 'The game core is socket-free, so it can move to the edge and fill concert halls.'),
+          card('Section leaderboards', 'Who held the beat best: per player and per section, shared at the end.'),
+          card('Your own MIDI', 'Drop in a file and it is arranged into parts for the room, right from the app.'),
+          card('Hum it', 'Sing a melody into the conductor laptop and the room plays it back as an ensemble.'),
+          card('Rooms anywhere', 'The game core is socket-free, so it moves to the edge and fills concert halls.'),
         ),
       ),
   },

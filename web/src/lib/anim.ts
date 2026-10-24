@@ -8,10 +8,10 @@ const reduced = (): boolean => matchMedia('(prefers-reduced-motion: reduce)').ma
 /** New screen slides up into place; its top-level blocks follow in a light stagger. */
 export function enterScreen(el: HTMLElement): void {
   if (reduced()) return;
-  gsap.fromTo(el, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.32, ease: 'power2.out', clearProps: 'transform,opacity,visibility' });
+  gsap.fromTo(el, { autoAlpha: 0, y: 22, filter: 'blur(6px)' }, { autoAlpha: 1, y: 0, filter: 'blur(0px)', duration: 0.55, ease: 'expo.out', clearProps: 'transform,opacity,visibility,filter' });
   const blocks = el.querySelectorAll(':scope > .stack > *, :scope > .lanes > *, :scope > .hero, :scope > .stack');
   if (blocks.length) {
-    gsap.fromTo(blocks, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.3, ease: 'power2.out', stagger: 0.04, delay: 0.06, clearProps: 'transform,opacity,visibility' });
+    gsap.fromTo(blocks, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.6, ease: 'expo.out', stagger: 0.05, delay: 0.08, clearProps: 'transform,opacity,visibility' });
   }
 }
 
@@ -40,6 +40,21 @@ export function noteHit(note: HTMLElement, glow: HTMLElement): void {
   if (reduced()) return;
   gsap.fromTo(note, { scale: 0.86 }, { scale: 1, duration: 0.3, ease: 'back.out(3)', overwrite: 'auto' });
   gsap.fromTo(glow, { opacity: 0.55 }, { opacity: 0, duration: 0.5, ease: 'power2.out', overwrite: 'auto' });
+}
+
+/** The combo number punches up each time it grows. */
+export function comboPunch(el: HTMLElement): void {
+  if (reduced()) return;
+  gsap.fromTo(el, { scale: 1.55, y: -3 }, { scale: 1, y: 0, duration: 0.42, ease: 'back.out(3.2)', overwrite: 'auto' });
+}
+
+/** A tap that missed the beat: the note name dims and shivers, then settles. Gentle, never a scolding. */
+export function missShake(el: HTMLElement): void {
+  if (reduced()) {
+    gsap.fromTo(el, { opacity: 0.5 }, { opacity: 1, duration: 0.3, overwrite: 'auto' });
+    return;
+  }
+  gsap.fromTo(el, { x: -9, opacity: 0.45 }, { x: 0, opacity: 1, duration: 0.4, ease: 'elastic.out(1.1, 0.3)', overwrite: 'auto' });
 }
 
 /** Coach-mark fades in, then its ring keeps pulsing until it is dismissed. */
@@ -183,4 +198,19 @@ export function swapText(el: HTMLElement, text: string): void {
       el.textContent = text;
     })
     .fromTo(el, { yPercent: 35, opacity: 0, filter: 'blur(6px)' }, { yPercent: 0, opacity: 1, filter: 'blur(0px)', duration: 0.55, ease: 'expo.out' });
+}
+
+/**
+ * The landing page's first second: the headline arrives word by word on a
+ * spring, the instrument word wipes in like a
+ * marker stroke, then the lead, the code box and the stage follow.
+ */
+export function heroIntro(root: HTMLElement): void {
+  if (reduced()) return;
+  const q = <T extends Element>(sel: string) => root.querySelectorAll<T>(sel);
+  const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
+  tl.fromTo(q('[data-intro="word"]'), { yPercent: 70, opacity: 0, rotate: 4 }, { yPercent: 0, opacity: 1, rotate: 0, duration: 0.9, stagger: 0.07, ease: 'back.out(1.6)', clearProps: 'all' });
+  tl.fromTo(q('[data-intro="marker"]'), { clipPath: 'inset(0 100% 0 0 round .16em)' }, { clipPath: 'inset(0 0% 0 0 round .16em)', duration: 0.7, ease: 'power3.inOut', clearProps: 'clipPath' }, '-=0.5');
+  tl.fromTo(q('[data-intro="rise"]'), { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, stagger: 0.08, clearProps: 'all' }, '-=0.45');
+  tl.fromTo(q('[data-intro="stage"]'), { y: 40, scale: 0.94, opacity: 0, rotate: -1.5 }, { y: 0, scale: 1, opacity: 1, rotate: 0, duration: 1.1, ease: 'expo.out', clearProps: 'all' }, 0.25);
 }

@@ -161,3 +161,93 @@ export class PatternCoach {
     return this.scores.length;
   }
 }
+
+/**
+ * Target scoring, the way a player can actually follow it: every beat has a
+ * target (its ictus point), and a beat scores by how close the palm came to
+ * that target and how near the beat it got there. The palm is sampled every
+ * frame; a beat is judged once its window has passed.
+ *
+ *  - reach: the closest the palm came to the target within half a beat
+ *    either side, in box widths. Within TARGET_RADIUS is full marks, three
+ *    radii or more is none.
+ *  - timing: when that closest moment happened, against the beat. Within
+ *    60 ms is full marks, 320 ms or more is none.
+ *
+ * Unlike detecting a downstroke bounce, this works for every beat of every
+ * pattern, including the sideways beats 2 and 3 of 4/4.
+ */
+export const TARGET_RADIUS = 0.09;
+/** How far either side of the beat a palm sample counts, in beats */
+export const TARGET_WINDOW = 0.45;
+
+export interface TargetResult {
+  beat: number;
+  score: number;
+  grade: BatonGrade;
+  /** Closest approach to the target, in box widths */
+  reach: number;
+  /** When the closest approach happened: negative is early */
+  offsetMs: number;
+}
+
+export const reachScore = (distance: number): number => Math.round(100 * clamp01((TARGET_RADIUS * 3 - distance) / (TARGET_RADIUS * 2)));
+export const arrivalScore = (offsetMs: number): number => Math.round(100 * clamp01((320 - Math.abs(offsetMs)) / 260));
+
+export class TargetCoach {
+  private samples: { beat: number; p: Point }[] = [];
+  private next = 0;
+  private scores: number[] = [];
+
+  constructor(
+    private readonly meter: Meter,
+    private readonly periodMs: number,
+  ) {}
+
+  /** The target for a beat number (wraps through the bar) */
+  target(beat: number): Point {
+    const pts = PATTERNS[this.meter];
+    return pts[((Math.round(beat) % pts.length) + pts.length) % pts.length] as Point;
+  }
+
+  /**
+   * One frame: the palm in box coordinates (or null when no hand is seen) at
+   * fractional beat `beat`. Returns the beats whose window just closed.
+   */
+  sample(palm: Point | null, beat: number): TargetResult[] {
+    if (palm) this.samples.push({ beat, p: palm });
+    const done: TargetResult[] = [];
+    while (beat > this.next + TARGET_WINDOW) {
+      const k = this.next++;
+      if (k < 0) continue;
+      const goal = this.target(k);
+      let best: { d: number; at: number } | null = null;
+      for (const s of this.samples) {
+        if (Math.abs(s.beat - k) > TARGET_WINDOW) continue;
+        const d = Math.hypot(s.p.x - goal.x, s.p.y - goal.y);
+        if (!best || d < best.d) best = { d, at: s.beat };
+      }
+      const reach = best?.d ?? Infinity;
+      const offsetMs = best ? (best.at - k) * this.periodMs : Infinity;
+      const score = best ? Math.round(0.55 * reachScore(reach) + 0.45 * arrivalScore(offsetMs)) : 0;
+      this.scores.push(score);
+      done.push({ beat: k, score, grade: batonGrade(score), reach, offsetMs });
+      this.samples = this.samples.filter((s) => s.beat > k + 1 - TARGET_WINDOW);
+    }
+    return done;
+  }
+
+  /** Start scoring from this beat (after the count-in) */
+  startAt(beat: number): void {
+    this.next = beat;
+    this.samples = [];
+  }
+
+  get accuracy(): number {
+    return this.scores.length ? Math.round(this.scores.reduce((a, b) => a + b, 0) / this.scores.length) : 0;
+  }
+
+  get beatsScored(): number {
+    return this.scores.length;
+  }
+}

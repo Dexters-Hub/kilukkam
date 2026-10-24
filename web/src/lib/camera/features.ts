@@ -164,3 +164,20 @@ export function analyseHand(raw: readonly Point[], label: string, score: number,
     landmarks: lms,
   };
 }
+
+/**
+ * Which hand is which, from where it is in the (mirrored) picture, not from
+ * MediaPipe's label: the label can flip between frames and often calls both
+ * hands "Right", which would make two hands share one voice. In a selfie view
+ * your left hand is on the left, so with two hands the further left is the
+ * left hand, and a single hand is the left one on the left half.
+ */
+export const assignSides = (hands: readonly TrackedHand[]): TrackedHand[] => {
+  if (hands.length === 0) return [];
+  if (hands.length === 1) {
+    const [h] = hands as [TrackedHand];
+    return [{ ...h, handedness: h.palmCenter.x < 0.5 ? 'left' : 'right' }];
+  }
+  const [a, b, ...rest] = [...hands].sort((x, y) => x.palmCenter.x - y.palmCenter.x) as [TrackedHand, TrackedHand, ...TrackedHand[]];
+  return [{ ...a, handedness: 'left' }, { ...b, handedness: 'right' }, ...rest];
+};

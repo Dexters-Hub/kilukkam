@@ -16,7 +16,7 @@ const CSP = [
   "default-src 'self'",
   "script-src 'self' 'wasm-unsafe-eval' https://sdk.scdn.co",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://i.scdn.co https://mosaic.scdn.co",
+  "img-src 'self' data: blob: https://i.scdn.co https://mosaic.scdn.co https://*.spotifycdn.com",
   "font-src 'self' data:",
   "media-src 'self' blob: mediastream:",
   "connect-src 'self' ws: wss: https://accounts.spotify.com https://api.spotify.com",

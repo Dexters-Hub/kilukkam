@@ -1,92 +1,104 @@
-/* Kilukkam design tokens: warm neutrals, one hot accent, instrument tints on top. */
+/* Kilukkam design tokens: neon lime on paper and ink. */
 
-/* The Malayalam wordmark is the brand: a real Malayalam display face, system fonts only as fallback. */
+/* The Malayalam name is set in Anek Malayalam: modern, variable weight and width (OFL). */
+/* The Malayalam name in the logo: RIT Kutty Bold (Rachana Institute of Typography, OFL). */
 @font-face {
-  font-family: "Nupuram";
-  src: url("/fonts/unicode-nupuram-regular.woff2") format("woff2");
-  font-weight: 400;
+  font-family: "RIT Kutty";
+  src: url("/fonts/rit-kutty.woff2") format("woff2");
+  font-weight: 700;
   font-display: swap;
 }
 @font-face {
-  font-family: "Nupuram";
-  src: url("/fonts/unicode-nupuram-bold.woff2") format("woff2");
-  font-weight: 700;
+  font-family: "Anek Malayalam";
+  src: url("/fonts/anek-malayalam.woff2") format("woff2");
+  font-weight: 100 800;
+  font-stretch: 75% 125%;
   font-display: swap;
 }
 
 :root {
-  /* Sunset palette: the orange leads, rose and violet carry it into a gradient. */
-  --bg: #f6f5f2;
+  /* Neon lime: near-white paper, black ink, one lime highlight. Each instrument owns a vivid colour. */
+  --bg: #fafaf9;
   --surface: #ffffff;
-  --sunk: #efede9;
-  --line: #e6e3de;
-  --line-strong: #d4d0c9;
-  --text: #111114;
-  --muted: #67646e;
-  --accent: #ff5b1f;
-  --accent-2: #ff3d6e;
-  --accent-3: #7c5cff;
-  --accent-ink: #ffffff;
-  --accent-text: #d23d0c;
-  --brand: linear-gradient(120deg, #ff7a1a 0%, #ff3d6e 52%, #7c5cff 100%);
-  --brand-soft: linear-gradient(135deg, color-mix(in srgb, #ff7a1a 16%, var(--surface)), color-mix(in srgb, #7c5cff 12%, var(--surface)));
-  --danger: #d7263d;
-  --warn: #8a5a00;
-  --warn-bg: #fbf0d9;
-  --ok: #12a37a;
+  --sunk: #f1f1ef;
+  --line: #e8e8e6;
+  --line-strong: #d6d6d3;
+  --text: #0a0a0a;
+  --muted: #6b6b68;
+  /* Lime is a fill, never text on white: buttons, markers, rings. Text accents use --accent-text. */
+  --accent: #b6f400;
+  --accent-2: #b6f400;
+  --accent-3: #7c4dff;
+  --accent-ink: #0a0a0a;
+  --accent-text: #3f6b00;
+  --brand: linear-gradient(120deg, #b6f400, #d9ff6b);
+  --brand-soft: linear-gradient(135deg, color-mix(in srgb, #b6f400 16%, var(--surface)), var(--surface));
+  --danger: #e5243b;
+  --warn: #7a5a00;
+  --warn-bg: #fdf3d6;
+  --ok: #00a88f;
 
-  /* One family of instrument hues: similar weight, distinct at a glance. */
-  --violin: #f2780c;
-  --cello: #7c5cff;
-  --flute: #0fa892;
-  --piano: #2f74ff;
+  /* Instruments: vivid, equal weight, each readable as white text on its own colour. */
+  --violin: #ff4f1f;
+  --cello: #e8246f;
+  --flute: #00a88f;
+  --piano: #7c4dff;
+  --drums: #1f6feb;
+  --guitar: #c56a00;
 
-  --font-display: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-body: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-malayalam: "Nupuram", "Noto Sans Malayalam", "Malayalam Sangam MN", "Malayalam MN", Manjari, Kartika, sans-serif;
+  /* The wordmark: Inter set heavy and tight for the English, RIT Kutty for the Malayalam */
+  --font-brand: "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-brand-ml: "RIT Kutty", "Anek Malayalam", "Noto Sans Malayalam", sans-serif;
+  --font-malayalam: "Anek Malayalam", "Noto Sans Malayalam", "Malayalam Sangam MN", "Malayalam MN", Manjari, Kartika, sans-serif;
   /* Composer monograms: a classical serif against the geometric UI type */
   --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
-  --track-display: -.03em;
+  --track-display: -.04em;
+  --weight-display: 800;
+  /* The short rule under titles: a lime marker stroke */
+  --kasavu: var(--accent);
 
   --radius: 18px;
   --radius-sm: 12px;
   --pad: 16px;
   --tap: 64px;
   --ease: cubic-bezier(.2, .8, .2, 1);
-  --shadow: 0 1px 2px rgb(20 16 40 / .04), 0 10px 28px -14px rgb(20 16 40 / .16);
-  --shadow-lift: 0 2px 6px rgb(20 16 40 / .06), 0 18px 40px -16px rgb(20 16 40 / .26);
-  --glow: 0 14px 34px -14px color-mix(in srgb, var(--accent-2) 70%, transparent);
+  --shadow: 0 1px 2px rgb(10 10 10 / .04), 0 10px 28px -14px rgb(10 10 10 / .16);
+  --shadow-lift: 0 2px 6px rgb(10 10 10 / .06), 0 18px 40px -16px rgb(10 10 10 / .26);
+  --glow: 0 14px 34px -14px color-mix(in srgb, var(--accent) 70%, transparent);
   --ring: 0 0 0 4px color-mix(in srgb, var(--accent) 40%, transparent), 0 0 18px 2px color-mix(in srgb, var(--accent) 35%, transparent);
   --safe-t: env(safe-area-inset-top);
   --safe-b: env(safe-area-inset-bottom);
   --safe-l: env(safe-area-inset-left);
   --safe-r: env(safe-area-inset-right);
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #09090f;
-    --surface: #14141c;
-    --sunk: #1c1c27;
-    --line: #262633;
-    --line-strong: #363645;
-    --text: #f4f3f8;
-    --muted: #9c99aa;
-    --accent: #ff6a2b;
-    --accent-2: #ff4d8d;
-    --accent-3: #9a7cff;
-    --accent-text: #ff7a3d;
-    --danger: #ff5c6c;
-    --warn: #f0c063;
-    --warn-bg: #2b2210;
-    --ok: #3ad6a5;
-    --violin: #ff9a45;
-    --cello: #a68bff;
-    --flute: #2fd6bd;
-    --piano: #6b9bff;
-    --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 12px 32px -16px rgb(0 0 0 / .7);
-    --shadow-lift: 0 2px 6px rgb(0 0 0 / .5), 0 18px 40px -16px rgb(0 0 0 / .8);
-    color-scheme: dark;
-  }
+/* Light by default; dark only when the viewer picks it (data-theme on <html>). */
+:root[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --surface: #161616;
+  --sunk: #1f1f1f;
+  --line: #2a2a2a;
+  --line-strong: #3a3a3a;
+  --text: #f5f5f3;
+  --muted: #9a9a96;
+  --accent: #c2ff1a;
+  --accent-2: #c2ff1a;
+  --accent-3: #9b7bff;
+  --accent-text: #c2ff1a;
+  --danger: #ff5c70;
+  --warn: #f0c063;
+  --warn-bg: #2b2210;
+  --ok: #2fd6b8;
+  --violin: #ff6a3d;
+  --cello: #ff4d8f;
+  --flute: #1fc9ad;
+  --piano: #9b7bff;
+  --drums: #4d8dff;
+  --guitar: #f59e0b;
+  --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 12px 32px -16px rgb(0 0 0 / .7);
+  --shadow-lift: 0 2px 6px rgb(0 0 0 / .5), 0 18px 40px -16px rgb(0 0 0 / .8);
+  color-scheme: dark;
 }

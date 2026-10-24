@@ -1,4 +1,6 @@
 import { note, type Score, type ScoreEvent } from '../score.js';
+import { fingerpick } from './fingerstyle.js';
+import { bars } from './originals/notation.js';
 
 // Beethoven: Ode to Joy, C major. Short and instantly recognisable;
 // good first piece for a room that has never played together.
@@ -51,6 +53,21 @@ const BASS: ScoreEvent[] = [
   note(48, 4),              // C-
 ];
 
+// Guitar: fingerstyle broken chords under the same harmony, eighth notes,
+// the bass string on each change. The last bar holds G over the cello's C
+// and settles on a C to close.
+export const odeToJoyHarmony: readonly string[] = ['C', 'G', 'C', 'C G', 'C', 'G', 'C', 'G/C C'];
+
+const GUITAR_SHAPES = {
+  C: ['C3', 'G3', 'C4', 'E4'],
+  G: ['G2', 'D3', 'G3', 'B3'],
+};
+
+const GUITAR: ScoreEvent[] = [
+  ...fingerpick(odeToJoyHarmony.slice(0, 7), GUITAR_SHAPES, { order: [0, 1, 2, 3, 2, 1, 2, 3], step: 0.5, velocity: 72, bassVelocity: 84 }, 4),
+  ...bars('C3:0.5 G3:0.5 B3:0.5 D4:0.5 C4:2', 76),
+];
+
 export const odeToJoy: Score = {
   id: 'ode-to-joy',
   title: 'Ode to Joy',
@@ -58,9 +75,10 @@ export const odeToJoy: Score = {
   bpm: 100,
   beatsPerBar: 4,
   tracks: [
-    { id: 'flute', name: 'Flute', instrument: 'flute', maxPlayers: 25, events: MELODY },
-    { id: 'violin', name: 'Violin', instrument: 'violin', maxPlayers: 25, events: HARMONY },
-    { id: 'piano', name: 'Piano', instrument: 'piano', maxPlayers: 25, events: PIANO },
-    { id: 'cello', name: 'Cello', instrument: 'cello', maxPlayers: 25, events: BASS },
+    { id: 'flute', name: 'Flute', instrument: 'flute', maxPlayers: 20, events: MELODY },
+    { id: 'violin', name: 'Violin', instrument: 'violin', maxPlayers: 20, events: HARMONY },
+    { id: 'piano', name: 'Piano', instrument: 'piano', maxPlayers: 20, events: PIANO },
+    { id: 'cello', name: 'Cello', instrument: 'cello', maxPlayers: 20, events: BASS },
+    { id: 'guitar', name: 'Guitar', instrument: 'guitar', maxPlayers: 20, events: GUITAR },
   ],
 };

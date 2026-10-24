@@ -73,3 +73,11 @@
 .cue:active { transform: scale(.96); }
 .cue > span:first-child { color: var(--accent-3); }
 .cue.on { background: color-mix(in srgb, var(--accent-3) 18%, var(--surface)); box-shadow: var(--shadow-lift); }
+
+/* Laptop: the sections and the camera side by side, so the conductor sees both while conducting. */
+.desk { display: flex; flex-direction: column; gap: 12px; }
+@media (min-width: 1000px) {
+  .screen { max-width: 1180px; }
+  .desk { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: start; gap: 16px; }
+  .desk > section { position: sticky; top: 84px; }
+}

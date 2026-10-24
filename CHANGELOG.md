@@ -5,6 +5,54 @@ before the docs commit are backfilled from `git log`.
 
 ## Unreleased
 
+- 2026-10-25 05:30: Guitar, more songs, and a player you can see. A
+  plucked-string fingerstyle guitar is the sixth instrument (home tabs,
+  play-along, MIDI export as nylon guitar). Four new public-domain pieces
+  with guitar parts: Romance, Greensleeves, In the Hall of the Mountain
+  King (with drums) and Für Elise, and a guitar part for Ode to Joy.
+  Spotify play-along shows a now-playing card (art, progress, status,
+  whether it landed on the beat), searches songs, adds a fingerstyle
+  guitar part when the key is set, and says plainly when a browser lacks
+  Widevine. Live camera conducting is verified end to end against the
+  room (tempo, dynamics, cues, cut-off). Thumb-to-fingertip finger play,
+  left and right hands told apart by position, a Host a room call to
+  action, drum hit names (Kick, Snare), and the logo in Inter with RIT
+  Kutty for the Malayalam.
+
+- 2026-10-25 03:10: Play that is harder and clearer. Two hands on the
+  phone: notes come down a left or right lane (thumbs, or F and J), a
+  wrong side breaks the combo. Drums are a fifth instrument with a
+  synthesised kit, played in Boss Rush, Pixel Plains and Spotify
+  play-alongs. Camera conducting scores by targets (closest approach and
+  arrival time) after a calibration circle and a count-in, with 2/4, 3/4
+  and 4/4 patterns, levels, always-visible section zones (point and hold
+  to cue), the left hand for cues and dynamics, and springy grade pops,
+  particles, combo and streak cheers. Song search on Spotify. The home
+  hero is a product shot of the laptop and phones that you can play. The
+  pitch deck is updated with camera and drums slides.
+
+- 2026-10-25 01:30: Brand and flow revamp. Neon lime on paper and ink,
+  one vivid colour per instrument, Nupuram ExtraBold wordmark (OFL), new
+  rattle icon, favicon, app icons and share image, and a light/dark
+  switch (light by default). Home is a playable orchestra of phones
+  around a conductor with live screen previews and a camera section.
+  Pick a piece is a music shelf with animated covers and 12 second
+  previews. The conductor room has a live seating chart; players get an
+  instrument straight away with swap chips and a tap warm-up. Results
+  show a grade, timing breakdown and a shareable result card. Pieces now
+  end on their own when the music runs out. Camera conducting on the
+  live stage drives tempo, dynamics, section cues and the cut-off.
+  Keyboard play (space, F, J, D, K) on laptops; share and copy for the
+  join link. The play screen pulses on every beat with glowing note
+  gems, hit bursts and a rest countdown.
+
+- 2026-10-24 23:55: Spotify play-along flow. Playlists open into their
+  songs, a pasted song or playlist link opens too, and picking a song
+  leads to a tap-the-beat setup (meter 3 or 4, optional key). "Open the
+  room" sends a play-along score titled with the song. On start the
+  conductor laptop plays the song so a song beat lands on the room's
+  beat 0, then seeks once if it is more than 40 ms off; it pauses on
+  stop. Pure sync maths in `web/src/lib/spotify/sync.ts` with tests.
 - Docs: launch README, hackathon docs (`RULES.md`, `AGENTS.md`,
   `AI_USAGE.md`, `CHANGELOG.md`, `SUBMISSION.md`) and a PR template.
 

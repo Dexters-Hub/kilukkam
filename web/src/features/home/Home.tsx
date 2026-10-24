@@ -1,16 +1,20 @@
 import { CODE_LEN, PIECES, type InstrumentId } from '@kilukkam/shared';
 import { useGSAP } from '@gsap/react';
-import { useRef, useState } from 'react';
-import { marquee, revealOnScroll, swapText } from '../../lib/anim.js';
+import { useRef, useState, type CSSProperties } from 'react';
+import { heroIntro, marquee, revealOnScroll, swapText } from '../../lib/anim.js';
 import { COMPOSERS } from '../../data/composers.js';
+import { INSTRUMENTS } from '../../lib/music.js';
 import { isCompleteCode, normalizeCode } from '../../lib/store.js';
 import type { IconName } from '../../ui/icons.js';
 import { actions } from '../../app/controller.js';
 import { useStore } from '../../app/useStore.js';
 import { Avatar } from '../../components/Avatar.js';
 import { Button } from '../../components/Button.js';
+import { Footer } from '../../components/Footer.js';
+import { ThemeToggle } from '../../components/ThemeToggle.js';
 import { Icon } from '../../components/Icon.js';
 import { Notice, Screen, Wordmark } from '../../components/Screen.js';
+import { CameraPreview, StepPreviews } from './Previews.js';
 import { INSTRUMENT_ORDER, TryPad } from './TryPad.js';
 import s from './Home.module.css';
 
@@ -18,12 +22,12 @@ import s from './Home.module.css';
 // game-PIN box to jump into a room. Words are kept to a minimum.
 
 const TRY_PIECE_ID = 'ode-to-joy';
-const ARTICLE: Record<InstrumentId, string> = { violin: 'a violin', flute: 'a flute', piano: 'a piano', cello: 'a cello' };
+const ARTICLE: Record<InstrumentId, string> = { violin: 'a violin', flute: 'a flute', piano: 'a piano', cello: 'a cello', drums: 'a drum', guitar: 'a guitar' };
 
-const STRIP: readonly { icon: IconName; label: string }[] = [
-  { icon: 'magic-wand', label: 'One conducts' },
-  { icon: 'qr-code', label: 'Everyone joins' },
-  { icon: 'hand-tap', label: 'The room plays' },
+
+const SOURCES: readonly { icon: IconName; label: string; text: string }[] = [
+  { icon: 'headphones', label: 'Spotify play-along', text: 'Play any track from your playlists; the room keeps the beat and the harmony.' },
+  { icon: 'music-notes', label: 'Classics and originals', text: 'Canon in D, Ode to Joy, and game-style originals like Boss Rush.' },
 ];
 
 /** Kahoot-style game PIN right on the landing page. */
@@ -71,7 +75,10 @@ export function Home() {
 
   useGSAP(() => {
     const stop = legends.current ? marquee(legends.current) : () => {};
-    if (root.current) revealOnScroll(root.current.querySelectorAll('[data-reveal]'));
+    if (root.current) {
+      heroIntro(root.current);
+      revealOnScroll(root.current.querySelectorAll('[data-reveal]'));
+    }
     return stop;
   }, []);
 
@@ -85,40 +92,91 @@ export function Home() {
       <div ref={root} className={s.flow}>
         <header className={s.top}>
           <Wordmark />
-          <Button variant="pill" onClick={actions.goCreate}>
-            <Icon name="magic-wand" size={18} />
-            Conduct
-          </Button>
+          <span className={s.topRight}>
+            <Button variant="pill" onClick={actions.goCreate}>
+              <Icon name="magic-wand" size={18} />
+              Conduct
+            </Button>
+            <ThemeToggle />
+          </span>
         </header>
         <div className={s.notice}>
           <Notice text={notice} />
         </div>
-        <h1 className={s.heroTitle}>
-          Your phone is{' '}
-          <span ref={word} className={s.heroWord}>
-            {ARTICLE[INSTRUMENT_ORDER[0] ?? 'violin']}
-          </span>
-          .
-        </h1>
-        <TryPad piece={piece} instrument={instrument} onInstrument={pick} />
-        <PinBox onCode={(code) => actions.goJoin(code)} />
-        <p className={s.alt}>
-          No code yet?{' '}
-          <Button variant="link" onClick={actions.goCreate}>
-            Start a room as the conductor
-            <Icon name="caret-right" size={14} />
-          </Button>
-        </p>
-        <ol className={s.strip} aria-label="How it plays" data-reveal>
-          {STRIP.map((step) => (
-            <li key={step.label}>
-              <span className={s.stripIcon}>
-                <Icon name={step.icon} size={30} />
+        <div className={s.hero}>
+          <div className={s.heroCopy}>
+            <h1 className={s.heroTitle}>
+              <span className={s.words}>
+                <span data-intro="word">Your</span> <span data-intro="word">phone</span> <span data-intro="word">is</span>
+              </span>{' '}
+              <span data-intro="word" className={s.markerWrap}>
+                <span ref={word} data-intro="marker" className={s.heroWord} style={{ '--tint': INSTRUMENTS[instrument].color } as CSSProperties}>
+                  {ARTICLE[INSTRUMENT_ORDER[0] ?? 'violin']}
+                </span>
+                .
               </span>
-              {step.label}
-            </li>
-          ))}
-        </ol>
+            </h1>
+            <p className={s.lead} data-intro="rise">
+              A room full of phones becomes an orchestra. One conductor, one code, and every tap plays the next note, together.
+            </p>
+            <div data-intro="rise">
+              <PinBox onCode={(code) => actions.goJoin(code)} />
+            </div>
+            <div className={s.or} data-intro="rise" aria-hidden="true">
+              <span>or</span>
+            </div>
+            <button type="button" className={s.host} data-intro="rise" onClick={actions.goCreate}>
+              <span className={s.hostIcon}>
+                <Icon name="magic-wand" size={22} />
+              </span>
+              <span className={s.hostText}>
+                <strong>Host a room</strong>
+                <span>Be the conductor: pick the music, get a code, the room joins in.</span>
+              </span>
+              <span className={s.hostGo} aria-hidden="true">
+                <Icon name="arrow-right" size={20} />
+              </span>
+            </button>
+          </div>
+          <div data-intro="stage">
+            <TryPad piece={piece} instrument={instrument} onInstrument={pick} />
+          </div>
+        </div>
+        <section className={s.section} aria-labelledby="how" data-reveal>
+          <h2 id="how" className={s.sectionTitle}>
+            How it plays
+          </h2>
+          <StepPreviews />
+        </section>
+        <section className={s.section} aria-labelledby="camera" data-reveal>
+          <h2 id="camera" className={s.sectionTitle}>
+            Conduct with your hands
+          </h2>
+          <p className={s.sectionLead}>The laptop camera reads your baton hand. Beat time and the whole room follows you. Video never leaves the laptop.</p>
+          <CameraPreview />
+          <a className={s.cameraLink} href="/camera.html">
+            Try the camera conductor
+            <Icon name="arrow-right" size={18} />
+          </a>
+        </section>
+        <section className={s.section} aria-labelledby="songs" data-reveal>
+          <h2 id="songs" className={s.sectionTitle}>
+            Bring any song
+          </h2>
+          <ul className={s.steps}>
+            {SOURCES.map((src) => (
+              <li key={src.label}>
+                <span className={s.stepIcon}>
+                  <Icon name={src.icon} size={26} />
+                </span>
+                <span>
+                  <strong>{src.label}</strong>
+                  <span className={s.stepText}>{src.text}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
         <section className={s.legend} aria-label="Composer avatars" data-reveal>
           <h2 className={s.sectionTitle}>Play as a legend</h2>
           <div className={s.legendWindow} aria-hidden="true">
@@ -132,10 +190,11 @@ export function Home() {
             </div>
           </div>
         </section>
-        <p className={s.foot}>
+        <p className={s.tip}>
           <Icon name="speaker-high" size={18} />
           Volume up, ringer on.
         </p>
+        <Footer />
       </div>
     </Screen>
   );

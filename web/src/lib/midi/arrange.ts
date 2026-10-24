@@ -131,6 +131,10 @@ export const INSTRUMENT_RANGE: Record<InstrumentId, Range> = {
   cello: bankRange('cello'),
   flute: bankRange('flute'),
   piano: bankRange('piano'),
+  // The General MIDI drum keys the kit answers to (see audio.ts)
+  drums: { low: 35, high: 57 },
+  // Standard tuning, low E to the 20th fret of the top string
+  guitar: { low: 40, high: 84 },
 };
 
 function bankRange(instrument: InstrumentId): Range {
@@ -138,14 +142,15 @@ function bankRange(instrument: InstrumentId): Range {
   return { low: Math.min(...notes), high: Math.max(...notes) };
 }
 
-const LABEL: Record<InstrumentId, string> = { violin: 'Violin', cello: 'Cello', flute: 'Flute', piano: 'Piano' };
+const LABEL: Record<InstrumentId, string> = { violin: 'Violin', cello: 'Cello', flute: 'Flute', piano: 'Piano', drums: 'Drums', guitar: 'Guitar' };
 
 /** How natural each instrument is for each role (lower is better) */
 const ROLE_COST: Record<Role, Record<InstrumentId, number>> = {
-  melody: { flute: 0, violin: 0.3, piano: 1, cello: 3 },
-  harmony: { violin: 0, piano: 0.4, flute: 0.8, cello: 1.5 },
-  bass: { cello: 0, piano: 1.5, violin: 6, flute: 6 },
-  rhythm: { piano: 0, violin: 1.2, cello: 1.5, flute: 2 },
+  // Drums never carry a pitched part: a MIDI file's drum channel is not arranged yet.
+  melody: { flute: 0, violin: 0.3, piano: 1, cello: 3, drums: 99, guitar: 0.8 },
+  harmony: { violin: 0, piano: 0.4, flute: 0.8, cello: 1.5, drums: 99, guitar: 0.2 },
+  bass: { cello: 0, piano: 1.5, violin: 6, flute: 6, drums: 99, guitar: 2 },
+  rhythm: { piano: 0, violin: 1.2, cello: 1.5, flute: 2, drums: 99, guitar: 0.1 },
 };
 
 /** Section sizes: the tune needs the biggest crowd */

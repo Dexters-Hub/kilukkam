@@ -30,7 +30,7 @@ import { bars, follow, nameOf, toneAbove, type Chord } from './notation.js';
  *           chords up and down: root, 3rd, 5th, 8ve, 10th, 8ve, 5th, 3rd
  *   Cello   (triangle on chip) the bass: root, octave, fifth, octave in the
  *           A sections; a gallop (root, root, fifth, octave) in B and Bonus
- *   Drums   pixelPlainsDrums below, for the noise channel once it exists
+ *   Drums   pixelPlainsDrums below, on the drum kit
  *
  * Harmony plan (one chord per bar; "F G" splits the bar):
  *   Intro  | C  | Am | F   | G   |
@@ -180,11 +180,7 @@ const HALF_TIME = 'C2:1 F#2:1 D2:1 F#2:1';
 const HATS = 'F#2:1 F#2:1 F#2:1 F#2:1';
 const eight = `${Array.from({ length: 7 }, () => GROOVE).join(' | ')} | ${FILL}`;
 
-/**
- * The drum part, as long as every other part. Not a track yet: a score may
- * only use the four orchestral instruments until InstrumentId gains the chip
- * voices (see INTEGRATION.md), then it joins as a fifth track.
- */
+/** The drum part, as long as every other part, played on the drum kit as the fifth instrument. */
 export const pixelPlainsDrums: readonly ScoreEvent[] = [
   ...bars(`${HATS} | ${HATS} | ${GROOVE} | ${FILL}`, 90),
   ...bars([eight, eight, eight, eight].join(' | '), 96),
@@ -200,9 +196,10 @@ export const pixelPlains: Score = {
   bpm: 126,
   beatsPerBar: 4,
   tracks: [
-    { id: 'flute', name: 'Flute', instrument: 'flute', maxPlayers: 25, events: FLUTE },
-    { id: 'violin', name: 'Violin', instrument: 'violin', maxPlayers: 25, events: VIOLIN },
-    { id: 'piano', name: 'Piano', instrument: 'piano', maxPlayers: 25, events: PIANO },
-    { id: 'cello', name: 'Cello', instrument: 'cello', maxPlayers: 25, events: CELLO },
+    { id: 'flute', name: 'Flute', instrument: 'flute', maxPlayers: 20, events: FLUTE },
+    { id: 'violin', name: 'Violin', instrument: 'violin', maxPlayers: 20, events: VIOLIN },
+    { id: 'piano', name: 'Piano', instrument: 'piano', maxPlayers: 20, events: PIANO },
+    { id: 'cello', name: 'Cello', instrument: 'cello', maxPlayers: 20, events: CELLO },
+    { id: 'drums', name: 'Drums', instrument: 'drums', maxPlayers: 20, events: [...pixelPlainsDrums] },
   ],
 };

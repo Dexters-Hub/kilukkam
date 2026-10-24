@@ -1,8 +1,6 @@
 <div align="center">
 
-<!-- HERO BANNER: drop the final banner at docs/screenshots/hero.png and uncomment:
-<img src="docs/screenshots/hero.png" alt="Kilukkam: a room full of phones playing Canon in D together" width="820">
--->
+<img src="docs/screenshots/hero.png" alt="Kilukkam: a conductor laptop showing the room code and seating chart, and phones playing their parts" width="100%">
 
 # Kilukkam · കിലുക്കം
 
@@ -10,68 +8,85 @@
 one conductor, one entry code, and every tap plays the next note of
 any song, together.**
 
-One person conducts. Everyone else joins with a 4-letter code and gets
-an instrument. Every tap plays the next note of your part: a
-hundred-device handbell choir playing Pachelbel in your living room.
+[![React 19](https://img.shields.io/badge/React-19-0a0a0a?style=for-the-badge&logo=react&logoColor=61DAFB)](web/package.json)
+[![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-0a0a0a?style=for-the-badge&logo=typescript&logoColor=3178C6)](tsconfig.base.json)
+[![Vite 8](https://img.shields.io/badge/Vite-8-0a0a0a?style=for-the-badge&logo=vite&logoColor=B6F400)](web/package.json)
+[![Tests](https://img.shields.io/badge/tests-547%20passing-B6F400?style=for-the-badge&logo=vitest&logoColor=0a0a0a)](#testing)
+<br>
+[![WebAudio](https://img.shields.io/badge/WebAudio-real%20instruments-0a0a0a?style=for-the-badge&logo=audiomack&logoColor=B6F400)](web/src/lib/audio.ts)
+[![MediaPipe](https://img.shields.io/badge/MediaPipe-camera%20conductor-0a0a0a?style=for-the-badge&logo=google&logoColor=B6F400)](web/src/lib/camera)
+[![Spotify](https://img.shields.io/badge/Spotify-play%20along-0a0a0a?style=for-the-badge&logo=spotify&logoColor=1ED760)](web/src/lib/spotify)
+[![License: MIT](https://img.shields.io/badge/license-MIT-0a0a0a?style=for-the-badge)](#license)
 
-[![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat&logo=typescript&logoColor=white)](tsconfig.base.json)
-[![Vite](https://img.shields.io/badge/Vite-7-646CFF?style=flat&logo=vite&logoColor=white)](web/package.json)
-[![Tests](https://img.shields.io/badge/tests-141%20passing-2EA44F?style=flat&logo=vitest&logoColor=white)](#testing)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat)](#license)
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-ff69b4?style=flat)](#contributing)
+**[How it plays](#how-it-plays) · [Features](#feature-tour) · [Screenshots](#screenshots) · [Quick start](#quick-start) · [Architecture](#architecture) · [Credits](#credits)**
 
-[Features](#feature-tour) · [Quick start](#quick-start) · [Architecture](#architecture) · [Contributing](#contributing) · [Credits](#credits)
+Built for **DevDay Exchange Kochi**, track 4: *Make room for play*.
 
 </div>
 
 ---
 
-## How it works
+## How it plays
 
 ```
-Conductor                          Players
-─────────                          ───────
-1. Pick a piece        ──code──▶   2. Type code, name, avatar
-3. Watch the lobby fill            4. Claim an instrument (or "Surprise me")
-5. Tap "Start the piece"           6. One giant button: tap = next note
-                                   7. Your phone *is* your instrument
+Conductor (laptop)                       Players (phones)
+──────────────────                       ────────────────
+1. Pick the music: a piece, an     ─┐
+   original, or any Spotify song    │
+2. Open the room: a 4-letter code  ─┼──▶ 3. Type or scan the code, pick a
+   and a QR on a lime card          │       composer avatar
+                                    │    4. Get an instrument straight away
+5. Watch the seats fill, then start ─┘       (swap if you like), warm up
+6. Conduct: by hand on the camera,       7. Play: notes fall in two lanes,
+   or with the live controls                tap the left or right side on
+                                            the beat, chase the combo
+8. The piece ends itself: Well played    9. Your grade, timing breakdown
+   and an encore button                     and a result card to share
 ```
 
-There are no skill checks and no timing lanes. The room's humans are
-the timing. When the ensemble taps in roughly the same place, it
-sounds like music. When it doesn't, it sounds like a party. Both are
-correct.
+Every phone plays its own part out loud, so the music comes from where
+people sit. Timing is judged against one shared beat (Perfect within
+50 ms), and the conductor can lead the room by hand in front of the
+laptop camera.
 
 ## Feature tour
 
 | | Feature | What it does |
 |---|---|---|
-| 🔔 | **Tap-to-play handbell model** | Each phone holds one part of the score. A tap advances that player's cursor by one note, so timing is entirely human and network latency barely matters. |
-| 📡 | **Live sync via `ensemble_pulse`** | The server aggregates taps into a ~4 Hz per-instrument pulse broadcast to everyone, so 100 phones see the room breathe without a 100x fan-out per tap. Raw `note_echo` goes to the conductor only. |
-| 🎛️ | **Conductor console** | Pick the piece, watch the lobby fill, start, stop and encore. Shape the performance live with dynamics (pp to ff) and mute or unmute whole sections. Late joiners receive the current dynamics and mutes in their snapshot. |
-| 📷 | **QR join** | The lobby shows the 4-letter code plus a QR code of the LAN join link (a dependency-free encoder in `web/src/qr.ts`). Point a camera, tap, play. |
-| 🎙️ | **Recording and share** | The conductor's device keeps a take of the room's real performance from every note echo, renders it to audio and hands it off through the share sheet. |
-| 🎼 | **Custom-piece import (MIDI)** | Bring your own score: the conductor uploads a piece, the server validates it (up to 8 instruments, 2000 notes each) and broadcasts `piece_changed` to the room. |
-| 🎩 | **Composer avatars** | Players pick Bach, Vivaldi, Mozart, Beethoven, Clara Schumann, A.R. Rahman and friends, rendered as portrait discs. |
-| 📱 | **Phones first** | 64px+ tap targets, safe areas, haptics, GSAP motion that honours `prefers-reduced-motion`, zero install. |
+| 🎻 | **Real instruments** | Violin, cello, flute and piano are real recordings (VSCO 2 CE, CC0), with articulations; drums are a synthesised kit and the guitar a modelled plucked string for fingerstyle. Each phone plays its own part. |
+| 🙌 | **Two hands** | Notes come down a left or right lane: thumbs on a phone, F and J on a laptop. Wrong side breaks the combo. Grades spring up with particles; streaks cheer. |
+| 🪄 | **Camera conductor** | MediaPipe hand tracking, on the device. Hit the numbered targets of a 2/4, 3/4 or 4/4 pattern as their rings close, with levels; point into a labelled third to cue Violins, Flutes or Cellos; the left hand shapes dynamics; a fist cuts off. |
+| 🎧 | **Any song (Spotify)** | Search a song or open a playlist, tap along to find its beat, and the room plays drums, claps, bass, a pad and fingerstyle guitar in time with the real recording on the conductor laptop, with a now-playing card that shows it is on the beat. |
+| 💿 | **Music shelf** | Animated covers drawn from each piece's instruments, with 12 second previews. Classics and game-style originals (Boss Rush, Pixel Plains, Hallowed Depths). |
+| 🪑 | **Seating chart** | The conductor watches avatars take their seats section by section, drags anyone to another instrument, shares the invite link or QR. |
+| 🏆 | **Results** | A grade, accuracy, best combo and a timing breakdown per player, the room's total notes, and a result card to share. |
+| 📡 | **Built for a full room** | Up to 100 phones, NTP-style clock sync, aggregated `ensemble_pulse` broadcasts, rate limiting and validated messages. |
+| 🌓 | **Light and dark** | Light by default, dark on a switch; keyboard play, reduced motion and phone-first layouts throughout. |
 
 ### Pieces
 
 | Piece | Instruments | Feel |
 |---|---|---|
-| Canon in D, Pachelbel | Violin I, II, III (true canon stagger) + Cello | The demo piece. 24 bars, about 80s |
-| Ode to Joy, Beethoven | Flute + Violin + Piano + Cello | Beginner friendly, all quarter notes |
+| Canon in D, Pachelbel | Violin I, II, III (true canon stagger) + Cello | Warm and flowing, the classic |
+| Ode to Joy, Beethoven | Flute, Violin, Piano, Cello, Guitar | A first run, all quarter notes |
+| Romance (Spanish Romance), Anonymous | Guitar (the melody), Violin, Cello | Tender fingerstyle, 3/4 |
+| Greensleeves, Traditional | Flute, Guitar, Cello, Piano | Old English folk, 3/4 |
+| In the Hall of the Mountain King, Grieg | Violin, Cello, Guitar, Piano, Drums | Sneaky, then wild |
+| Für Elise, Beethoven | Piano, Guitar, Cello, Flute | Delicate classic |
+| Hallowed Depths, Kilukkam Originals | Flute, Violin, Piano, Cello | Calm, cave echoes |
+| Boss Rush, Kilukkam Originals | Violin, Flute, Piano, Cello, Drums | Fast and fierce, 150 bpm |
+| Pixel Plains, Kilukkam Originals | Flute, Violin, Piano, Cello, Drums | Bouncy 8-bit overworld |
+| Any song on Spotify | Drums, Claps, Bass, Pad, Guitar | Plays along with the real recording |
 
 ## Screenshots
 
-> **Pending:** real captures land in `docs/screenshots/`. The paths below
-> are placeholders and will render once the images are committed.
+| Home | Pick the music | The room |
+|---|---|---|
+| <img src="docs/screenshots/home.png" alt="Home: a playable product shot of the laptop and phones" width="320"> | <img src="docs/screenshots/music.png" alt="The music shelf with animated covers" width="320"> | <img src="docs/screenshots/room.png" alt="The conductor room: lime room code, QR and seating chart" width="320"> |
 
-<!--
-| Home | Lobby with QR | Play | Conductor stage |
+| Conducting the room | Camera conductor | Your instrument | Two hands |
 |---|---|---|---|
-| <img src="docs/screenshots/home.png" width="200"> | <img src="docs/screenshots/lobby.png" width="200"> | <img src="docs/screenshots/play.png" width="200"> | <img src="docs/screenshots/stage.png" width="200"> |
--->
+| <img src="docs/screenshots/stage.png" alt="The conductor stage with five live sections and the camera panel" width="240"> | <img src="docs/screenshots/camera.png" alt="Camera conducting: section zones, targets and a combo" width="240"> | <img src="docs/screenshots/phone-room.png" alt="A phone showing its assigned instrument and warm-up" width="140"> | <img src="docs/screenshots/phone-play.png" alt="Two-lane play with a Perfect hit" width="140"> |
 
 ## Quick start
 
@@ -162,10 +177,20 @@ House rules worth knowing up front (see [AGENTS.md](AGENTS.md)):
   Narasimhan, via [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:AR_Rahman_at_Premier_Futsal_Press_Meet_(cropped).jpg),
   licensed [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/),
   cropped and resized.
-- **Fonts:** Space Grotesk and Inter via Fontsource (SIL Open Font
-  License).
-- **Music:** Canon in D (Pachelbel) and Ode to Joy (Beethoven) are in
-  the public domain; arrangements are original to this repo.
+- **Instrument samples:** VSCO 2 Community Edition (CC0); see
+  [web/public/samples/CREDITS.md](web/public/samples/CREDITS.md).
+- **Hand tracking:** MediaPipe Tasks Vision (Apache 2.0), self-hosted.
+  Video never leaves the device, and the library's usage metrics are
+  blocked by the page's Content Security Policy.
+- **Fonts:** Inter via Fontsource; RIT Kutty (Rachana Institute of
+  Typography) for the Malayalam name; Anek Malayalam (EK Type) for other
+  Malayalam text. All under the SIL Open Font License; licence texts
+  are in [web/public/fonts](web/public/fonts).
+- **Music:** Canon in D (Pachelbel), Ode to Joy and Für Elise
+  (Beethoven), In the Hall of the Mountain King (Grieg), Romance
+  (anonymous) and Greensleeves (traditional) are in the public domain; arrangements are original to this repo, as are the
+  Kilukkam Originals. Spotify play-along streams the user's own Spotify
+  account; no recordings are bundled.
 - **AI assistance:** see [AI_USAGE.md](AI_USAGE.md).
 
 ## License

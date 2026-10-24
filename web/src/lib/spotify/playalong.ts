@@ -18,7 +18,7 @@ import { BANK_NOTES } from '../samples.js';
 // - Claps and shaker, always: a clap on each backbeat and a shaker pickup on
 //   the last off beat of the bar. Sparse on purpose: the easy part for
 //   anyone who just wants to join in.
-// - With a key, a bass and a pad on I V vi IV, one chord per bar (in minor
+// - With a key, a bass, a pad and a fingerstyle guitar on I V vi IV, one chord per bar (in minor
 //   the same scale degrees: i v VI iv). The bass plays the chord root in half
 //   notes. The pad holds one chord tone per bar, chosen as the tone nearest
 //   the previous one, so the line moves by small steps like a real inner
@@ -42,21 +42,25 @@ export interface PlayAlongInput {
   key?: Key | null;
 }
 
+/** Score id of every play-along, so the conductor can tell it from a library piece or a MIDI import */
+export const PLAYALONG_ID = 'play-along';
+
 export const PLAYALONG_LIMITS = { minBeatsPerBar: 2, maxBeatsPerBar: 7, minBars: 1, maxBars: 256 } as const;
 
 /** Lowest and highest recorded note of an instrument's main bank. */
 export const rangeOf = (instrument: InstrumentId): { low: number; high: number } => {
+  // The kit is synthesised: its range is the General MIDI drum keys it answers to.
+  if (instrument === 'drums') return { low: 35, high: 57 };
+  if (instrument === 'guitar') return { low: 40, high: 84 };
   const notes = BANK_NOTES[instrument];
   return { low: Math.min(...notes), high: Math.max(...notes) };
 };
 
-// Percussion stand-ins. InstrumentId has no drum or chip voices yet, so the
-// piano's lowest notes play kick, snare and hat (three clearly different
-// pitches), and the violin's short spiccato stroke plays the clap and the
-// shaker. When InstrumentId is widened, these parts move to the real voices
-// and only the constants below change.
-export const DRUM_VOICE = { instrument: 'piano', kick: 37, snare: 45, hat: 53 } as const satisfies { instrument: InstrumentId } & Record<'kick' | 'snare' | 'hat', number>;
-export const CLAP_VOICE = { instrument: 'violin', clap: 72, shaker: 79 } as const satisfies { instrument: InstrumentId } & Record<'clap' | 'shaker', number>;
+// Percussion on the drum kit (audio.ts synthesises it, keyed like General
+// MIDI drums): kick 36, snare 38 and closed hat 42 for the drummers, clap 39
+// and open hat 46 (the shaker pickup) for the claps part.
+export const DRUM_VOICE = { instrument: 'drums', kick: 36, snare: 38, hat: 42 } as const satisfies { instrument: InstrumentId } & Record<'kick' | 'snare' | 'hat', number>;
+export const CLAP_VOICE = { instrument: 'drums', clap: 39, shaker: 46 } as const satisfies { instrument: InstrumentId } & Record<'clap' | 'shaker', number>;
 
 const BASS_INSTRUMENT: InstrumentId = 'cello';
 const PAD_INSTRUMENT: InstrumentId = 'flute';
@@ -142,6 +146,23 @@ export const bassPart = (key: Key, beatsPerBar: number, bars: number): ScoreEven
   return events;
 };
 
+/**
+ * Fingerstyle guitar: each bar's chord as a rolling pattern, the thumb on
+ * the root and the fingers on the fifth and the tenth (root, 5th, 10th,
+ * 5th...). Eighth notes, or quarters above 140 bpm so every note stays a
+ * comfortable tap.
+ */
+export const guitarPart = (key: Key, beatsPerBar: number, bars: number, bpm: number): ScoreEvent[] => {
+  const step = bpm > 140 ? 1 : 0.5;
+  const events: ScoreEvent[] = [];
+  for (const [root, third, fifth] of chordsFor(key, bars)) {
+    const r = lowestAtOrAbove(root, 40);
+    const pattern = [r, lowestAtOrAbove(fifth, r + 1), lowestAtOrAbove(third, r + 12), lowestAtOrAbove(fifth, r + 1)];
+    for (let i = 0; i < beatsPerBar / step; i++) events.push(note(pattern[i % pattern.length] ?? r, step, i === 0 ? 96 : 76));
+  }
+  return events;
+};
+
 /** Every note of these pitch classes inside [low, high]. */
 const candidates = (pcs: readonly number[], low: number, high: number): number[] => {
   const out: number[] = [];
@@ -198,7 +219,7 @@ export const buildPlayAlong = (input: PlayAlongInput): Score => {
   const { bpm, beatsPerBar, bars } = input;
   const key = input.key ?? null;
   // Seats split evenly across the parts, so a full room always fits.
-  const seats = Math.floor(MAX_PLAYERS / (key ? 4 : 2));
+  const seats = Math.floor(MAX_PLAYERS / (key ? 5 : 2));
   const tracks: Track[] = [
     track('drums', 'Drums', DRUM_VOICE.instrument, seats, drumsPart(beatsPerBar, bars)),
     track('claps', 'Claps', CLAP_VOICE.instrument, seats, clapsPart(beatsPerBar, bars)),
@@ -207,7 +228,8 @@ export const buildPlayAlong = (input: PlayAlongInput): Score => {
     tracks.push(
       track('bass', 'Bass', BASS_INSTRUMENT, seats, bassPart(key, beatsPerBar, bars)),
       track('pad', 'Pad', PAD_INSTRUMENT, seats, padPart(key, beatsPerBar, bars)),
+      track('guitar', 'Guitar', 'guitar', seats, guitarPart(key, beatsPerBar, bars, bpm)),
     );
   }
-  return { id: 'play-along', title: 'Play along', composer: 'Kilukkam', bpm, beatsPerBar, tracks };
+  return { id: PLAYALONG_ID, title: 'Play along', composer: 'Kilukkam', bpm, beatsPerBar, tracks };
 };

@@ -246,6 +246,38 @@ const CELLO: ScoreEvent[] = [
   ...bars('E2:1 r:3', 120),
 ];
 
+
+// ---------- drums ----------
+// One line of hits on the kit (General MIDI keys): C2 kick, D2 snare, F#2
+// closed hat, A#2 open hat, C#3 crash, A2 and F2 toms. Eighths at most, so a
+// phone can keep up at 150 bpm.
+const ROCK = 'C2:0.5 F#2:0.5 D2:0.5 F#2:0.5 C2:0.5 C2:0.5 D2:0.5 F#2:0.5';
+const ROCK_OPEN = 'C2:0.5 A#2:0.5 D2:0.5 F#2:0.5 C2:0.5 C2:0.5 D2:0.5 A#2:0.5';
+const HALF = 'C2:1 F#2:1 D2:1.5 F#2:0.5';
+const FILL = 'D2:0.5 D2:0.5 A2:0.5 A2:0.5 F2:0.5 F2:0.5 C2:1';
+const CRASH = 'C#3:0.5 F#2:0.5 D2:0.5 F#2:0.5 C2:0.5 C2:0.5 D2:0.5 F#2:0.5';
+const SNARES = 'D2:0.5 D2:0.5 D2:0.5 D2:0.5 D2:0.5 D2:0.5 D2:0.5 D2:0.5';
+const times = (n: number, bar: string): string[] => Array.from({ length: n }, () => bar);
+const phrase = (bar: string): string => [...times(7, bar), FILL].join(' | ');
+
+const DRUMS: ScoreEvent[] = [
+  // Intro: the heartbeat with the cello, then hats creep in.
+  ...bars([...times(4, 'C2:1 r:1 C2:1 r:1'), ...times(3, 'C2:1 F#2:1 C2:1 F#2:1'), FILL].join(' | '), 92),
+  // A: the rock beat under the theme.
+  ...bars([CRASH, ...times(6, ROCK), FILL, CRASH, ...times(6, ROCK), FILL].join(' | '), 100),
+  // B: open hats lift the relative major.
+  ...bars([phrase(ROCK_OPEN), phrase(ROCK_OPEN)].join(' | '), 102),
+  // Phase 2: half time over the ground.
+  ...bars([phrase(HALF), phrase(HALF)].join(' | '), 96),
+  // Build: eighth-note snares, getting louder.
+  ...bars(times(4, SNARES).join(' | '), 100),
+  ...bars(times(4, SNARES).join(' | '), 116),
+  // A': full force, crash on every four.
+  ...bars([CRASH, ROCK, ROCK, ROCK, CRASH, ROCK, ROCK, FILL, CRASH, ROCK, ROCK, ROCK, CRASH, ROCK, ROCK, FILL].join(' | '), 112),
+  // Outro: the beat, the tresillo hits, one last crash.
+  ...bars([ROCK, ROCK, ROCK, FILL, 'C2:1.5 C2:1.5 D2:1', 'C2:1.5 C2:1.5 D2:1', 'C#3:1 r:3', 'r:4'].join(' | '), 118),
+];
+
 export const bossRush: Score = {
   id: 'boss-rush',
   title: 'Boss Rush',
@@ -253,9 +285,10 @@ export const bossRush: Score = {
   bpm: 150,
   beatsPerBar: 4,
   tracks: [
-    { id: 'violin', name: 'Violin', instrument: 'violin', maxPlayers: 25, events: VIOLIN },
-    { id: 'flute', name: 'Flute', instrument: 'flute', maxPlayers: 25, events: FLUTE },
-    { id: 'piano', name: 'Piano', instrument: 'piano', maxPlayers: 25, events: PIANO },
-    { id: 'cello', name: 'Cello', instrument: 'cello', maxPlayers: 25, events: CELLO },
+    { id: 'violin', name: 'Violin', instrument: 'violin', maxPlayers: 20, events: VIOLIN },
+    { id: 'flute', name: 'Flute', instrument: 'flute', maxPlayers: 20, events: FLUTE },
+    { id: 'piano', name: 'Piano', instrument: 'piano', maxPlayers: 20, events: PIANO },
+    { id: 'cello', name: 'Cello', instrument: 'cello', maxPlayers: 20, events: CELLO },
+    { id: 'drums', name: 'Drums', instrument: 'drums', maxPlayers: 20, events: DRUMS },
   ],
 };

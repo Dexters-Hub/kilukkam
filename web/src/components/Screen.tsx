@@ -3,6 +3,7 @@ import { useRef, type ReactNode } from 'react';
 import { enterScreen } from '../lib/anim.js';
 import { cx, IconButton } from './Button.js';
 import { Icon } from './Icon.js';
+import { ThemeToggle } from './ThemeToggle.js';
 import s from './Screen.module.css';
 
 /** A screen column. It slides in through lib/anim once, on mount. */
@@ -41,7 +42,10 @@ export function TopBar({ onBack, right }: { onBack?: () => void; right?: ReactNo
       ) : (
         <Wordmark />
       )}
-      {right}
+      <span className={s.right}>
+        {right}
+        <ThemeToggle />
+      </span>
     </header>
   );
 }

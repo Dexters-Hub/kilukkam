@@ -19,6 +19,9 @@ export const BANK_NOTES: Record<BankId, readonly number[]> = {
   flute: [60, 64, 69, 72, 76, 81, 84],
   'flute-short': [60, 64, 69, 72, 76, 81, 84],
   piano: [37, 41, 45, 49, 53, 57, 61, 65, 69, 73, 77, 81, 85],
+  // Drums and guitar are synthesised (see audio.ts): no recordings to fetch.
+  drums: [],
+  guitar: [],
 };
 
 /** Every bank an instrument can draw on, main (sustained) first. */
@@ -27,6 +30,8 @@ export const BANKS_FOR: Record<InstrumentId, readonly BankId[]> = {
   cello: ['cello', 'cello-short'],
   flute: ['flute', 'flute-short'],
   piano: ['piano'],
+  drums: [],
+  guitar: [],
 };
 
 /** Notes written shorter than this (seconds) get a short stroke when one is recorded */
@@ -55,6 +60,8 @@ export const TONE: Record<InstrumentId, Tone> = {
   flute: { pan: -0.15, low: { freq: 320, gain: -4 }, high: { freq: 2600, gain: 1.5 } },
   piano: { pan: 0.2, low: { freq: 120, gain: 1 }, high: { freq: 4000, gain: 0.5 } },
   cello: { pan: 0.45, low: { freq: 140, gain: 3 }, high: { freq: 3000, gain: -3 } },
+  drums: { pan: 0, low: { freq: 100, gain: 2 }, high: { freq: 6000, gain: 1 } },
+  guitar: { pan: -0.25, low: { freq: 120, gain: 2 }, high: { freq: 3500, gain: -1 } },
 };
 
 export interface SampleShape {
@@ -73,7 +80,12 @@ export const SHAPES: Record<InstrumentId, SampleShape> = {
   cello: { attack: 0.025, release: 0.5, loops: true, level: 1.1 },
   flute: { attack: 0.02, release: 0.25, loops: true, level: 0.95 },
   piano: { attack: 0.002, release: 0.45, loops: false, level: 1.05 },
+  drums: { attack: 0.001, release: 0.05, loops: false, level: 1.1 },
+  guitar: { attack: 0.001, release: 0.25, loops: false, level: 1.1 },
 };
+
+/** Instruments played by a synthesised voice, with no recordings behind them */
+export const SYNTHESISED: ReadonlySet<InstrumentId> = new Set(['drums', 'guitar']);
 
 /** Short strokes ring off fast and never loop. */
 export const shapeFor = (bank: BankId, instrument: InstrumentId): SampleShape =>

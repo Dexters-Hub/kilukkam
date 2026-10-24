@@ -245,12 +245,29 @@ export type ConnectResult = { ok: true; player: ConductorPlayer } | { ok: false;
 
 const CONNECT_MESSAGES: Record<ConnectIssue, string> = {
   not_signed_in: 'Sign in to Spotify first.',
-  no_drm: 'This browser cannot play protected audio. Use desktop Chrome, Edge or Firefox.',
+  no_drm: 'This browser cannot play Spotify (it has no Widevine DRM). Open Kilukkam in your everyday Chrome, Edge, Firefox or Safari, not an automated or embedded browser.',
   sdk_unavailable: 'Could not load the Spotify player. Check the connection.',
-  init_failed: 'The Spotify player could not start in this browser.',
+  init_failed: 'The Spotify player could not start in this browser. Try your everyday Chrome or Edge, with Premium.',
   auth_failed: 'Spotify sign-in has expired. Sign in again.',
   premium_required: 'Spotify playback in the browser needs a Premium account.',
   transfer_failed: 'Could not move Spotify playback to this laptop.',
+};
+
+/**
+ * Spotify streams through Widevine. Having the DRM API is not enough (every
+ * Chromium has it, including automated ones without the Widevine module), so
+ * ask for the key system itself with an audio config Spotify uses.
+ */
+export const hasWidevine = async (eme: Pick<Navigator, 'requestMediaKeySystemAccess'> | undefined = navigator): Promise<boolean> => {
+  if (!eme || typeof eme.requestMediaKeySystemAccess !== 'function') return false;
+  try {
+    await eme.requestMediaKeySystemAccess('com.widevine.alpha', [
+      { initDataTypes: ['cenc'], audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"', robustness: 'SW_SECURE_CRYPTO' }] },
+    ]);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 const failed = (issue: ConnectIssue): ConnectResult => ({ ok: false, issue, message: CONNECT_MESSAGES[issue] });
@@ -268,7 +285,7 @@ export const connectPlayer = async (opts: ConnectOptions = {}): Promise<ConnectR
   const api = opts.api ?? spotifyApi();
   const timeoutMs = opts.timeoutMs ?? 15_000;
   if (!auth.isLoggedIn()) return failed('not_signed_in');
-  if (typeof navigator.requestMediaKeySystemAccess !== 'function') return failed('no_drm');
+  if (!(await hasWidevine())) return failed('no_drm');
 
   let ns: SdkNamespace;
   try {

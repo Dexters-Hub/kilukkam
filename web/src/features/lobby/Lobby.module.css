@@ -63,7 +63,7 @@
 }
 .switchOn .knob { background: var(--accent); }
 .switchOn .knob::after { transform: translateX(20px); }
-.switchOn > span:first-child { color: var(--accent); }
+.switchOn > span:first-child { color: var(--accent-text); }
 
 /* ---------- player instrument cards ---------- */
 
@@ -82,3 +82,61 @@
 }
 .sub { color: var(--muted); }
 .avatars { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* ---------- conductor room: code and piece on the left, the room filling up on the right ---------- */
+.desk { display: flex; flex-direction: column; gap: 16px; }
+.left, .right { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+@media (min-width: 1000px) {
+  .screen:has(.desk) { max-width: 1180px; }
+  .desk { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); align-items: start; gap: 24px; }
+  .left { position: sticky; top: 84px; }
+}
+.pieces { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.pieceChip {
+  display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 6px; text-align: left;
+  border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); transition: box-shadow .2s;
+}
+.pieceChip.on { box-shadow: var(--shadow-lift), 0 0 0 2px var(--accent); }
+.pieceChip strong { font-size: .9rem; letter-spacing: -.01em; }
+.thumb { position: relative; flex: none; width: 44px; height: 44px; border-radius: 12px; overflow: hidden; }
+.chartHead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.chartTitle { margin: 0; font-size: 1.5rem; }
+.rosters { display: grid; gap: 10px; }
+@media (min-width: 1000px) { .rosters { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
+
+/* ---------- player room ---------- */
+.you {
+  --tint: var(--accent);
+  position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 4px; padding: 22px;
+  border-radius: 28px; color: #fff; min-height: 180px; justify-content: flex-end;
+  background: radial-gradient(120% 100% at 15% 0%, color-mix(in srgb, var(--tint) 55%, #fff), var(--tint) 55%, color-mix(in srgb, var(--tint) 70%, #000));
+  box-shadow: 0 30px 50px -30px var(--tint);
+}
+.youKicker { font-size: .75rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+.youName { font: 900 clamp(2.6rem, 13vw, 3.6rem)/1 var(--font-display); letter-spacing: -.05em; }
+.youSub { font-size: .92rem; opacity: .9; }
+.youIcon { position: absolute; right: -14px; top: -6px; opacity: .22; transform: rotate(-12deg); }
+.swap { display: flex; flex-wrap: wrap; gap: 8px; }
+.swapChip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 999px;
+  background: var(--surface); box-shadow: var(--shadow); font-weight: 650;
+}
+.swapChip > span:first-child { color: var(--tint); }
+.swapChip:disabled { opacity: .45; }
+.strip { display: flex; align-items: center; gap: 10px; }
+.faces { display: flex; }
+.faces > * + * { margin-left: -8px; }
+.warm {
+  display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px; text-align: left;
+  border-radius: 22px; background: var(--surface); box-shadow: var(--shadow); touch-action: none;
+}
+.pulse {
+  position: relative; flex: none; display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink); font-weight: 850; font-size: .8rem; letter-spacing: .08em;
+}
+.pulse::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; border: 3px solid var(--accent); animation: ring var(--period, 600ms) ease-out infinite; }
+@keyframes ring { from { transform: scale(.85); opacity: 1; } to { transform: scale(1.35); opacity: 0; } }
+.warm:active .pulse { transform: scale(.94); }
+.ready .pulse::after { animation: none; opacity: 0; }
+.waiting { margin: 0; text-align: center; color: var(--muted); font-weight: 550; }
+@media (prefers-reduced-motion: reduce) { .pulse::after { animation-duration: calc(var(--period, 600ms) * 2); } }

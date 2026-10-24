@@ -16,8 +16,7 @@ import {
   redirectUriFor,
   sameSecret,
 } from '../src/lib/spotify/auth.js';
-import { BANK_NOTES } from '../src/lib/samples.js';
-import { buildPlayAlong, chordsFor, drumsPart, padPart, playAlongErrors, triad } from '../src/lib/spotify/playalong.js';
+import { buildPlayAlong, chordsFor, drumsPart, padPart, playAlongErrors, rangeOf, triad } from '../src/lib/spotify/playalong.js';
 import { type SdkPlayer, needsTapToStart, parsePlayerState, positionAt, wrapPlayer } from '../src/lib/spotify/player.js';
 
 const CLIENT_ID = '0123456789abcdef0123456789abcdef';
@@ -250,6 +249,18 @@ describe('Spotify API', () => {
     expect(await api.me()).toEqual({ id: 'u1', displayName: 'Maya', product: 'premium' });
     expect(fetch.mock.calls[0]?.[0]).toBe('https://api.spotify.com/v1/me');
     expect(auth(fetch.mock.calls[0])).toBe('Bearer SECRET_TOKEN');
+  });
+
+  it('searches songs with the words as a query parameter and drops bad entries', async () => {
+    const { api, fetch } = setup([json({ tracks: { items: [spotifyTrack(TRACK_ID), { id: 'nope' }], total: 1, next: null } })]);
+    const found = await api.searchTracks('  hollow knight/../me  ');
+    expect(found.map((t) => t.id)).toEqual([TRACK_ID]);
+    const url = new URL(String(fetch.mock.calls[0]?.[0]));
+    expect(url.pathname).toBe('/v1/search');
+    expect(url.searchParams.get('q')).toBe('hollow knight/../me');
+    expect(url.searchParams.get('type')).toBe('track');
+    await expect(api.searchTracks('   ')).rejects.toMatchObject({ kind: 'bad_input' });
+    await expect(api.searchTracks('x'.repeat(101))).rejects.toMatchObject({ kind: 'bad_input' });
   });
 
   it('lists playlists with either size field and validates paging', async () => {
@@ -519,10 +530,10 @@ describe('play-along score', () => {
 
   const inRange = (score: Score): void => {
     for (const t of score.tracks) {
-      const bank = BANK_NOTES[t.instrument];
+      const { low, high } = rangeOf(t.instrument);
       for (const n of notesOf(score, t.id)) {
-        expect(n.midi).toBeGreaterThanOrEqual(Math.min(...bank));
-        expect(n.midi).toBeLessThanOrEqual(Math.max(...bank));
+        expect(n.midi).toBeGreaterThanOrEqual(low);
+        expect(n.midi).toBeLessThanOrEqual(high);
       }
     }
   };
@@ -532,7 +543,7 @@ describe('play-along score', () => {
       it(`is valid in ${beatsPerBar}/4 with ${key ? `key ${key.tonic} ${key.mode}` : 'no key'}`, () => {
         const score = buildPlayAlong({ bpm: 123.4, beatsPerBar, bars: 9, key });
         expect(validateScore(score)).toEqual([]);
-        expect(score.tracks.map((t) => t.id)).toEqual(key ? ['drums', 'claps', 'bass', 'pad'] : ['drums', 'claps']);
+        expect(score.tracks.map((t) => t.id)).toEqual(key ? ['drums', 'claps', 'bass', 'pad', 'guitar'] : ['drums', 'claps']);
         // Monophonic parts, each exactly as long as the piece.
         for (const t of score.tracks) expect(totalBeats(t.events)).toBe(beatsPerBar * 9);
         expect(score.tracks.reduce((n, t) => n + t.maxPlayers, 0)).toBeLessThanOrEqual(100);
@@ -543,14 +554,14 @@ describe('play-along score', () => {
 
   it('writes kick on 1 and 3, snare on 2 and 4, hats on the off beats', () => {
     const bar = drumsPart(4, 1).map((e) => (e.kind === 'note' ? e.midi : 0));
-    expect(bar).toEqual([37, 53, 45, 53, 37, 53, 45, 53]);
+    expect(bar).toEqual([36, 42, 38, 42, 36, 42, 38, 42]);
     const waltz = drumsPart(3, 1).filter((_, i) => i % 2 === 0).map((e) => (e.kind === 'note' ? e.midi : 0));
-    expect(waltz).toEqual([37, 45, 45]);
+    expect(waltz).toEqual([36, 38, 38]);
   });
 
   it('claps on the backbeats with a shaker pickup', () => {
     const claps = buildPlayAlong({ bpm: 120, beatsPerBar: 4, bars: 1 }).tracks[1]?.events ?? [];
-    expect(claps.map((e) => (e.kind === 'note' ? `n${e.midi}:${e.beats}` : `r:${e.beats}`))).toEqual(['r:1', 'n72:0.5', 'r:1.5', 'n72:0.5', 'n79:0.5']);
+    expect(claps.map((e) => (e.kind === 'note' ? `n${e.midi}:${e.beats}` : `r:${e.beats}`))).toEqual(['r:1', 'n39:0.5', 'r:1.5', 'n39:0.5', 'n46:0.5']);
   });
 
   it('plays I V vi IV, with the bass on the roots', () => {
@@ -580,5 +591,16 @@ describe('play-along score', () => {
     expect(playAlongErrors({ bpm: 120, beatsPerBar: 4, bars: 8 })).toEqual([]);
     expect(playAlongErrors({ bpm: 0, beatsPerBar: 4.5, bars: 0, key: { tonic: 12, mode: 'major' } })).toHaveLength(4);
     expect(() => buildPlayAlong({ bpm: Number.NaN, beatsPerBar: 4, bars: 8 })).toThrow(RangeError);
+  });
+});
+
+describe('Widevine probe', () => {
+  it('needs the Widevine key system itself, not just the DRM API', async () => {
+    const { hasWidevine } = await import('../src/lib/spotify/player.js');
+    const ok = { requestMediaKeySystemAccess: async () => ({}) as MediaKeySystemAccess };
+    const refused = { requestMediaKeySystemAccess: async () => Promise.reject(new DOMException('no', 'NotSupportedError')) };
+    expect(await hasWidevine(ok)).toBe(true);
+    expect(await hasWidevine(refused)).toBe(false);
+    expect(await hasWidevine(undefined)).toBe(false);
   });
 });

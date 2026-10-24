@@ -1,0 +1,6 @@
+.toggle {
+  display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50%;
+  color: var(--text); background: var(--surface); box-shadow: var(--shadow);
+  transition: transform .15s var(--ease), background .2s;
+}
+.toggle:active { transform: scale(.92) rotate(-20deg); }

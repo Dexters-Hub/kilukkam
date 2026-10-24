@@ -1,0 +1,22 @@
+.panel { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; }
+.label { font-size: .78rem; font-weight: 650; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+
+.stage { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: var(--radius-sm); background: #0a0a0a; }
+.video, .overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Mirrored, so moving your right hand moves the picture's right side. */
+.video { object-fit: fill; transform: scaleX(-1); opacity: 0; transition: opacity .3s var(--ease); }
+.live .video { opacity: 1; }
+.idle {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  color: rgb(255 255 255 / .7); font-size: .9rem;
+  background: radial-gradient(70% 60% at 50% 45%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 70%);
+}
+.error { margin: 0; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--warn-bg); color: var(--warn); font-weight: 500; }
+
+.legend { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.legend li { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 10px; background: var(--sunk); font-size: .85rem; transition: background .2s, box-shadow .2s; }
+.legend b { font-weight: 700; }
+.legend span { color: var(--muted); }
+.legend .hit { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); box-shadow: 0 0 0 2px var(--accent); }
+.legend .hit span { color: var(--text); }

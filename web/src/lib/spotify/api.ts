@@ -301,6 +301,16 @@ export const createSpotifyApi = (deps: ApiDeps) => {
       return tracks;
     },
 
+    /** Songs matching what the conductor typed, best match first. The query is sent as a parameter, never spliced into the path. */
+    async searchTracks(query: string, limit = 10): Promise<SpotifyTrack[]> {
+      const q = query.trim();
+      if (q.length === 0 || q.length > 100 || !Number.isInteger(limit) || limit < 1 || limit > 10) throw fail('bad_input');
+      const json = await request('/search', { query: { q, type: 'track', limit: String(limit), market: 'from_token' } });
+      const page = parsePage(isRecord(json) ? json['tracks'] : null, 0, parseTrack);
+      if (!page) throw fail('bad_response');
+      return page.items;
+    },
+
     async track(trackId: string): Promise<SpotifyTrack> {
       const t = parseTrack(await request(`/tracks/${needId(trackId)}`, { query: { market: 'from_token' } }));
       if (!t) throw fail('bad_response');
@@ -347,3 +357,4 @@ export const me = (): Promise<SpotifyUser> => spotifyApi().me();
 export const myPlaylists = (limit?: number, offset?: number): Promise<Page<SpotifyPlaylist>> => spotifyApi().myPlaylists(limit, offset);
 export const playlistItems = (id: string): Promise<SpotifyTrack[]> => spotifyApi().playlistItems(id);
 export const track = (id: string): Promise<SpotifyTrack> => spotifyApi().track(id);
+export const searchTracks = (query: string): Promise<SpotifyTrack[]> => spotifyApi().searchTracks(query);

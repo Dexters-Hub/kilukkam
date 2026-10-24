@@ -1,0 +1,53 @@
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+@media (min-width: 760px) { .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.steps li { display: flex; flex-direction: column; gap: 4px; }
+.steps b { margin-top: 8px; font: 800 1.1rem/1.2 var(--font-display); letter-spacing: -.025em; }
+.steps li > span { color: var(--muted); font-size: .92rem; line-height: 1.4; }
+
+.frame {
+  position: relative; aspect-ratio: 4 / 3; border-radius: 22px; overflow: hidden; isolation: isolate;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: var(--shadow-lift);
+}
+.coverTitle { position: absolute; left: 14px; bottom: 12px; z-index: 1; color: #fff; font: 800 1.35rem/1 var(--font-display); letter-spacing: -.04em; }
+.play { position: absolute; right: 12px; bottom: 12px; z-index: 1; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); }
+
+.lime { background: var(--accent); color: var(--accent-ink); gap: 2px; }
+.codeLabel { font-size: .7rem; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; opacity: .7; }
+.code { font: 900 3.2rem/1 var(--font-display); letter-spacing: .04em; }
+.qr { width: 30%; max-width: 92px; margin-top: 8px; padding: 6px; border-radius: 10px; background: #fff; }
+.qr svg { display: block; width: 100%; height: auto; }
+
+.dark { background: radial-gradient(90% 70% at 50% 100%, color-mix(in srgb, var(--violin) 40%, transparent), transparent 70%), #0a0a0a; }
+.lane { position: absolute; inset: 0; }
+.lane i {
+  position: absolute; left: 50%; top: -20%; width: 44px; height: 44px; margin-left: -22px; border-radius: 50%;
+  display: grid; place-items: center; font: 800 .8rem/1 var(--font-display); font-style: normal; color: #fff;
+  background: var(--violin); box-shadow: 0 0 22px var(--violin);
+  animation: fall 2.1s linear infinite;
+}
+@keyframes fall { 0% { top: -20%; transform: scale(.6); opacity: 0; } 15% { opacity: 1; } 78% { transform: scale(1.05); } 82% { top: 66%; opacity: 1; } 100% { top: 74%; transform: scale(1.5); opacity: 0; } }
+.hit { position: absolute; left: 50%; top: 66%; width: 62px; height: 62px; margin: -9px 0 0 -31px; border-radius: 50%; box-shadow: inset 0 0 0 3px rgb(255 255 255 / .55), 0 0 0 10px color-mix(in srgb, var(--violin) 18%, transparent); animation: beat .7s ease-out infinite; }
+@keyframes beat { 0% { transform: scale(1.12); } 100% { transform: scale(1); } }
+.combo { position: absolute; top: 12px; right: 14px; font: 900 1.4rem/1 var(--font-display); letter-spacing: -.04em; color: var(--accent); }
+
+.camera {
+  display: grid; gap: 18px; align-items: center; padding: 20px; border-radius: 26px; color: #f5f5f3;
+  background: radial-gradient(70% 70% at 30% 40%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%), #0a0a0a;
+  box-shadow: var(--shadow-lift);
+}
+@media (min-width: 760px) { .camera { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 28px; } }
+.pattern { width: 100%; max-width: 320px; margin: 0 auto; aspect-ratio: 1; }
+.trace { fill: none; stroke: rgb(255 255 255 / .25); stroke-width: 1.4; stroke-dasharray: 1 3; stroke-linecap: round; }
+.trail { fill: none; stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 18 82; animation: chase 2.4s linear infinite; }
+@keyframes chase { from { stroke-dashoffset: 18; } to { stroke-dashoffset: -82; } }
+.dot { fill: var(--accent); filter: drop-shadow(0 0 4px var(--accent)); }
+.num { fill: rgb(255 255 255 / .8); font: 800 6px var(--font-display); text-anchor: middle; dominant-baseline: middle; }
+.gestures { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.gestures li { padding: 12px 14px; border-radius: 14px; background: rgb(255 255 255 / .07); color: rgb(255 255 255 / .75); }
+.gestures b { color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lane i, .hit, .trail { animation: none; }
+  .lane i:not(:first-child) { display: none; }
+  .lane i:first-child { top: 30%; }
+}

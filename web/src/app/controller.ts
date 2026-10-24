@@ -1,9 +1,10 @@
-import type { ClientMessage, DjCue, DynamicsLevel, RoomSnapshot, ServerMessage, Track } from '@kilukkam/shared';
+import { PIECES, type ClientMessage, type DjCue, type DynamicsLevel, type RoomSnapshot, type ServerMessage, type Track } from '@kilukkam/shared';
 import { CONDUCTOR_AVATAR } from '../data/composers.js';
 import { playNote, preloadInstrument, thunk, unlockAudio } from '../lib/audio.js';
 import { ServerClock } from '../lib/clock.js';
 import { Net, wsUrl } from '../lib/net.js';
-import { BeatGrid, WINDOWS, emptyTally, judge, onsets, record, type Judgement } from '../lib/rhythm.js';
+import type { LaneSide } from '../lib/lane.js';
+import { BeatGrid, WINDOWS, breakCombo, emptyTally, judge, onsets, record, type Judgement } from '../lib/rhythm.js';
 import {
   Store,
   advanceCursor,
@@ -18,6 +19,8 @@ import {
 import { toast } from '../components/Toast.js';
 import { BEATS_PER_BAR, DYNAMICS_GAIN, barNotes, buildEntry, nextBar } from './cues.js';
 import { emitLive } from './live.js';
+import { PLAYALONG_ID } from '../lib/spotify/playalong.js';
+import { type PlayAlongChoice, choose, chosenPlayAlong, scoreFor, startSong, stopSong } from './playalong.js';
 
 // The engine behind the React screens: one socket, one store, one shared
 // clock. Nothing here imports React; screens read the store through
@@ -87,6 +90,46 @@ const offsetNow = (track: Track, index: number): number | null => {
   return clock.now() - g.timeOf(onsetsFor(track)[index] ?? 0);
 };
 
+// ---------- the end of the piece ----------
+
+/** After the last beat of the longest part, how long the room rings out before results */
+const RING_OUT_MS = 1800;
+let finishTimer: ReturnType<typeof setInterval> | null = null;
+
+/** Beats in the longest part: the piece is over once the room's grid passes it. */
+const pieceBeats = (): number => Math.max(0, ...(store.state.piece?.tracks ?? []).map((t) => t.events.reduce((n, e) => n + e.beats, 0)));
+
+/**
+ * The conductor's laptop ends the run when the music has run out, so every
+ * phone lands on its results without anyone pressing Stop. It re-reads the
+ * grid each check, so tempo changes move the finish with them.
+ */
+function watchFinish(): void {
+  stopFinishWatch();
+  if (store.state.session?.role !== 'conductor') return;
+  finishTimer = setInterval(() => {
+    const g = currentGrid();
+    const s = store.state;
+    if (!g || s.snapshot?.phase !== 'playing') return stopFinishWatch();
+    if (dj.loop) return;
+    if (clock.now() > g.timeOf(pieceBeats()) + RING_OUT_MS) {
+      stopFinishWatch();
+      send({ type: 'stop_piece' });
+    }
+  }, 400);
+}
+
+function stopFinishWatch(): void {
+  if (finishTimer) clearInterval(finishTimer);
+  finishTimer = null;
+}
+
+/** The conductor's room is playing the Spotify play-along score it chose */
+const playAlongActive = (): boolean => {
+  const s = store.state;
+  return s.session?.role === 'conductor' && chosenPlayAlong() !== null && s.snapshot?.customPiece === true && s.piece?.id === PLAYALONG_ID;
+};
+
 const isMuted = (s: AppState, trackId: string): boolean => s.snapshot?.mutedTracks.includes(trackId) ?? false;
 
 /** Loudness for a note played right now: dynamics times the build fade-in */
@@ -128,6 +171,7 @@ function send(msg: ClientMessage): void {
 function onOpen(): void {
   const s = store.state;
   if (s.session?.role === 'conductor') {
+    stopSong();
     // Conductor powers live on the socket; a dropped socket closes the room.
     net.setPinging(false);
     store.set({
@@ -170,6 +214,11 @@ function onMessage(msg: ServerMessage): void {
         piece: resolvePiece(null, msg.snapshot.pieceId),
         cursor: 0,
       });
+      // A Spotify play-along swaps the placeholder piece for its own score straight away.
+      {
+        const pick = chosenPlayAlong();
+        if (pick) net.send({ type: 'set_custom_piece', score: scoreFor(pick) });
+      }
       return;
 
     case 'joined': {
@@ -210,9 +259,13 @@ function onMessage(msg: ServerMessage): void {
         startRun(msg.startedAt);
         store.set({ cursor: 0 });
       }
+      if (playAlongActive()) void startSong(clock.toLocal(msg.startedAt));
+      watchFinish();
       return;
 
     case 'piece_stopped':
+      stopFinishWatch();
+      if (s.session?.role === 'conductor') stopSong();
       return; // room_state carries the phase change
 
     case 'tempo':
@@ -324,6 +377,7 @@ function applySnapshot(snap: RoomSnapshot): void {
     next.cursor = 0;
   }
   if (snap.phase === 'ended' && s.snapshot?.phase !== 'ended') next.runNotes = runNotes;
+  if (s.session?.role === 'conductor' && s.snapshot?.phase === 'playing' && snap.phase !== 'playing') stopSong();
   store.set(next);
   // Fetch this phone's real instrument recordings as soon as its part is known.
   const track = myTrack(store.state);
@@ -340,6 +394,7 @@ function exitRoom(route: 'home' | 'join', notice: string): void {
 
 function leaveToHome(notice: string | null): void {
   rejoining = false;
+  stopSong();
   store.set({ session: null, snapshot: null, playerId: null, piece: null, intent: null, route: 'home', notice });
   net.reset();
 }
@@ -410,7 +465,24 @@ export interface TapResult {
   resting: boolean;
   /** How close to the beat it landed; null when the clock is not synced yet */
   judgement: Judgement | null;
+  /** Two hands: the lane of the note this tap was judged against (null in single-lane play) */
+  lane: LaneSide | null;
+  /** Two hands: the tap hit the other lane. The note counts as a miss, the combo breaks, the cursor stays. */
+  wrongSide: boolean;
 }
+
+/** Two-hands input for a tap; leave it out for single-lane play */
+export interface TapHands {
+  /** Lane of every event in my part (null for rests) */
+  sides: readonly (LaneSide | null)[];
+  /** The lane the player hit */
+  hit: LaneSide;
+  /** ms since the first finger of this hit came down (a chord waits for its second) */
+  lateMs?: number;
+}
+
+/** The note a wrong-side tap already cost: it scores a miss whenever it resolves, once */
+let lostNote: { run: number | null; track: string; index: number } | null = null;
 
 export interface RhythmView {
   grid: BeatGrid;
@@ -428,8 +500,18 @@ export const actions = {
 
   createRoom(pieceId: string) {
     unlockAudio();
+    choose(null);
     store.set({ intent: { kind: 'create', pieceId }, notice: null });
     if (net.isOpen) sendIntent();
+  },
+
+  /** Open a room for a Spotify play-along: any library piece holds the room until the play-along score replaces it. */
+  openPlayAlong(pick: PlayAlongChoice) {
+    const holder = PIECES[0]?.id;
+    if (!holder) return;
+    stopSong();
+    actions.createRoom(holder);
+    choose(pick);
   },
 
   joinRoom(code: string, name: string, avatar: string) {
@@ -464,12 +546,12 @@ export const actions = {
   },
 
   /** Play my next note. Runs inside the pointer handler: audio first, network fire-and-forget, then the store. */
-  tap(): TapResult {
+  tap(hands?: TapHands): TapResult {
     unlockAudio();
     const s = store.state;
     const track = myTrack(s);
     const piece = s.piece;
-    if (s.snapshot?.phase === 'playing' && track && isMuted(s, track.id)) return { played: false, resting: true, judgement: null };
+    if (s.snapshot?.phase === 'playing' && track && isMuted(s, track.id)) return { played: false, resting: true, judgement: null, lane: null, wrongSide: false };
     if (dj.loop && track && piece) {
       const { notes } = dj.loop;
       const index = notes[dj.loop.next % Math.max(1, notes.length)];
@@ -478,7 +560,7 @@ export const actions = {
         dj.loop.next++;
         playSafely(track.instrument, ev.midi, ev.beats, currentGrid()?.bpm ?? piece.bpm, ev.velocity, { level: levelNow(s) });
         navigator.vibrate?.(HAPTIC_NOTE);
-        return { played: true, resting: false, judgement: null };
+        return { played: true, resting: false, judgement: null, lane: null, wrongSide: false };
       }
     }
     const at = track ? skipRests(track.events, s.cursor) : 0;
@@ -486,16 +568,28 @@ export const actions = {
     if (s.snapshot?.phase !== 'playing' || !track || !piece || ev?.kind !== 'note') {
       thunk();
       navigator.vibrate?.(HAPTIC_DUD);
-      return { played: false, resting: false, judgement: null };
+      return { played: false, resting: false, judgement: null, lane: null, wrongSide: false };
     }
+    const lane = hands?.sides[at] ?? null;
+    const lost = lostNote?.run === runStartedAt && lostNote.track === track.id && lostNote.index === at;
+    if (hands && lane && hands.hit !== lane) {
+      // Wrong side: a soft thunk instead of the note, nothing sent, the cursor waits for the right hand.
+      thunk();
+      navigator.vibrate?.(HAPTIC_DUD);
+      lostNote = { run: runStartedAt, track: track.id, index: at };
+      if (s.tally.combo) store.set({ tally: breakCombo(s.tally) });
+      return { played: false, resting: false, judgement: 'miss', lane, wrongSide: true };
+    }
+    if (lost) lostNote = null;
     if (!silentNow()) playSafely(track.instrument, ev.midi, ev.beats, currentGrid()?.bpm ?? piece.bpm, ev.velocity, { level: levelNow(s) });
     // Fire-and-forget: the note already sounded locally, a dropped echo is fine.
     net.send({ type: 'note_played', noteIndex: at });
     navigator.vibrate?.(HAPTIC_NOTE);
     const offset = offsetNow(track, at);
-    const judgement: Judgement | null = offset === null ? null : judge(offset);
+    const timed: Judgement | null = offset === null ? null : judge(offset - (hands?.lateMs ?? 0));
+    const judgement: Judgement | null = lost && timed ? 'miss' : timed;
     store.set({ cursor: advanceCursor(track.events, at), ...(judgement ? { tally: record(s.tally, judgement) } : {}) });
-    return { played: true, resting: false, judgement };
+    return { played: true, resting: false, judgement, lane, wrongSide: false };
   },
 
   /** Shared clock and beat grid for the current run (null outside a run) */

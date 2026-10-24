@@ -134,7 +134,7 @@ export const encodeWav = (channels: readonly Float32Array[], sampleRate: number)
 const PPQ = 480;
 /** Written at 120 bpm so one tick maps to real time: the room's timing survives intact. */
 const MIDI_BPM = 120;
-const GM_PROGRAM: Record<InstrumentId, number> = { piano: 0, violin: 40, cello: 42, flute: 73 };
+const GM_PROGRAM: Record<InstrumentId, number> = { piano: 0, violin: 40, cello: 42, flute: 73, drums: 0, guitar: 24 };
 
 export const vlq = (n: number): number[] => {
   let value = Math.max(0, Math.round(n));
@@ -152,7 +152,8 @@ export const encodeMidi = (score: Score, notes: readonly RenderNote[]): Uint8Arr
   const usPerBeat = Math.round(60_000_000 / MIDI_BPM);
   const tempo = [0, 0xff, 0x51, 3, (usPerBeat >> 16) & 255, (usPerBeat >> 8) & 255, usPerBeat & 255, 0, 0xff, 0x2f, 0];
   const tracks = score.tracks.map((track, i) => {
-    const channel = i >= 9 ? i + 1 : i; // skip GM percussion channel 10
+    // Drums go on GM percussion channel 10 (index 9); every other part skips it.
+    const channel = track.instrument === 'drums' ? 9 : i >= 9 ? i + 1 : i;
     const evs: { tick: number; bytes: number[] }[] = [];
     for (const n of notes) {
       if (n.trackId !== track.id) continue;

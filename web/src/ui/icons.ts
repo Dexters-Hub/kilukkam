@@ -72,6 +72,19 @@ const INSTRUMENTS = {
     { stroke: 'M44 196 188 52l20 20L64 216Z' },
     { stroke: 'M100 148v0M124 124v0M148 100v0M196 76l8-8' },
   ],
+  // An acoustic guitar: the body with its sound hole, the neck and the headstock.
+  guitar: [
+    { d: 'M98 128c-26 2-46 22-46 48 0 28 22 48 52 48 26 0 40-14 44-30 4-14 14-18 24-22 14-6 18-22 8-34s-26-10-36 0c-8 8-18 10-30 10Z', opacity: BODY },
+    { stroke: 'M98 128c-26 2-46 22-46 48 0 28 22 48 52 48 26 0 40-14 44-30 4-14 14-18 24-22 14-6 18-22 8-34s-26-10-36 0c-8 8-18 10-30 10Z' },
+    { stroke: 'M112 172a10 10 0 1 0 1 0M120 164l96-96M206 50l20 20' },
+  ],
+  // A snare drum seen from the side, with two sticks crossing above it.
+  drums: [
+    { d: 'M48 120c0-14 36-24 80-24s80 10 80 24v56c0 14-36 24-80 24s-80-10-80-24Z', opacity: BODY },
+    { stroke: 'M48 120c0 14 36 24 80 24s80-10 80-24-36-24-80-24-80 10-80 24Zm0 0v56c0 14 36 24 80 24s80-10 80-24v-56' },
+    { stroke: 'M80 138v52M128 144v56M176 138v52' },
+    { stroke: 'M70 40l64 64M186 40l-64 64' },
+  ],
 } satisfies Record<string, readonly Layer[]>;
 
 const ICONS = { ...PHOSPHOR, ...INSTRUMENTS, piano: PHOSPHOR['piano-keys'] };

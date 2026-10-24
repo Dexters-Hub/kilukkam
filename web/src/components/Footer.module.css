@@ -1,0 +1,10 @@
+.foot { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 40px 0 8px; color: var(--muted); font-size: .9rem; }
+.by {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 999px;
+  color: var(--text); text-decoration: none; background: var(--surface); box-shadow: var(--shadow);
+  transition: transform .15s var(--ease);
+}
+.by:active { transform: scale(.97); }
+.by b { font-weight: 700; }
+.gh { flex: none; }
+.small { font-size: .8rem; }

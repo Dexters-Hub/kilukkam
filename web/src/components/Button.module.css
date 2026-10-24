@@ -24,7 +24,7 @@
   display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px;
   border-radius: 999px; background: var(--surface); box-shadow: var(--shadow); font-weight: 600;
 }
-.pill > span:first-child { color: var(--accent); }
+.pill > span:first-child { color: var(--text); }
 
 .iconBtn {
   display: grid; place-items: center;

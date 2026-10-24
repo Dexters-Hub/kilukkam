@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getPiece, PIECES } from '@kilukkam/shared';
-import { BANKS_FOR, BANK_NOTES, loopRegion, nearestSample, pickBank, rateFor, sampleUrl, shapeFor } from '../src/lib/samples.js';
+import { BANKS_FOR, BANK_NOTES, loopRegion, nearestSample, pickBank, rateFor, sampleUrl, shapeFor, SYNTHESISED } from '../src/lib/samples.js';
 
 describe('nearestSample', () => {
   const notes = [55, 60, 64];
@@ -29,7 +29,8 @@ describe('rateFor', () => {
 describe('coverage', () => {
   it('every note in every bundled piece is within 3 semitones of a recording', () => {
     for (const piece of PIECES) {
-      for (const track of piece.tracks) {
+      // Drums are synthesised, so only the recorded instruments need a nearby sample.
+      for (const track of piece.tracks.filter((x) => !SYNTHESISED.has(x.instrument))) {
         for (const e of track.events) {
           if (e.kind !== 'note') continue;
           const near = nearestSample(BANK_NOTES[track.instrument], e.midi);

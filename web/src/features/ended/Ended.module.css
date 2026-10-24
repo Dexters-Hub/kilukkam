@@ -1,12 +1,44 @@
 .screen { padding-bottom: 0; }
-.body { display: flex; flex-direction: column; align-items: center; gap: 12px; padding-top: 24px; text-align: center; }
+.body { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-top: 12px; text-align: center; }
+.kicker { font-size: .78rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.title { margin: 0; font-size: clamp(2rem, 9vw, 2.8rem); line-height: 1.02; }
 .bravo {
   display: grid; place-items: center; width: 104px; height: 104px; border-radius: 34px;
-  color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 12%, var(--sunk));
+  color: var(--accent-ink); background: var(--accent);
   animation: bob 1.6s var(--ease) infinite;
 }
 @keyframes bob { 50% { transform: translateY(-6px) rotate(-4deg); } }
-.lede { font-size: 1.1rem; color: var(--muted); margin: 0; }
-.stat { margin: 0; font: 600 1.15rem/1.3 var(--font-display); letter-spacing: -.015em; }
-.stat strong { background: var(--brand); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: 1.5rem; }
+
+.medal {
+  --tint: var(--accent);
+  display: grid; place-items: center; width: 148px; height: 148px; border-radius: 50%;
+  font: 900 5.4rem/1 var(--font-display); letter-spacing: -.05em; color: var(--accent-ink);
+  background: radial-gradient(circle at 34% 28%, #f4ffc4, var(--accent) 55%, color-mix(in srgb, var(--accent) 70%, #000));
+  box-shadow: 0 0 0 8px var(--bg), 0 0 0 11px var(--tint), 0 30px 50px -24px var(--tint);
+  animation: land .8s cubic-bezier(.3, 1.6, .5, 1) both;
+}
+@keyframes land { from { transform: scale(.3) rotate(-30deg); opacity: 0; } }
+.gS { box-shadow: 0 0 0 8px var(--bg), 0 0 0 11px var(--tint), 0 0 60px 10px color-mix(in srgb, var(--accent) 60%, transparent); }
+
+.lede { font-size: 1.05rem; color: var(--muted); margin: -6px 0 0; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; }
+.stats div { display: flex; flex-direction: column; padding: 14px 8px; border-radius: 18px; background: var(--surface); box-shadow: var(--shadow); }
+.stats b { font: 850 1.6rem/1.1 var(--font-display); letter-spacing: -.04em; }
+.stats div:first-child b { color: var(--accent-text); }
+.stats span { color: var(--muted); font-size: .8rem; font-weight: 600; }
+
+.breakdown { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+.bar { display: flex; gap: 3px; height: 14px; border-radius: 999px; overflow: hidden; }
+.bar i { display: block; min-width: 6px; }
+.legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; font-size: .85rem; color: var(--muted); text-transform: capitalize; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; }
+.perfect { background: var(--accent); }
+.great { background: var(--flute); }
+.good { background: var(--piano); }
+.miss { background: var(--line-strong); }
+
+.stat { margin: 4px 0 0; font: 650 1.1rem/1.3 var(--font-display); letter-spacing: -.015em; }
+.stat strong { font-size: 1.5rem; color: var(--text); background: var(--accent); padding: 0 6px; border-radius: 6px; }
 .avatars { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+@media (prefers-reduced-motion: reduce) { .bravo, .medal { animation: none; } }

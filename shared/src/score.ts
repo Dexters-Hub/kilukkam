@@ -1,4 +1,4 @@
-export type InstrumentId = 'violin' | 'cello' | 'flute' | 'piano';
+export type InstrumentId = 'violin' | 'cello' | 'flute' | 'piano' | 'drums' | 'guitar';
 
 export interface NoteEvent {
   kind: 'note';
@@ -49,7 +49,7 @@ export function totalBeats(events: readonly ScoreEvent[]): number {
   return events.reduce((sum, e) => sum + e.beats, 0);
 }
 
-const INSTRUMENTS: readonly InstrumentId[] = ['violin', 'cello', 'flute', 'piano'];
+const INSTRUMENTS: readonly InstrumentId[] = ['violin', 'cello', 'flute', 'piano', 'drums', 'guitar'];
 
 export function isInstrumentId(v: unknown): v is InstrumentId {
   return typeof v === 'string' && (INSTRUMENTS as string[]).includes(v);

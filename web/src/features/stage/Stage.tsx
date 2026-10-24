@@ -7,6 +7,10 @@ import { holdWakeLock } from '../../app/wakeLock.js';
 import { Button, cx } from '../../components/Button.js';
 import { Icon } from '../../components/Icon.js';
 import { Dock, Screen } from '../../components/Screen.js';
+import { chosenPlayAlong } from '../../app/playalong.js';
+import { PLAYALONG_ID } from '../../lib/spotify/playalong.js';
+import { NowPlaying } from '../create/NowPlaying.js';
+import { CameraConductor } from './CameraConductor.js';
 import { Lanes } from './Lanes.js';
 import s from './Stage.module.css';
 
@@ -18,6 +22,7 @@ export function Stage() {
   const notes = useRef(0);
   const [draft, setDraft] = useState<number | null>(null);
   const [looping, setLooping] = useState(false);
+  const song = chosenPlayAlong();
 
   useEffect(() => holdWakeLock(), []);
 
@@ -42,7 +47,12 @@ export function Stage() {
         </span>
       </header>
 
-      <Lanes piece={piece} players={snap.players} muted={snap.mutedTracks} onNote={onNote} />
+      {song && piece.id === PLAYALONG_ID ? <NowPlaying track={song.track} compact /> : null}
+
+      <div className={s.desk}>
+        <Lanes piece={piece} players={snap.players} muted={snap.mutedTracks} onNote={onNote} />
+        <CameraConductor piece={piece} startedAt={snap.startedAt} />
+      </div>
 
       <section className={s.panel} aria-label="Expression">
         <span className={s.label}>Dynamics</span>

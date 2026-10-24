@@ -60,8 +60,8 @@ describe.each(ORIGINALS.map((s) => [s.title, s] as const))('%s', (_title, score)
     expect(seconds).toBeLessThanOrEqual(240);
   });
 
-  it('has the four instruments, every part as long as the harmony plan', () => {
-    expect(score.tracks.map((t) => t.instrument).sort()).toEqual(['cello', 'flute', 'piano', 'violin']);
+  it('has the four pitched instruments (drums optional), every part as long as the harmony plan', () => {
+    expect(score.tracks.map((t) => t.instrument).filter((i) => i !== 'drums').sort()).toEqual(['cello', 'flute', 'piano', 'violin']);
     for (const t of score.tracks) expect(totalBeats(t.events), t.id).toBe(plan.length * score.beatsPerBar);
   });
 
@@ -77,7 +77,8 @@ describe.each(ORIGINALS.map((s) => [s.title, s] as const))('%s', (_title, score)
 
   it('keeps every part inside its instrument\'s recorded range', () => {
     for (const t of score.tracks) {
-      const bank = BANK_NOTES[t.instrument];
+      // The drum kit is synthesised: its notes are General MIDI drum keys, 35 to 57.
+      const bank = t.instrument === 'drums' ? [35, 57] : BANK_NOTES[t.instrument];
       const pitches = notesOf(t.events).map((n) => n.midi);
       expect(Math.min(...pitches), `${t.id} lowest`).toBeGreaterThanOrEqual(Math.min(...bank));
       expect(Math.max(...pitches), `${t.id} highest`).toBeLessThanOrEqual(Math.max(...bank));
@@ -86,7 +87,7 @@ describe.each(ORIGINALS.map((s) => [s.title, s] as const))('%s', (_title, score)
 
   it('agrees on the chord: on beats 1 and 3 every sounding note is a chord tone', () => {
     const wrong: string[] = [];
-    for (const t of score.tracks) {
+    for (const t of score.tracks.filter((x) => x.instrument !== 'drums')) {
       const notes = notesOf(t.events);
       for (let beat = 0; beat < plan.length * score.beatsPerBar; beat += 2) {
         const chord = chordAt(beat);

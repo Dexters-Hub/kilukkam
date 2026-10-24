@@ -332,7 +332,145 @@ const sampled = (c: BaseAudioContext, dest: AudioNode, instrument: InstrumentId,
   return { sources: [src, lfo], nodes: [vca, depth, ...tone.nodes], wobble, release: shape.release, end };
 };
 
-const LEVEL: Record<InstrumentId, number> = { violin: 1, cello: 1.15, flute: 1, piano: 1.1 };
+const LEVEL: Record<InstrumentId, number> = { violin: 1, cello: 1.15, flute: 1, piano: 1.1, drums: 1.25, guitar: 1.3 };
+
+/**
+ * A plucked string, Karplus-Strong: a burst of noise circulating through a
+ * delay one period long, averaged a little on each pass, so the brightness
+ * fades first and the fundamental rings on, like a nylon string. Each pitch
+ * is rendered once per context and cached.
+ */
+const plucked = new WeakMap<BaseAudioContext, Map<number, AudioBuffer>>();
+const pluckBuffer = (c: BaseAudioContext, midi: number): AudioBuffer => {
+  let byNote = plucked.get(c);
+  if (!byNote) {
+    byNote = new Map();
+    plucked.set(c, byNote);
+  }
+  const cached = byNote.get(midi);
+  if (cached) return cached;
+  const sr = c.sampleRate;
+  const f = midiToFreq(midi);
+  const period = Math.max(2, Math.round(sr / f));
+  const length = Math.round(sr * 3.2);
+  const b = c.createBuffer(1, length, sr);
+  const out = b.getChannelData(0);
+  // A finger pluck is softer than a pick: smooth the initial noise once.
+  let prev = 0;
+  for (let i = 0; i < period; i++) {
+    const n = Math.random() * 2 - 1;
+    prev = 0.55 * n + 0.45 * prev;
+    out[i] = prev;
+  }
+  // Higher strings ring shorter, as they do on a real guitar.
+  const decay = 0.9985 - Math.min(0.006, (f / 1000) * 0.004);
+  for (let i = period; i < length; i++) out[i] = decay * 0.5 * ((out[i - period] ?? 0) + (out[i - period - 1] ?? 0));
+  byNote.set(midi, b);
+  return b;
+};
+
+const guitar = (c: BaseAudioContext, dest: AudioNode, midi: number, t0: number, hold: number, peak: number): Built => {
+  const src = c.createBufferSource();
+  src.buffer = pluckBuffer(c, midi);
+  // The guitar body: a warm low resonance and a gentle top roll-off.
+  const body = c.createBiquadFilter();
+  body.type = 'peaking';
+  body.frequency.value = 110;
+  body.gain.value = 4;
+  const top = c.createBiquadFilter();
+  top.type = 'lowpass';
+  top.frequency.value = 4200;
+  const vca = c.createGain();
+  // Let a plucked note ring past a short written length, then damp it.
+  const ring = Math.min(3, Math.max(1.1, hold + 0.6));
+  const end = t0 + ring;
+  vca.gain.setValueAtTime(peak * 2.2, t0);
+  vca.gain.setValueAtTime(peak * 2.2, end - 0.25);
+  vca.gain.exponentialRampToValueAtTime(0.0001, end);
+  src.connect(body).connect(top).connect(vca).connect(dest);
+  return { sources: [src], nodes: [body, top, vca], wobble: () => {}, release: 0.2, end };
+};
+
+/** One shared second of white noise per context, the raw material of snares, hats and cymbals. */
+const noiseFor = new WeakMap<BaseAudioContext, AudioBuffer>();
+const noise = (c: BaseAudioContext): AudioBuffer => {
+  let b = noiseFor.get(c);
+  if (!b) {
+    b = c.createBuffer(1, c.sampleRate, c.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    noiseFor.set(c, b);
+  }
+  return b;
+};
+
+/**
+ * The drum kit, synthesised and keyed like General MIDI drums: 35/36 kick,
+ * 38/40 snare, 39 clap, 42/44 closed hat, 46 open hat, 41 to 50 toms,
+ * 49/57 crash. Anything else plays a rim click. A drum hit ignores the
+ * written length; it rings for as long as that drum does.
+ */
+const drum = (c: BaseAudioContext, dest: AudioNode, midi: number, t0: number, peak: number): Built => {
+  const sources: AudioScheduledSourceNode[] = [];
+  const nodes: AudioNode[] = [];
+  const out = c.createGain();
+  out.connect(dest);
+  nodes.push(out);
+  const env = (g: GainNode, level: number, decay: number) => {
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(level, t0 + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + decay);
+  };
+  const tone = (from: number, to: number, sweep: number, level: number, decay: number, type: OscillatorType = 'sine') => {
+    const o = c.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(from, t0);
+    o.frequency.exponentialRampToValueAtTime(to, t0 + sweep);
+    const g = c.createGain();
+    env(g, level, decay);
+    o.connect(g).connect(out);
+    sources.push(o);
+    nodes.push(g);
+    return decay;
+  };
+  const hiss = (type: BiquadFilterType, freq: number, level: number, decay: number, delay = 0) => {
+    const n = c.createBufferSource();
+    n.buffer = noise(c);
+    const f = c.createBiquadFilter();
+    f.type = type;
+    f.frequency.value = freq;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t0 + delay);
+    g.gain.linearRampToValueAtTime(level, t0 + delay + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + delay + decay);
+    n.connect(f).connect(g).connect(out);
+    sources.push(n);
+    nodes.push(f, g);
+    return delay + decay;
+  };
+  let ring: number;
+  if (midi === 35 || midi === 36) {
+    ring = tone(160, 42, 0.11, peak * 1.6, 0.42);
+    hiss('lowpass', 2500, peak * 0.25, 0.012);
+  } else if (midi === 38 || midi === 40) {
+    tone(220, 160, 0.06, peak * 0.7, 0.14, 'triangle');
+    ring = hiss('highpass', 1400, peak * 0.9, 0.2);
+  } else if (midi === 39) {
+    ring = Math.max(hiss('bandpass', 1300, peak, 0.03), hiss('bandpass', 1300, peak, 0.03, 0.012), hiss('bandpass', 1300, peak * 1.1, 0.16, 0.024));
+  } else if (midi === 42 || midi === 44) {
+    ring = hiss('highpass', 7500, peak * 0.55, 0.05);
+  } else if (midi === 46) {
+    ring = hiss('highpass', 7000, peak * 0.5, 0.32);
+  } else if (midi === 49 || midi === 57) {
+    ring = hiss('highpass', 5200, peak * 0.6, 1.3);
+  } else if (midi >= 41 && midi <= 50) {
+    const f = 70 + (midi - 41) * 16;
+    ring = tone(f * 1.6, f, 0.09, peak * 1.2, 0.36);
+  } else {
+    ring = tone(1700, 1200, 0.02, peak * 0.6, 0.04, 'square');
+  }
+  return { sources, nodes, wobble: () => {}, release: 0.05, end: t0 + ring + 0.05 };
+};
 
 /** Synth voice: always available, used until (or if) the recordings load. */
 const synth = (c: BaseAudioContext, dest: AudioNode, instrument: InstrumentId, f: number, t0: number, hold: number, peak: number): Built => {
@@ -345,6 +483,10 @@ const synth = (c: BaseAudioContext, dest: AudioNode, instrument: InstrumentId, f
       return flute(c, dest, f, t0, hold, peak);
     case 'piano':
       return piano(c, dest, f, t0, hold, peak);
+    case 'drums':
+      return drum(c, dest, Math.round(69 + 12 * Math.log2(f / 440)), t0, peak);
+    case 'guitar':
+      return guitar(c, dest, Math.round(69 + 12 * Math.log2(f / 440)), t0, hold, peak);
   }
 };
 

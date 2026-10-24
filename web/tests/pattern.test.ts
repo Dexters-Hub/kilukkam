@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Fingers, HandFrame, Handedness, TrackedHand } from '../src/lib/camera/features.js';
 import { createFingerPlay, voicesFor, type FingerCue } from '../src/lib/camera/fingers.js';
-import { PATTERNS, PatternCoach, batonGrade, boxAround, guideAt, guidePath, meterFor, shapeScore, timingScore, toBox, toFrame } from '../src/lib/camera/pattern.js';
+import { PATTERNS, PatternCoach, TargetCoach, arrivalScore, reachScore, batonGrade, boxAround, guideAt, guidePath, meterFor, shapeScore, timingScore, toBox, toFrame } from '../src/lib/camera/pattern.js';
 
 describe('conducting patterns', () => {
   it('passes through each ictus exactly on the beat', () => {
@@ -140,5 +140,57 @@ describe('finger play', () => {
     const d = voicesFor(2);
     expect(d.left[0]?.label).toBe('D');
     expect(d.right[0]?.midi).toBe(74);
+  });
+});
+
+describe('target coach', () => {
+  const PERIOD = 1000;
+  const follow = (coach: TargetCoach, beats: number, lagBeats = 0, wobble = 0) => {
+    const out = [];
+    for (let f = 0; f <= beats * 30; f++) {
+      const b = f / 30;
+      const g = guideAt(4, b - lagBeats);
+      out.push(...coach.sample({ x: g.x + wobble, y: g.y }, b));
+    }
+    return out;
+  };
+
+  it('a hand that follows the guide exactly scores perfect on every beat, sideways ones included', () => {
+    const coach = new TargetCoach(4, PERIOD);
+    const results = follow(coach, 6);
+    expect(results.length).toBeGreaterThanOrEqual(5);
+    for (const r of results) expect(r.grade).toBe('perfect');
+    expect(results.map((r) => r.beat).slice(0, 4)).toEqual([0, 1, 2, 3]);
+  });
+
+  it('arriving late costs timing but still reaches the target', () => {
+    const coach = new TargetCoach(4, PERIOD);
+    const results = follow(coach, 6, 0.2);
+    const r = results[2];
+    expect(r && r.offsetMs).toBeGreaterThan(150);
+    expect(r && r.reach).toBeLessThan(0.02);
+    expect(r && r.grade).not.toBe('perfect');
+  });
+
+  it('a hand far off the pattern misses, and no hand at all misses', () => {
+    const far = follow(new TargetCoach(4, PERIOD), 4, 0, 0.6);
+    for (const r of far) expect(r.grade).toBe('miss');
+    const empty = new TargetCoach(4, PERIOD);
+    const r = empty.sample(null, 2);
+    expect(r.map((x) => x.beat)).toEqual([0, 1]);
+    expect(r.every((x) => x.grade === 'miss')).toBe(true);
+  });
+
+  it('starts scoring after the count-in', () => {
+    const coach = new TargetCoach(4, PERIOD);
+    coach.startAt(4);
+    expect(follow(coach, 5).every((r) => r.beat >= 4)).toBe(true);
+  });
+
+  it('score curves: inside the target is full marks, three radii is none', () => {
+    expect(reachScore(0.05)).toBe(100);
+    expect(reachScore(0.3)).toBe(0);
+    expect(arrivalScore(40)).toBe(100);
+    expect(arrivalScore(-400)).toBe(0);
   });
 });

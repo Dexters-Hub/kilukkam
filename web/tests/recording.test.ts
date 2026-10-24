@@ -31,7 +31,7 @@ describe('mix', () => {
     mix.cello = { gain: 1, muted: true, solo: false };
     expect(channelGains(mix)).toMatchObject({ flute: 1.5, cello: 0 });
     mix.violin = { gain: 0.5, muted: false, solo: true };
-    expect(channelGains(mix)).toEqual({ flute: 0, violin: 0.5, piano: 0, cello: 0 });
+    expect(channelGains(mix)).toEqual({ flute: 0, violin: 0.5, piano: 0, cello: 0, guitar: 0 });
   });
 });
 

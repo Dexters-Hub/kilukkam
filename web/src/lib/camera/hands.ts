@@ -1,5 +1,5 @@
 import type { HandLandmarker, HandLandmarkerResult } from '@mediapipe/tasks-vision';
-import { analyseHand, type HandFrame, type TrackedHand } from './features.js';
+import { analyseHand, assignSides, type HandFrame, type TrackedHand } from './features.js';
 
 // The camera binding: front camera in, HandFrames out.
 //
@@ -257,7 +257,7 @@ export async function startHandTracking(
       const hand = analyseHand(lms, label?.categoryName ?? '', label?.score ?? 0, { aspect, mirror });
       if (hand) hands.push(hand);
     });
-    onFrame({ t: start, aspect, hands });
+    onFrame({ t: start, aspect, hands: assignSides(hands) });
   }
 
   const onVisibility = () => {

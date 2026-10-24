@@ -20,15 +20,15 @@
 }
 
 .wordmark { display: inline-flex; align-items: center; gap: .45em; min-height: var(--tap); }
-.mark { width: 30px; height: 30px; border-radius: 8px; align-self: center; }
-.en { font: 700 1.2rem/1 var(--font-display); letter-spacing: var(--track-display); }
+.mark { width: 30px; height: 30px; align-self: center; }
+.en { font: 800 1.2rem/1 var(--font-brand); letter-spacing: -.035em; }
 /* Malayalam vowel signs are tall: room above and below so background-clip never cuts them. */
 .ml {
-  font: 700 1rem/1.5 var(--font-malayalam); padding: .1em 0 .15em;
-  background: var(--brand); -webkit-background-clip: text; background-clip: text; color: transparent;
+  font: 700 1.3rem/1.3 var(--font-brand-ml); padding: .1em 0 .15em; color: var(--text);
 }
 
-.title { font-size: 2rem; font-weight: 700; line-height: 1.1; margin: 8px 0 0; }
+.title { font-size: 2.1rem; line-height: 1.04; margin: 8px 0 0; }
+.title::after { content: ""; display: block; width: 48px; height: 3px; margin-top: 14px; border-radius: 2px; background: var(--kasavu); }
 .hint { margin: -4px 0 0; color: var(--muted); font-size: .92rem; }
 .label { font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
 .notice {
@@ -42,3 +42,5 @@
   background: linear-gradient(transparent, var(--bg) 30%);
   display: flex; flex-direction: column; align-items: center; gap: 4px;
 }
+.right { display: inline-flex; align-items: center; gap: 8px; }
+@media (max-width: 420px) { .wordmark .ml { display: none; } }

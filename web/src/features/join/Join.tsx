@@ -2,6 +2,7 @@ import { CODE_LEN, MAX_NAME_LEN } from '@kilukkam/shared';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { COMPOSERS, pickComposer } from '../../data/composers.js';
 import { isCompleteCode, normalizeCode, normalizeName } from '../../lib/store.js';
+import { missShake } from '../../lib/anim.js';
 import { readPref, writePref } from '../../ui/dom.js';
 import { actions, store } from '../../app/controller.js';
 import { useStore } from '../../app/useStore.js';
@@ -23,6 +24,11 @@ export function Join() {
   const nameRef = useRef<HTMLInputElement>(null);
   const valid = isCompleteCode(code) && normalizeName(name).length > 0;
 
+  // A refused code (no such room, room full) shakes the code field so the eye goes straight to it.
+  useEffect(() => {
+    if (notice && codeRef.current) missShake(codeRef.current);
+  }, [notice]);
+
   useEffect(() => {
     (code ? nameRef : codeRef).current?.focus();
     // Focus once, on arrival: later edits keep the caret where the player put it.
@@ -41,7 +47,7 @@ export function Join() {
     <Screen>
       <TopBar onBack={actions.goHome} />
       <Title>Join a room</Title>
-      <Hint>Three things: the code, your name, a composer. Then you pick an instrument.</Hint>
+      <Hint>Three things: the code, your name, a composer. You get an instrument as soon as you are in.</Hint>
       <Notice text={notice} />
       <form className={cx(s.form, 'stack')} onSubmit={submit}>
         <Label htmlFor="code">Room code</Label>
@@ -65,7 +71,7 @@ export function Join() {
             if (n.length === CODE_LEN && !name) nameRef.current?.focus();
           }}
         />
-        <Hint id="code-hint">It’s on the conductor’s screen: 4 letters, big and orange.</Hint>
+        <Hint id="code-hint">It’s on the conductor’s screen: 4 characters on a big lime card.</Hint>
         <Label htmlFor="name">Your name</Label>
         <input
           ref={nameRef}

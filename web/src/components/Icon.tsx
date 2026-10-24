@@ -11,4 +11,4 @@ export function Icon({ name, size = 24 }: { name: IconName; size?: number }) {
 }
 
 /** Instrument glyph for a track; unknown instruments fall back to a note. */
-export const instrumentIcon = (id: string): IconName => (id === 'violin' || id === 'cello' || id === 'flute' || id === 'piano' ? id : 'music-note');
+export const instrumentIcon = (id: string): IconName => (id === 'violin' || id === 'cello' || id === 'flute' || id === 'piano' || id === 'drums' || id === 'guitar' ? id : 'music-note');

@@ -1,0 +1,31 @@
+.cover { position: absolute; inset: 0; overflow: hidden; isolation: isolate; }
+.art { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.blob { transform-box: fill-box; transform-origin: center; animation: drift 14s ease-in-out infinite alternate; }
+@keyframes drift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(8%, -6%) scale(1.12); }
+  100% { transform: translate(-6%, 7%) scale(.92); }
+}
+.rings { transform-box: view-box; transform-origin: 72% 30%; animation: breathe 6s ease-in-out infinite; }
+@keyframes breathe { 50% { transform: scale(1.06); opacity: .7; } }
+.wave { transform-box: view-box; transform-origin: 50% 52%; animation: sway 7s ease-in-out infinite; }
+@keyframes sway { 50% { transform: scaleY(.55) translateX(-2%); } }
+
+/* Fine noise so the colour fields look printed, not flat. */
+.grain {
+  position: absolute; inset: 0; opacity: .14; mix-blend-mode: overlay; pointer-events: none;
+  background-image: radial-gradient(rgb(255 255 255 / .8) .5px, transparent .6px);
+  background-size: 3px 3px;
+}
+
+/* Previewing: everything moves on the piece's own beat. */
+.playing .rings { animation: pulse var(--beat) ease-out infinite; }
+.playing .blob { animation-duration: calc(var(--beat) * 8); }
+.playing .wave { animation: beatwave var(--beat) ease-out infinite; stroke-width: 1.5; }
+@keyframes beatwave { 0% { transform: scaleY(1.35); } 100% { transform: scaleY(.8); } }
+@keyframes pulse { 0% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); opacity: .55; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .blob, .rings, .wave, .playing .rings, .playing .wave { animation: none; }
+}
