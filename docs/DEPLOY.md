@@ -75,3 +75,26 @@ npm run sim -- --url ws://127.0.0.1:8799/ws --players 100 --piece ode-to-joy --s
 `wrangler dev` reloads when `shared/` or `server/src/` change, and a
 reload drops every room, so do not edit those files mid-run.
 Day-to-day UI work still uses `npm run dev` (Vite plus the Node server).
+
+## Spotify on the deployed site
+
+Spotify play-along needs the app's Spotify **Client ID** at build time
+(it is public; the Client Secret is never used and must never be added).
+
+1. Cloudflare dashboard → Workers & Pages → `kilukkam` → Settings →
+   Build → **Build variables**: add `VITE_SPOTIFY_CLIENT_ID` with the
+   Client ID from the Spotify developer dashboard, then redeploy.
+2. Spotify developer dashboard → the app → Settings → **Redirect URIs**:
+   add `https://kilukkam.alwinjohn231.workers.dev/spotify/callback`
+   (keep `http://127.0.0.1:5173/spotify/callback` for local work).
+3. In Development Mode only the accounts listed under **User Management**
+   can sign in, and playback needs Spotify Premium.
+
+## Camera hand tracking on the deployed site
+
+The MediaPipe hand model (7.5 MB) and its wasm (13 MB) are not in git.
+`npm run build` runs `scripts/fetch-mediapipe.sh` first: it copies the
+wasm from the installed `@mediapipe/tasks-vision` package, downloads the
+model from Google's MediaPipe storage, and checks both against pinned
+SHA-256 hashes, failing the build on a mismatch. Without them the camera
+pages report "Hand tracking does not run in this browser".

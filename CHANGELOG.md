@@ -5,7 +5,14 @@ before the docs commit are backfilled from `git log`.
 
 ## Unreleased
 
-- 2026-10-25 05:30: Guitar, more songs, and a player you can see. A
+- 2026-10-25 02:44: Ship the camera model with every deploy. `npm run
+  build` now runs `scripts/fetch-mediapipe.sh` first (wasm copied from the
+  installed package, model downloaded, both hash checked), so the live
+  camera pages stop reporting that hand tracking cannot run. The seating
+  chart rows get labelled Move and Remove pills, the Spotify tab explains
+  itself when no Client ID is configured, and DEPLOY.md documents both.
+
+- 2026-10-25 02:30: Guitar, more songs, and a player you can see. A
   plucked-string fingerstyle guitar is the sixth instrument (home tabs,
   play-along, MIDI export as nylon guitar). Four new public-domain pieces
   with guitar parts: Romance, Greensleeves, In the Hall of the Mountain
@@ -19,7 +26,7 @@ before the docs commit are backfilled from `git log`.
   action, drum hit names (Kick, Snare), and the logo in Inter with RIT
   Kutty for the Malayalam.
 
-- 2026-10-25 03:10: Play that is harder and clearer. Two hands on the
+- 2026-10-25 02:00: Play that is harder and clearer. Two hands on the
   phone: notes come down a left or right lane (thumbs, or F and J), a
   wrong side breaks the combo. Drums are a fifth instrument with a
   synthesised kit, played in Boss Rush, Pixel Plains and Spotify

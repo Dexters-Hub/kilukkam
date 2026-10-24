@@ -71,12 +71,18 @@ export function Roster({ title, tint, capacity, trackId, players, tracks }: Rost
               <div className={s.row}>
                 <Avatar id={p.avatar} name={p.name} away={!p.connected} />
                 <span className={s.name}>{p.name}</span>
-                <button type="button" className={s.rowBtn} aria-expanded={moving === p.id} aria-label={`Move ${p.name} to another instrument`} onClick={() => setMoving(moving === p.id ? null : p.id)}>
-                  <Icon name="arrows-clockwise" size={22} />
+                <button
+                  type="button"
+                  className={cx(s.rowAction, moving === p.id && s.rowActionOn)}
+                  aria-expanded={moving === p.id}
+                  aria-label={`Move ${p.name} to another instrument`}
+                  onClick={() => setMoving(moving === p.id ? null : p.id)}
+                >
+                  {moving === p.id ? 'Done' : 'Move'}
                 </button>
                 <button
                   type="button"
-                  className={cx(s.rowBtn, armed === p.id && s.armed)}
+                  className={cx(s.rowAction, s.remove, armed === p.id && s.armed)}
                   aria-label={armed === p.id ? `Confirm remove ${p.name}` : `Remove ${p.name}`}
                   onClick={() => {
                     if (armed === p.id) {
@@ -85,7 +91,7 @@ export function Roster({ title, tint, capacity, trackId, players, tracks }: Rost
                     } else setArmed(p.id);
                   }}
                 >
-                  {armed === p.id ? 'Remove?' : <Icon name="x" size={22} />}
+                  {armed === p.id ? 'Remove?' : 'Remove'}
                 </button>
               </div>
               {moving === p.id ? (

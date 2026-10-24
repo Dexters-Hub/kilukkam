@@ -2,7 +2,8 @@
 # Fetch the MediaPipe hand model and wasm into web/public/mediapipe.
 # They are 21 MB of binaries and are not versioned; see
 # web/public/mediapipe/CREDITS.md for sources, licence and hashes.
-# Run once after clone: sh scripts/fetch-mediapipe.sh
+# Runs before every build (npm run build), so deploys ship the model;
+# run it by hand after a clone for local dev: sh scripts/fetch-mediapipe.sh
 set -eu
 
 DIR="$(cd "$(dirname "$0")/.." && pwd)/web/public/mediapipe"
@@ -34,11 +35,18 @@ fi
 verify "$DIR/hand_landmarker.task" "$MODEL_SHA"
 
 if [ ! -f "$DIR/wasm/vision_wasm_internal.wasm" ]; then
-  echo "extracting wasm from $WASM_PKG (13 MB)"
-  TMP="$(mktemp -d)"
-  ( cd "$TMP" && npm pack "$WASM_PKG" --silent >/dev/null && tar -xzf ./*.tgz )
-  cp "$TMP/package/wasm/vision_wasm_internal.wasm" "$DIR/wasm/"
-  rm -rf "$TMP"
+  # After npm ci the pinned package is already installed: copy, no download.
+  LOCAL="$(cd "$(dirname "$0")/.." && pwd)/node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_internal.wasm"
+  if [ -f "$LOCAL" ]; then
+    echo "copying wasm from node_modules ($WASM_PKG)"
+    cp "$LOCAL" "$DIR/wasm/"
+  else
+    echo "extracting wasm from $WASM_PKG (13 MB)"
+    TMP="$(mktemp -d)"
+    ( cd "$TMP" && npm pack "$WASM_PKG" --silent >/dev/null && tar -xzf ./*.tgz )
+    cp "$TMP/package/wasm/vision_wasm_internal.wasm" "$DIR/wasm/"
+    rm -rf "$TMP"
+  fi
 fi
 verify "$DIR/wasm/vision_wasm_internal.wasm" "$WASM_SHA"
 

@@ -29,7 +29,14 @@ const looksLikeLink = (text: string): boolean => /open\.spotify\.com|^spotify:/i
 
 export function SpotifyCard() {
   const [signedIn, setSignedIn] = useState(isLoggedIn);
-  if (!spotifyAuth().configured) return null;
+  if (!spotifyAuth().configured) {
+    return (
+      <section className={s.card} aria-label="Spotify play-along">
+        <h2 className={s.name}>Play along to Spotify</h2>
+        <span className={s.muted}>Spotify is not switched on for this copy of Kilukkam yet. Pick one of the pieces for now; the host can turn Spotify on by adding the app's Spotify Client ID to the build.</span>
+      </section>
+    );
+  }
   if (!signedIn) return <SignIn />;
   return (
     <Connected
