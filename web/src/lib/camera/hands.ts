@@ -121,6 +121,16 @@ export function loadHandModel(opts: { delegate?: Delegate; assetBase?: string } 
   return job;
 }
 
+/**
+ * Start fetching and compiling the hand model in the background shortly after
+ * a conductor screen opens, so Start does not wait on an 11 MB download.
+ * Shaped for `useEffect(warmHandModel, [])`: returns its own cancel.
+ */
+export const warmHandModel = (): (() => void) => {
+  const id = window.setTimeout(() => void loadHandModel().catch(() => {}), 1200);
+  return () => window.clearTimeout(id);
+};
+
 const cameraError = (err: unknown): CameraError => {
   const name = err instanceof DOMException ? err.name : '';
   if (name === 'NotAllowedError' || name === 'SecurityError') return new CameraError('denied', 'Camera permission was refused.', { cause: err });

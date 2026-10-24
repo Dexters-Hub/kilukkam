@@ -35,9 +35,22 @@ const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   'Cross-Origin-Opener-Policy': 'same-origin',
 };
 
-function withSecurityHeaders(res: Response): Response {
+/**
+ * Browser caching. Vite names its build files by content, so they never
+ * change. The hand model, wasm and fonts keep their names; a day's cache with
+ * background revalidation spares the 11 MB download on every visit.
+ */
+function cacheControlFor(pathname: string): string | null {
+  if (pathname.startsWith('/assets/')) return 'public, max-age=31536000, immutable';
+  if (pathname.startsWith('/mediapipe/') || pathname.startsWith('/fonts/')) return 'public, max-age=86400, stale-while-revalidate=604800';
+  return null;
+}
+
+function withSecurityHeaders(res: Response, pathname: string): Response {
   const out = new Response(res.body, res);
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) out.headers.set(k, v);
+  const cache = res.ok ? cacheControlFor(pathname) : null;
+  if (cache) out.headers.set('Cache-Control', cache);
   return out;
 }
 
@@ -63,6 +76,6 @@ export default {
       if (!sameOrigin(request, url)) return new Response('Forbidden', { status: 403 });
       return openSession(env);
     }
-    return withSecurityHeaders(await env.ASSETS.fetch(request));
+    return withSecurityHeaders(await env.ASSETS.fetch(request), url.pathname);
   },
 } satisfies ExportedHandler<Env>;

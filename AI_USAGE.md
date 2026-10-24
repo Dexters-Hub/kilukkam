@@ -57,3 +57,4 @@ taste, and reviewed and accepted every change.
 | 2026-10-25 04:56 | (pending) | Claude session drew every icon on one sheet, found the duotone tints, and removed them. |
 | 2026-10-25 04:58 | (pending) | Claude session moved Start camera beside the heading and fixed the see-through header and the phone top bar. |
 | 2026-10-25 05:12 | (pending) | Claude session added the all-levels-cleared finale and Play again, checked with the demo hand. |
+| 2026-10-25 05:24 | (pending) | Claude session traced the slow camera start to a late 11 MB download and no browser caching, and added the background warm-up and cache headers. |

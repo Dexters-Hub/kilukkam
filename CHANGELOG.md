@@ -5,6 +5,12 @@ before the docs commit are backfilled from `git log`.
 
 ## Unreleased
 
+- 2026-10-25 05:24: The camera starts faster. The conductor's lobby and
+  stage fetch hand tracking (about 11 MB) in the background while the room
+  fills, the Worker lets browsers keep the build files for good and the
+  model, wasm and fonts for a day, and the button says "Loading hand
+  tracking…" while the graphics engine warms up.
+
 - 2026-10-25 05:12: Camera practice levels end. Clearing level 8 stops
   the guide and shows "All 8 levels cleared!" with your best streak and
   accuracy, plus a Play again button that starts from level 1.

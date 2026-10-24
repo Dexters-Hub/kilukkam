@@ -2,6 +2,7 @@ import { PIECES, type InstrumentId, type PlayerSnapshot, type RoomSnapshot, type
 import { useGSAP } from '@gsap/react';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { popInNew } from '../../lib/anim.js';
+import { warmHandModel } from '../../lib/camera/hands.js';
 import { playNote, unlockAudio } from '../../lib/audio.js';
 import { useKeyPlay } from '../../app/useKeyPlay.js';
 import { hitName, instrumentMeta } from '../../lib/music.js';
@@ -41,6 +42,8 @@ function ConductorLobby({ snap, piece }: { snap: RoomSnapshot; piece: Score }) {
   const count = snap.players.filter((p) => !p.conductor).length;
   const unassigned = groups.get(null) ?? [];
   const root = usePopIn(snap.players);
+  // The conductor may pick up the camera on stage: fetch hand tracking while the room fills.
+  useEffect(warmHandModel, []);
   return (
     <>
       <div ref={root} className={s.desk}>

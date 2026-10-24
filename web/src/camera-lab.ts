@@ -1070,7 +1070,7 @@ start.addEventListener('click', async () => {
   }
   unlockAudio();
   start.disabled = true;
-  status.textContent = 'Starting the camera…';
+  status.textContent = 'Loading hand tracking. The first time takes a few seconds…';
   try {
     tracking = await startHandTracking(video, onFrame, {
       numHands: 2,

@@ -9,7 +9,7 @@ import { demoHands } from '../../lib/camera/camdemo.js';
 import { createConductor, type Conductor, type ConductorCue, type CueSide, type Hold } from '../../lib/camera/conductor.js';
 import { drawCueZones, newZoneState } from '../../lib/camera/cueZones.js';
 import type { HandFrame } from '../../lib/camera/features.js';
-import { CameraError, startHandTracking, type HandTracking } from '../../lib/camera/hands.js';
+import { CameraError, startHandTracking, warmHandModel, type HandTracking } from '../../lib/camera/hands.js';
 import { PLAYALONG_ID } from '../../lib/spotify/playalong.js';
 import { SIDES, messagesFor, sectionsFor } from './gestureActions.js';
 import s from './CameraConductor.module.css';
@@ -83,6 +83,7 @@ export function CameraConductor({ room, onCamera }: { room: CameraRoom; onCamera
   const latest = useRef({ room, sections });
   latest.current = { room, sections };
 
+  useEffect(warmHandModel, []);
   useEffect(() => () => tracking.current?.stop(), []);
   useEffect(() => onCamera?.(on), [on, onCamera]);
   // The room is the truth: a pause from the button, or a resume, reaches the gesture reader too.
@@ -329,7 +330,7 @@ export function CameraConductor({ room, onCamera }: { room: CameraRoom; onCamera
           <div className={s.idle}>
             <Button variant="primary" disabled={busy} onClick={() => void start()}>
               <Icon name="hand-pointing" size={20} />
-              {busy ? 'Starting the camera…' : 'Use the camera'}
+              {busy ? 'Loading hand tracking…' : 'Use the camera'}
             </Button>
             <span>Video stays on this laptop.</span>
           </div>
