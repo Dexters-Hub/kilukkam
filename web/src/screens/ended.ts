@@ -1,5 +1,5 @@
-import type { Screen, ScreenFactory } from '../ui.js';
-import { avatar, h, hint, replace, topBar } from '../ui.js';
+import type { Screen, ScreenFactory } from '../ui/dom.js';
+import { avatar, h, hint, replace, topBar } from '../ui/dom.js';
 import { codeBlock } from './lobby.js';
 
 export const endedScreen: ScreenFactory = (s, a) => {

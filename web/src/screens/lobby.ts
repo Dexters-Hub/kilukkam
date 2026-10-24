@@ -1,9 +1,9 @@
 import { PIECES, type PlayerSnapshot, type Track } from '@kilukkam/shared';
-import { instrumentMeta, noteName } from '../music.js';
-import { me, myTrack, nextEvents, playersByTrack, type AppState } from '../store.js';
-import { popInNew } from '../anim.js';
-import type { Actions, Screen, ScreenFactory } from '../ui.js';
-import { avatar, cx, h, hint, replace, topBar } from '../ui.js';
+import { instrumentMeta, noteName } from '../lib/music.js';
+import { me, myTrack, nextEvents, playersByTrack, type AppState } from '../lib/store.js';
+import { popInNew } from '../lib/anim.js';
+import type { Actions, Screen, ScreenFactory } from '../ui/dom.js';
+import { avatar, cx, h, hint, replace, topBar } from '../ui/dom.js';
 
 export function codeBlock(code: string, conductor: boolean): HTMLElement {
   return h(

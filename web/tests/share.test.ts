@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { joinBase, joinLink, prettyLink } from '../src/share.js';
+import { joinBase, joinLink, prettyLink } from '../src/lib/share.js';
 
 const loc = (host: string, protocol = 'http:') => ({ protocol, host, hostname: host.replace(/:\d+$/, '') });
 

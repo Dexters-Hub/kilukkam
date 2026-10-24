@@ -5,76 +5,87 @@ every milestone.
 
 ## What we're building
 
-Hackathon entry for track **"4. Make room for play"**: build something
-people want to *experience*, a game played across everyone's phones in the
-room. Kilukkam turns a room of up to 100 phones into an orchestra. One
-conductor opens a room, friends join with a 4-letter code, each picks an
-instrument, and every tap plays that phone's next note. The humans are the
-timing. It must be fun, intuitive, and understandable in 3 seconds.
+Hackathon entry for track **"4. Make room for play"** (DevDay Exchange
+template: github.com/anima-regem/devday-kochi-hackathon-template). Something
+people want to *experience*: a game played across everyone's phones in the
+room. It must feel like a game or a tool, not a learning platform.
 
-## Status, 2026-10-24
+Tagline (owner, verbatim): "Kilukkam (കിലുക്കം) turns a room full of phones
+into an orchestra: one conductor, one entry code, and every tap plays the next
+note of any song, together."
 
-- `shared/` green: protocol v1 + validators, score format, Canon in D and
-  Ode to Joy. `MAX_AVATAR_LEN` raised to 24 for composer ids. The protocol
-  is gaining `ensemble_pulse` (~4 Hz per-track tap counts to everyone) and
-  `room_closed` (sent before sockets close).
-- `server/` green (committed `f91f319`): socket-free `RoomEngine` + thin
-  `ws` adapter on :8787, path `/ws`.
-- `web/` green, uncommitted: Vite + vanilla TS SPA on :5173 (proxies `/ws`).
-  Screens: home, create, join, lobby, play, stage (conductor), ended.
-  WebAudio synth voices, GSAP motion, composer avatars, Space Grotesk and
-  Inter fonts, first-run coach-mark.
+## Status, 2026-10-24 (evening)
+
+- `shared/` green: protocol v1 + validators, `ensemble_pulse`, `room_closed`,
+  conductor dynamics and section mute, custom-piece upload (Devin).
+- `server/` green: socket-free `RoomEngine` + `ws` adapter (:8787, `/ws`),
+  delete-on-disconnect, mid-piece re-pick, echo to conductor only, token
+  bucket, same-origin check.
+- `web/` green: Vite SPA (:5173), vanilla TS, mid-overhaul. Sunset palette,
+  handbell logo, composer portraits, Phosphor icons, playable home "stage",
+  game-PIN join, QR encoder, LAN join links, recording core (WAV/MIDI).
+- Sync matrix (`scripts/room-sim.ts`, real server, human jitter): 13/13 pass,
+  1 to 100 phones, both pieces, drops and rejoins, 4x stress. Zero missing,
+  duplicate or out-of-order notes; every chord in time; p99 ≤ 4.5 ms.
+- Commits: 5 local commits by Devin, push authorised by the owner.
 
 ## Owner rules (locked)
 
 - Never mention the private inspiration projects anywhere in the repo,
   code, comments, commits, or docs.
-- Commits authored as the repo owner (Alwin John), professional style.
-- Local-first: no deploy, no external services, no secrets in repo.
-- **No em dashes** anywhere: UI copy, docs, comments, commits. Use a colon,
-  comma, semicolon or full stop.
-- **Zero visible borders/outlines** anywhere. Separation comes from surface
-  colour, radius and soft shadow. Focus is an accent glow, never a 1px line.
-- Motion through **GSAP**, tasteful and light, and it honours
-  `prefers-reduced-motion`.
-- Avatars are **great composers** (Bach … Clara Schumann, A.R. Rahman)
-  rendered as monogram discs, not generic emoji.
-- Typography: modern and minimal. Space Grotesk for display, Inter for
-  body, system Malayalam fallback for the wordmark.
-- First-time clarity: a 3-step explainer on home, a micro-hint on every
-  screen, and copy that says "instrument", never "track".
-- Modern, idiomatic, strict TS. User strings via `textContent` only. No dead
-  code.
+- Commits and pushes are done by Devin only, authored as the repo owner
+  (Alwin John), after every milestone. Workers never run git add/commit/push.
+- No secrets in the repo. Deploys need the owner's explicit confirmation.
+- **No em dashes** anywhere. `npm run check:dashes` must pass.
+- **Zero visible borders/outlines.** Surface colour, radius, soft shadow.
+- **Calm CTAs:** one solid accent pill per view plus a text link. No
+  full-width gradient buttons, glow or repeated CTAs.
+- Motion through **GSAP**, light, honours `prefers-reduced-motion`.
+- Avatars: the 12-composer roster with real portraits (Wikimedia; credits in
+  `web/public/composers/CREDITS.md`, A.R. Rahman photo is CC BY-SA 4.0).
+- Type: Space Grotesk (display), Inter (body), Nupuram Calligraphy Bold for
+  the Malayalam wordmark (OFL). Never clip Malayalam.
+- Icons: Phosphor duotone (MIT), vendored; no emoji as UI icons.
+- Footer: "Built by Dexters-Hub" + GitHub. No Buy Me a Coffee / Product Hunt.
+- Copy: few words, big type, "instrument" never "track".
 - Phones first: tap targets ≥ 64px, safe areas, no hover-only affordances.
+- Full rule set and review checklist: `.claude/skills/kilukkam-design`.
+  Verification gate: `.claude/skills/kilukkam-verify`.
 
-## Known issues / decisions in flight
+## Decisions
 
-- Ghost players: disconnected players are never removed, so a flaky phone
-  multiplies in the roster. Fix: delete on disconnect, and allow re-picking
-  an instrument mid-piece so a dropped phone can rejoin.
-- `note_echo` fan-out is 100× per tap. Fix: raw echoes go to the conductor
-  only, everyone else gets the `ensemble_pulse` aggregate.
-- Room close was silent; `room_closed` fixes it.
-- `set_piece` is accepted from `ended` and returns to the lobby. The web
-  ended screen should offer "Choose another piece".
+- 2026-10-24: web/ moves to **React 19 + Vite + CSS Modules on design
+  tokens** (owner choice). Feature folders under `src/features/`, shared
+  components in `src/components/`, framework-free engine in `src/lib/`
+  (audio, net, recording, midi, qr, music). The tap path never waits on
+  React: gesture handlers call audio directly; live visuals run on refs/GSAP.
+- Gestures: tap (written length), hold (sustain), slide up/down (swell),
+  wiggle (vibrato), shake (opt-in). Notes are sent on touch-down.
+- 2026-10-24: scope widens from classical to **any song** (owner). Song
+  input: MIDI upload + auto-arrange, new synth voices (drums, bass, lead,
+  pad, marimba, choir, claps), hum it, MP3 to notes (Basic Pitch). Test
+  corpus: public-domain classical MIDI (Mutopia). Classical stays the
+  signature (composer avatars, Pachelbel demo).
+- Playlists (Spotify etc.): metadata + Premium playback only, no notes, so
+  songs with notes play as a full ensemble and any other song uses
+  play-along mode (conductor mic detects beat + key, phones get rhythm,
+  bass and chord parts). Protocol asks (`beat`, mode, queue) sent to Devin.
+  Owner creates the Spotify developer app (client ID only, no secret).
+- Cloudflare: one Worker serving web/dist plus a Durable Object hosting the
+  same RoomEngine, deployed by Workers Builds on push. Pending a worker.
 
 ## Ownership (Orca run `run_86dcc70d4f45`)
 
-- Coordinator: Devin. Owns `shared/` contract changes and docs/PROTOCOL.md.
-- Ensemble worker (`term_8671aecb`): server scale fixes plus web handling
-  of `ensemble_pulse` / `room_closed`. Owns `server/` and `web/` while
-  active.
-- QA lead + gap owner (`term_61bc4fb3`): e2e verification, MEMORY.md
-  upkeep, the demo/presentation page (`docs/demo/`). Small web gaps wait
-  until the ensemble worker settles.
+- Coordinator: Devin. Owns shared/ and server/ contracts, docs/, commits.
+- QA lead + web owner (`term_61bc4fb3`): web/ end to end, the pitch deck
+  (`web/demo.html`), MEMORY.md, verification and the project skills.
 
 ## Open threads
 
-- [ ] Server: delete-on-disconnect, mid-piece re-pick, `ensemble_pulse`,
-  `room_closed`, echo-to-conductor-only, per-socket rate limit
-- [ ] Web: handle `ensemble_pulse` / `room_closed`; ended → "Choose
-  another piece"
-- [ ] Playwright e2e: conductor + 2 players, full loop
-- [ ] Demo / presentation page for the pitch, updated as features land
-- [ ] QR code for the join link
+- [ ] web/: React migration, then gestures on the play screen, conductor
+  create and lobby (interactive, live), stage console (dynamics, mute),
+  ended screen with record, mix and share, MIDI song import UI
+- [ ] README launch-grade + template docs (dispatched to a Devin worker)
+- [ ] Cloudflare worker/ adapter (dispatched to a Devin worker)
+- [ ] Two-phone browser e2e pass on every flow, light and dark
 - [ ] Sampled instruments upgrade (post-MVP)

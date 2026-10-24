@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { beatsToSeconds, midiToFreq, noteName } from '../src/music.js';
+import { beatsToSeconds, midiToFreq, noteName } from '../src/lib/music.js';
 
 describe('midiToFreq', () => {
   it('maps A4 to 440 Hz', () => {

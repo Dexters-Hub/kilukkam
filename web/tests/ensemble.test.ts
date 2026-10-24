@@ -1,6 +1,6 @@
 import type { RoomSnapshot } from '@kilukkam/shared';
 import { describe, expect, it } from 'vitest';
-import { pulseBumps, rejoinPlan, type Session } from '../src/store.js';
+import { pulseBumps, rejoinPlan, type Session } from '../src/lib/store.js';
 
 describe('pulseBumps', () => {
   const first = () => 0; // always pick the first remaining id

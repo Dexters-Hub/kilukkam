@@ -1,8 +1,8 @@
 import { CODE_LEN, MAX_NAME_LEN } from '@kilukkam/shared';
-import { COMPOSERS, pickComposer } from '../composers.js';
-import { isCompleteCode, normalizeCode, normalizeName } from '../store.js';
-import type { Screen, ScreenFactory } from '../ui.js';
-import { avatar, h, hint, readPref, replace, topBar, writePref } from '../ui.js';
+import { COMPOSERS, pickComposer } from '../data/composers.js';
+import { isCompleteCode, normalizeCode, normalizeName } from '../lib/store.js';
+import type { Screen, ScreenFactory } from '../ui/dom.js';
+import { avatar, h, hint, readPref, replace, topBar, writePref } from '../ui/dom.js';
 
 const AVATAR_PREF = 'kilukkam.avatar';
 const NAME_PREF = 'kilukkam.name';

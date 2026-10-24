@@ -1,8 +1,8 @@
-import { bump, coachIn, coachOut, dud, noteHit } from '../anim.js';
-import { instrumentMeta, noteName } from '../music.js';
-import { myTrack, nextEvents, playersByTrack, progress, pulseBumps, skipRests, type AppState } from '../store.js';
-import type { EnsemblePulse, ScreenFactory } from '../ui.js';
-import { avatar, h, readPref, replace, writePref } from '../ui.js';
+import { bump, coachIn, coachOut, dud, noteHit } from '../lib/anim.js';
+import { instrumentMeta, noteName } from '../lib/music.js';
+import { myTrack, nextEvents, playersByTrack, progress, pulseBumps, skipRests, type AppState } from '../lib/store.js';
+import type { EnsemblePulse, ScreenFactory } from '../ui/dom.js';
+import { avatar, h, readPref, replace, writePref } from '../ui/dom.js';
 
 const COACHED_PREF = 'kilukkam.coached';
 /** Dots shown per instrument in the room view before collapsing into "+n" */

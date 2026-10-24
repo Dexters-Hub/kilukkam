@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { qrEncode, qrPath } from '../src/qr.js';
+import { qrEncode, qrPath } from '../src/lib/qr.js';
 
 // Decoding was verified against the browser's native BarcodeDetector; these
 // pin the structure so a refactor can't silently break scanning.

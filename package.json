@@ -2,7 +2,7 @@
   "name": "kilukkam",
   "private": true,
   "version": "0.1.0",
-  "description": "A room full of phones becomes an orchestra. One conductor, one code, one classical piece.",
+  "description": "Kilukkam turns a room full of phones into an orchestra: one conductor, one entry code, and every tap plays the next note of any song, together.",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -16,7 +16,10 @@
     "dev": "npm run dev --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "sim": "tsx scripts/room-sim.ts",
+    "shot": "node scripts/shot.mjs",
+    "check:dashes": "! grep -rIn --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.playwright-mcp --exclude-dir=dist '\u2014' ."
   },
   "devDependencies": {
     "typescript": "~5.9.3",

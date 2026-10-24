@@ -1,5 +1,6 @@
 import type { InstrumentId } from '@kilukkam/shared';
 import { beatsToSeconds, midiToFreq } from './music.js';
+import { BANKS_FOR, BANK_NOTES, SHAPES, TONE, loopRegion, nearestSample, pickBank, rateFor, sampleUrl, shapeFor, type BankId } from './samples.js';
 
 // WebAudio synth voices, no samples. Each note builds a short-lived graph:
 //   voice → expression (slide to swell) → gate (lift to release) → out
@@ -83,16 +84,15 @@ const envelope = (g: AudioParam, t0: number, hold: number, peak: number, env: En
 interface Built {
   sources: AudioScheduledSourceNode[];
   nodes: AudioNode[];
-  /** Vibrato depth control, null for instruments without vibrato */
-  vibrato: GainNode | null;
-  vibratoBase: number;
+  /** Wiggle gesture: widen the vibrato, 0 to 1 */
+  wobble: (amount: number, now: number) => void;
   /** Seconds the voice takes to ring off once released */
   release: number;
   end: number;
 }
 
 /** Sine LFO on oscillator frequency, faded in after `delay` like a player's vibrato. */
-const vibrato = (c: BaseAudioContext, targets: OscillatorNode[], t0: number, end: number, rate: number, depthHz: number, delay: number) => {
+const vibrato = (c: BaseAudioContext, targets: OscillatorNode[], t0: number, rate: number, depthHz: number, delay: number) => {
   const lfo = c.createOscillator();
   lfo.frequency.value = rate;
   const depth = c.createGain();
@@ -101,8 +101,7 @@ const vibrato = (c: BaseAudioContext, targets: OscillatorNode[], t0: number, end
   depth.gain.linearRampToValueAtTime(depthHz, t0 + delay + 0.25);
   lfo.connect(depth);
   for (const o of targets) depth.connect(o.frequency);
-  lfo.start(t0);
-  lfo.stop(end);
+  // Started and stopped with the voice's other sources by the caller.
   return { lfo, depth };
 };
 
@@ -132,8 +131,9 @@ const bowed = (c: BaseAudioContext, dest: AudioNode, f: number, t0: number, hold
   mix.connect(lp).connect(vca).connect(dest);
 
   const base = f * (dark ? 0.004 : 0.006);
-  const vib = vibrato(c, [a, b], t0, end, dark ? 4.8 : 5.6, base, 0.18);
-  return { sources: [a, b, vib.lfo], nodes: [mix, lp, vca, vib.depth], vibrato: vib.depth, vibratoBase: base, release: env.release, end };
+  const vib = vibrato(c, [a, b], t0, dark ? 4.8 : 5.6, base, 0.18);
+  const wobble = (amount: number, now: number) => vib.depth.gain.setTargetAtTime(base * (1 + amount * 4), now, 0.05);
+  return { sources: [a, b, vib.lfo], nodes: [mix, lp, vca, vib.depth], wobble, release: env.release, end };
 };
 
 const flute = (c: BaseAudioContext, dest: AudioNode, f: number, t0: number, hold: number, peak: number): Built => {
@@ -153,7 +153,7 @@ const flute = (c: BaseAudioContext, dest: AudioNode, f: number, t0: number, hold
   harm.connect(hg).connect(vca);
   vca.connect(dest);
   const base = f * 0.004;
-  const vib = vibrato(c, [o, harm], t0, end, 4.6, base, 0.22);
+  const vib = vibrato(c, [o, harm], t0, 4.6, base, 0.22);
 
   // Breath: band-passed noise, loudest in the chiff then settling low.
   const n = c.createBufferSource();
@@ -171,7 +171,8 @@ const flute = (c: BaseAudioContext, dest: AudioNode, f: number, t0: number, hold
   ng.gain.exponentialRampToValueAtTime(0.0001, end);
   n.connect(bp).connect(ng).connect(dest);
 
-  return { sources: [o, harm, n, vib.lfo], nodes: [hg, vca, bp, ng, vib.depth], vibrato: vib.depth, vibratoBase: base, release: env.release, end };
+  const wobble = (amount: number, now: number) => vib.depth.gain.setTargetAtTime(base * (1 + amount * 4), now, 0.05);
+  return { sources: [o, harm, n, vib.lfo], nodes: [hg, vca, bp, ng, vib.depth], wobble, release: env.release, end };
 };
 
 const piano = (c: BaseAudioContext, dest: AudioNode, f: number, t0: number, hold: number, peak: number): Built => {
@@ -203,12 +204,138 @@ const piano = (c: BaseAudioContext, dest: AudioNode, f: number, t0: number, hold
     nodes.push(g);
   }
   lp.connect(vca).connect(dest);
-  return { sources, nodes, vibrato: null, vibratoBase: 0, release: 0.25, end };
+  return { sources, nodes, wobble: () => {}, release: 0.25, end };
+};
+
+// ---------- recorded instruments ----------
+
+type Bank = Map<number, AudioBuffer>;
+const banks = new Map<BankId, Bank>();
+const loading = new Map<InstrumentId, Promise<boolean>>();
+
+const fetchBank = async (decoder: BaseAudioContext, bank: BankId): Promise<Bank> => {
+  const out: Bank = new Map();
+  await Promise.all(
+    BANK_NOTES[bank].map(async (midi) => {
+      const res = await fetch(sampleUrl(bank, midi));
+      if (!res.ok) throw new Error(`sample ${bank}/${midi}: ${res.status}`);
+      out.set(midi, await decoder.decodeAudioData(await res.arrayBuffer()));
+    }),
+  );
+  return out;
+};
+
+/**
+ * Fetch and decode an instrument's recordings: the sustained bank first (the
+ * phone can play as soon as it lands), then its short and soft articulations.
+ * Decoding runs on an offline context so it can start before any user gesture.
+ * Resolves false (synth fallback) if the main bank fails.
+ */
+export function preloadInstrument(instrument: InstrumentId): Promise<boolean> {
+  const pending = loading.get(instrument);
+  if (pending) return pending;
+  const job = (async () => {
+    const Offline = (window as { OfflineAudioContext?: typeof OfflineAudioContext }).OfflineAudioContext;
+    if (!Offline) return false;
+    const decoder = new Offline(1, 1, 44100);
+    const [main, ...extras] = BANKS_FOR[instrument];
+    if (!main) return false;
+    banks.set(main, await fetchBank(decoder, main));
+    for (const bank of extras) {
+      fetchBank(decoder, bank).then(
+        (b) => banks.set(bank, b),
+        (err: unknown) => console.warn(`Optional articulation ${bank} unavailable`, err),
+      );
+    }
+    return true;
+  })().catch((err: unknown) => {
+    console.warn('Using synth voice; samples failed to load', err);
+    loading.delete(instrument);
+    return false;
+  });
+  loading.set(instrument, job);
+  return job;
+}
+
+export const instrumentReady = (instrument: InstrumentId): boolean => banks.has(instrument);
+
+/** Shelving EQ (and an optional stage position) that gives each instrument its colour. */
+const toneChain = (c: BaseAudioContext, instrument: InstrumentId, dest: AudioNode, spread: boolean): { input: AudioNode; nodes: AudioNode[] } => {
+  const tone = TONE[instrument];
+  const low = c.createBiquadFilter();
+  low.type = 'lowshelf';
+  low.frequency.value = tone.low.freq;
+  low.gain.value = tone.low.gain;
+  const high = c.createBiquadFilter();
+  high.type = 'highshelf';
+  high.frequency.value = tone.high.freq;
+  high.gain.value = tone.high.gain;
+  low.connect(high);
+  const nodes: AudioNode[] = [low, high];
+  if (spread && 'createStereoPanner' in c) {
+    const pan = c.createStereoPanner();
+    pan.pan.value = tone.pan;
+    high.connect(pan).connect(dest);
+    nodes.push(pan);
+  } else {
+    high.connect(dest);
+  }
+  return { input: low, nodes };
+};
+
+interface NoteSpec {
+  /** Written length in seconds, used to pick an articulation */
+  seconds: number;
+  velocity: number;
+  held: boolean;
+  /** Place the instrument on the stereo stage (recordings), instead of the centre (a phone speaker) */
+  spread: boolean;
+}
+
+const sampled = (c: BaseAudioContext, dest: AudioNode, instrument: InstrumentId, midi: number, t0: number, hold: number, gain: number, spec: NoteSpec): Built | null => {
+  if (!banks.has(instrument)) return null;
+  const bankId = pickBank(instrument, spec.seconds, spec.velocity, spec.held, (b) => banks.has(b));
+  const bank = banks.get(bankId);
+  const from = bank && nearestSample(BANK_NOTES[bankId], midi);
+  const buffer = from === undefined ? undefined : bank?.get(from);
+  if (!buffer || from === undefined) return null;
+  const shape = shapeFor(bankId, instrument);
+
+  const src = c.createBufferSource();
+  src.buffer = buffer;
+  src.playbackRate.value = rateFor(from, midi);
+  const playable = buffer.duration / src.playbackRate.value;
+  const loop = shape.loops && hold > playable - 0.5 ? loopRegion(buffer.duration) : null;
+  if (loop) {
+    src.loop = true;
+    src.loopStart = loop.start;
+    src.loopEnd = loop.end;
+  }
+  // Piano rings on its own; the others hold their level for the written or held length.
+  const sustainEnd = t0 + Math.max(shape.attack, shape.loops ? hold : Math.min(hold, playable));
+  const end = Math.min(sustainEnd + shape.release, loop ? Infinity : t0 + playable);
+  const vca = c.createGain();
+  vca.gain.setValueAtTime(0, t0);
+  vca.gain.linearRampToValueAtTime(gain, t0 + shape.attack);
+  vca.gain.setValueAtTime(gain, sustainEnd);
+  vca.gain.exponentialRampToValueAtTime(0.0001, Math.max(sustainEnd + 0.01, end));
+
+  // The recordings already carry a player's vibrato; the wiggle gesture adds more.
+  const lfo = c.createOscillator();
+  lfo.frequency.value = 5.5;
+  const depth = c.createGain();
+  depth.gain.value = 0;
+  lfo.connect(depth).connect(src.detune);
+  const tone = toneChain(c, instrument, dest, spec.spread);
+  src.connect(vca).connect(tone.input);
+  const wobble = (amount: number, now: number) => depth.gain.setTargetAtTime(amount * 35, now, 0.05);
+  return { sources: [src, lfo], nodes: [vca, depth, ...tone.nodes], wobble, release: shape.release, end };
 };
 
 const LEVEL: Record<InstrumentId, number> = { violin: 1, cello: 1.15, flute: 1, piano: 1.1 };
 
-const build = (c: BaseAudioContext, dest: AudioNode, instrument: InstrumentId, f: number, t0: number, hold: number, peak: number): Built => {
+/** Synth voice: always available, used until (or if) the recordings load. */
+const synth = (c: BaseAudioContext, dest: AudioNode, instrument: InstrumentId, f: number, t0: number, hold: number, peak: number): Built => {
   switch (instrument) {
     case 'violin':
       return bowed(c, dest, f, t0, hold, peak, false);
@@ -220,6 +347,10 @@ const build = (c: BaseAudioContext, dest: AudioNode, instrument: InstrumentId, f
       return piano(c, dest, f, t0, hold, peak);
   }
 };
+
+const build = (c: BaseAudioContext, dest: AudioNode, instrument: InstrumentId, midi: number, t0: number, hold: number, velocity: number, level: number, spec: NoteSpec): Built =>
+  sampled(c, dest, instrument, midi, t0, hold, 1.6 * SHAPES[instrument].level * level * Math.min(1, Math.max(0.1, velocity / 127)), spec) ??
+  synth(c, dest, instrument, midiToFreq(midi), t0, hold, peakFor(instrument, velocity, level));
 
 const peakFor = (instrument: InstrumentId, velocity: number, level = 1): number =>
   0.32 * LEVEL[instrument] * level * Math.min(1, Math.max(0.1, velocity / 127));
@@ -255,13 +386,14 @@ export function playNote(instrument: InstrumentId, midi: number, beats: number, 
   const gate = c.createGain();
   const expr = c.createGain();
   expr.connect(gate).connect(out);
-  const v = build(c, expr, instrument, midiToFreq(midi), t0, hold, peakFor(instrument, velocity, opts.level));
+  const v = build(c, expr, instrument, midi, t0, hold, velocity, opts.level ?? 1, { seconds: written, velocity, held: opts.held ?? false, spread: false });
   const all = [...v.nodes, expr, gate];
   const last = v.sources[0];
   if (last) last.onended = () => all.forEach((n) => n.disconnect());
   for (const s of v.sources) {
     s.start(t0);
-    s.stop(v.end);
+    if (Number.isFinite(v.end)) s.stop(v.end);
+    else s.stop(t0 + MAX_HOLD + 2);
   }
 
   let released = !opts.held;
@@ -281,16 +413,17 @@ export function playNote(instrument: InstrumentId, midi: number, beats: number, 
       }
     },
     express: (level) => expr.gain.setTargetAtTime(Math.max(0.3, Math.min(1.6, level)), c.currentTime, 0.06),
-    wobble: (amount) => v.vibrato?.gain.setTargetAtTime(v.vibratoBase * (1 + Math.max(0, Math.min(1, amount)) * 4), c.currentTime, 0.05),
+    wobble: (amount) => v.wobble(Math.max(0, Math.min(1, amount)), c.currentTime),
   };
 }
 
 /** Schedule a note at an exact time on any context: used to render recordings offline. */
-export function renderNote(c: BaseAudioContext, dest: AudioNode, instrument: InstrumentId, midi: number, beats: number, bpm: number, t0: number, velocity = 96, level = 1): void {
-  const v = build(c, dest, instrument, midiToFreq(midi), t0, noteSeconds(beats, bpm), peakFor(instrument, velocity, level));
+export function renderNote(c: BaseAudioContext, dest: AudioNode, instrument: InstrumentId, midi: number, beats: number, bpm: number, t0: number, velocity = 96, level = 1, spread = true): void {
+  const seconds = noteSeconds(beats, bpm);
+  const v = build(c, dest, instrument, midi, t0, seconds, velocity, level, { seconds, velocity, held: false, spread });
   for (const s of v.sources) {
     s.start(t0);
-    s.stop(v.end);
+    s.stop(Number.isFinite(v.end) ? v.end : t0 + MAX_HOLD + 2);
   }
 }
 

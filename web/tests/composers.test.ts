@@ -1,6 +1,6 @@
 import { MAX_AVATAR_LEN } from '@kilukkam/shared';
 import { describe, expect, it } from 'vitest';
-import { COMPOSERS, composerFor, pickComposer } from '../src/composers.js';
+import { COMPOSERS, composerFor, pickComposer } from '../src/data/composers.js';
 
 describe('COMPOSERS', () => {
   it('has unique ids that fit the wire avatar limit', () => {

@@ -1,6 +1,6 @@
 import { getPiece } from '@kilukkam/shared';
 import { describe, expect, it } from 'vitest';
-import { Recorder, channelGains, defaultMix, encodeMidi, encodeWav, takeFileName, takeLength, takeNotes, vlq } from '../src/recording.js';
+import { Recorder, channelGains, defaultMix, encodeMidi, encodeWav, takeFileName, takeLength, takeNotes, vlq } from '../src/lib/recording.js';
 
 const ode = getPiece('ode-to-joy');
 if (!ode) throw new Error('ode-to-joy missing');

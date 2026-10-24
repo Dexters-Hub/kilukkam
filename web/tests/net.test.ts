@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { backoffDelay, wsUrl } from '../src/net.js';
+import { backoffDelay, wsUrl } from '../src/lib/net.js';
 
 describe('wsUrl', () => {
   it('uses the page host and /ws', () => {

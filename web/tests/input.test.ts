@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isCompleteCode, normalizeCode, normalizeName } from '../src/store.js';
+import { isCompleteCode, normalizeCode, normalizeName } from '../src/lib/store.js';
 
 describe('normalizeCode', () => {
   it('uppercases and trims to 4', () => {

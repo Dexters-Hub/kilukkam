@@ -2,10 +2,10 @@ import '@fontsource-variable/space-grotesk';
 import '@fontsource-variable/inter';
 import './style.css';
 import type { ClientMessage, RoomSnapshot, ServerMessage } from '@kilukkam/shared';
-import { enterScreen } from './anim.js';
-import { playNote, thunk, unlockAudio } from './audio.js';
-import { CONDUCTOR_AVATAR } from './composers.js';
-import { Net, wsUrl } from './net.js';
+import { enterScreen } from './lib/anim.js';
+import { playNote, preloadInstrument, thunk, unlockAudio } from './lib/audio.js';
+import { CONDUCTOR_AVATAR } from './data/composers.js';
+import { Net, wsUrl } from './lib/net.js';
 import { createScreen } from './screens/create.js';
 import { endedScreen } from './screens/ended.js';
 import { homeScreen } from './screens/home.js';
@@ -27,8 +27,8 @@ import {
   skipRests,
   type AppState,
   type ScreenKey,
-} from './store.js';
-import { h, toast, type Actions, type Screen, type ScreenFactory } from './ui.js';
+} from './lib/store.js';
+import { h, toast, type Actions, type Screen, type ScreenFactory } from './ui/dom.js';
 
 const SCREENS: Record<ScreenKey, ScreenFactory> = {
   home: homeScreen,
@@ -234,6 +234,9 @@ function applySnapshot(snap: RoomSnapshot): void {
   }
   if (snap.phase === 'ended' && s.snapshot?.phase !== 'ended') next.runNotes = runNotes;
   store.set(next);
+  // Fetch this phone's real instrument recordings as soon as its part is known.
+  const track = myTrack(store.state);
+  if (track) void preloadInstrument(track.instrument);
 }
 
 /** The server is done with us (kicked, room closed): drop the room and start a fresh anonymous socket. */
@@ -288,7 +291,12 @@ const actions: Actions = {
       navigator.vibrate?.(HAPTIC_DUD);
       return false;
     }
-    playNote(track.instrument, ev.midi, ev.beats, piece.bpm, ev.velocity);
+    try {
+      playNote(track.instrument, ev.midi, ev.beats, piece.bpm, ev.velocity);
+    } catch (err) {
+      // A sound glitch must never stall the room: the note still counts and the cursor moves on.
+      console.error('playNote failed', err);
+    }
     // Fire-and-forget: the note already sounded locally, a dropped echo is fine.
     net.send({ type: 'note_played', noteIndex: at });
     navigator.vibrate?.(HAPTIC_NOTE);

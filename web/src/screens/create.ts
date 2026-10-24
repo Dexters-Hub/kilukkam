@@ -1,7 +1,7 @@
 import { PIECES } from '@kilukkam/shared';
-import { instrumentMeta } from '../music.js';
-import type { Screen, ScreenFactory } from '../ui.js';
-import { h, hint, topBar } from '../ui.js';
+import { instrumentMeta } from '../lib/music.js';
+import type { Screen, ScreenFactory } from '../ui/dom.js';
+import { h, hint, topBar } from '../ui/dom.js';
 
 export const createScreen: ScreenFactory = (s, a) => {
   const cards = PIECES.map((p) =>

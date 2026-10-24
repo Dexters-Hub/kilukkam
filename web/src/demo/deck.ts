@@ -4,9 +4,9 @@ import '../style.css';
 import './deck.css';
 import { gsap } from 'gsap';
 import { MAX_PLAYERS, PIECES, type InstrumentId } from '@kilukkam/shared';
-import { COMPOSERS } from '../composers.js';
-import { INSTRUMENTS, noteName } from '../music.js';
-import { avatar, h, wordmark } from '../ui.js';
+import { COMPOSERS } from '../data/composers.js';
+import { INSTRUMENTS, noteName } from '../lib/music.js';
+import { avatar, h, wordmark } from '../ui/dom.js';
 import { slideFromHash } from './nav.js';
 
 // The pitch deck. Every number on it is read from the real piece library
@@ -88,7 +88,7 @@ const SLIDES: readonly Slide[] = [
         'slide-idea',
         kicker('The idea'),
         title('A handbell choir, made of phones.'),
-        lede('Each phone holds one part of a real classical piece. Every tap plays your next note. No timing judgement, no scrolling lanes: the people in the room are the tempo.'),
+        lede('Each phone holds one part of a song, from Pachelbel to your playlist. Every tap plays your next note. No timing judgement, no scrolling lanes: the people in the room are the tempo.'),
         h(
           'div',
           { class: 'phones reveal', 'aria-hidden': 'true' },

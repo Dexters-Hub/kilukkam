@@ -1,8 +1,8 @@
-import { instrumentMeta } from '../music.js';
-import { playersByTrack, type AppState } from '../store.js';
-import { bump, burst, lanePulse, popInNew } from '../anim.js';
-import type { NoteEcho, ScreenFactory } from '../ui.js';
-import { avatar, h, replace } from '../ui.js';
+import { instrumentMeta } from '../lib/music.js';
+import { playersByTrack, type AppState } from '../lib/store.js';
+import { bump, burst, lanePulse, popInNew } from '../lib/anim.js';
+import type { NoteEcho, ScreenFactory } from '../ui/dom.js';
+import { avatar, h, replace } from '../ui/dom.js';
 import { holdWakeLock } from './play.js';
 
 // Conductor's view while playing: one lane per instrument. Every note_echo

@@ -1,12 +1,12 @@
 import { CODE_LEN, PIECES, type InstrumentId, type Score, type ScoreEvent } from '@kilukkam/shared';
-import { floatNote, marquee, revealOnScroll, ring, swapText } from '../anim.js';
-import { playNote, unlockAudio } from '../audio.js';
-import { COMPOSERS } from '../composers.js';
-import { icon, type IconName } from '../icons.js';
-import { INSTRUMENTS, noteName } from '../music.js';
-import { advanceCursor, isCompleteCode, normalizeCode, skipRests } from '../store.js';
-import type { Screen, ScreenFactory } from '../ui.js';
-import { avatar, h, replace, wordmark } from '../ui.js';
+import { floatNote, marquee, revealOnScroll, ring, swapText } from '../lib/anim.js';
+import { playNote, preloadInstrument, unlockAudio } from '../lib/audio.js';
+import { COMPOSERS } from '../data/composers.js';
+import { icon, type IconName } from '../ui/icons.js';
+import { INSTRUMENTS, noteName } from '../lib/music.js';
+import { advanceCursor, isCompleteCode, normalizeCode, skipRests } from '../lib/store.js';
+import type { Screen, ScreenFactory } from '../ui/dom.js';
+import { avatar, h, replace, wordmark } from '../ui/dom.js';
 
 // The landing page is the game: a playable instrument above the fold and a
 // game-PIN box to jump into a room. Words are kept to a minimum.
@@ -67,6 +67,7 @@ const tryPad = (piece: Score | undefined, onInstrument: (id: InstrumentId) => vo
             if (id === instrument) return;
             instrument = id;
             cursor = 0;
+            void preloadInstrument(id);
             onInstrument(id);
             paint();
           },
@@ -100,6 +101,7 @@ const tryPad = (piece: Score | undefined, onInstrument: (id: InstrumentId) => vo
     paint();
   });
 
+  void preloadInstrument(instrument);
   paint();
   return stage;
 };

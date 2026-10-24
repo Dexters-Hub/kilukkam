@@ -1,6 +1,6 @@
 import { note, rest, type ScoreEvent } from '@kilukkam/shared';
 import { describe, expect, it } from 'vitest';
-import { advanceCursor, nextEvents, progress, skipRests } from '../src/store.js';
+import { advanceCursor, nextEvents, progress, skipRests } from '../src/lib/store.js';
 
 // rest, C4, rest, rest, D4, E4, rest
 const EVENTS: ScoreEvent[] = [rest(8), note(60, 1), rest(1), rest(2), note(62, 2), note(64, 1), rest(1)];

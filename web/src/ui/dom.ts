@@ -1,5 +1,5 @@
-import { CONDUCTOR_AVATAR, composerFor, portraitUrl } from './composers.js';
-import type { AppState } from './store.js';
+import { CONDUCTOR_AVATAR, composerFor, portraitUrl } from '../data/composers.js';
+import type { AppState } from '../lib/store.js';
 
 // Tiny DOM helpers. Strings always go in as text nodes, never HTML, so
 // player names and room codes can't inject markup.
