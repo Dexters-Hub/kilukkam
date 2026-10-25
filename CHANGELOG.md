@@ -5,6 +5,12 @@ before the docs commit are backfilled from `git log`.
 
 ## Unreleased
 
+- 2026-10-25 06:06: Hear the whole orchestra. The conductor's stage plays
+  every note the phones play (Room sound, on by default), the end screen
+  replays the room's real performance as a waveform with play, seek, WAV
+  and MIDI downloads and Share, and phones get a headphones button that
+  plays the other parts in time with the room under your own.
+
 - 2026-10-25 06:00: Leaderboard scores are out of 1000 and fair across
   parts: 900 for timing as a share of your own notes, 100 for your longest
   streak, so a flawless short part beats a sloppy long one. The crown sits

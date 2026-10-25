@@ -1,0 +1,23 @@
+/* The conductor's replay card: a waveform of the room's take with play, download and share. */
+.card {
+  display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: 24px;
+  background: var(--surface); box-shadow: var(--shadow);
+  --wave-on: var(--accent); --wave-off: color-mix(in srgb, var(--muted) 40%, transparent);
+}
+.head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.kicker { font-weight: 750; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.time { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .88rem; }
+.player { display: flex; align-items: center; gap: 14px; }
+.play {
+  flex: none; display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink); box-shadow: var(--shadow);
+}
+.play:disabled { opacity: .5; }
+.wave { flex: 1; min-width: 0; height: 64px; cursor: pointer; touch-action: none; }
+.note { margin: 0; color: var(--muted); font-size: .9rem; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.action {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 999px;
+  background: var(--sunk); color: var(--text); font-weight: 650;
+}
+.action:disabled { opacity: .5; }

@@ -21,9 +21,26 @@ import { FLICK_MS, KEY_CAPS, isFlick, keyLane, laneAt } from './hands.js';
 import { assignLanes, flickNotes, holdNotes } from './lanes.js';
 import { LEVELS, LEVEL_NAME, isLevel, laneCount, loadLevel, lookahead, noteTypes, saveLevel, type Level } from './levels.js';
 import { beatThump, blackout, flashCue, rise } from './cueAnim.js';
+import { startOrchestra } from './orchestra.js';
 import s from './Play.module.css';
 
 const COACHED_PREF = 'kilukkam.coached';
+const BAND_PREF = 'kilukkam.orchestra';
+/** Off by default: in a room everyone hears the phones; turn it on in headphones. */
+const loadBand = (): boolean => {
+  try {
+    return localStorage.getItem(BAND_PREF) === 'on';
+  } catch {
+    return false;
+  }
+};
+const saveBand = (on: boolean): void => {
+  try {
+    localStorage.setItem(BAND_PREF, on ? 'on' : 'off');
+  } catch {
+    // Private mode: the choice lasts this visit only.
+  }
+};
 const typing = (t: EventTarget | null): boolean =>
   t instanceof HTMLElement && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT');
 const DJ_WORD = { drop: 'Drop', build: 'Build', loop_on: 'Loop', loop_off: 'Back in' } as const;
@@ -78,6 +95,9 @@ export function Play() {
   const track = useStore(myTrack);
   // The level this phone last played; loadLevel and saveLevel swallow storage errors.
   const [level, setLevel] = useState<Level>(() => loadLevel());
+  const [band, setBand] = useState(loadBand);
+  // In headphones you cannot hear the room: play the other parts here, locked to the beat.
+  useEffect(() => (band && piece ? startOrchestra() : undefined), [band, piece]);
   const count = laneCount(level);
 
   const rootRef = useRef<HTMLElement>(null);
@@ -446,6 +466,19 @@ export function Play() {
               ))}
             </select>
           </label>
+          <button
+            type="button"
+            className={s.assist}
+            aria-pressed={band}
+            aria-label="Hear the orchestra"
+            title="Hear the orchestra in headphones"
+            onClick={() => {
+              setBand(!band);
+              saveBand(!band);
+            }}
+          >
+            <Icon name="headphones" size={18} />
+          </button>
           <button type="button" className={s.assist} aria-pressed={assist} onClick={() => actions.setAssist(!assist)}>
             <Icon name="magic-wand" size={18} />
             Assist

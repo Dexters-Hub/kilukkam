@@ -11,6 +11,13 @@
 .live { width: 12px; height: 12px; flex: none; border-radius: 50%; background: var(--accent); animation: live 1.2s infinite; }
 @keyframes live { 50% { opacity: .3; } }
 .count { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; white-space: nowrap; }
+.topRight { display: inline-flex; align-items: center; gap: 12px; }
+/* Room sound: the conductor hears every phone through this screen. */
+.sound {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 999px;
+  background: var(--sunk); color: var(--muted); font-weight: 650; white-space: nowrap;
+}
+.soundOn { background: var(--accent); color: var(--accent-ink); }
 
 .lanes { display: flex; flex-direction: column; gap: 10px; }
 .lane {

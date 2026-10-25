@@ -13,6 +13,8 @@ import { PopNumber } from '../../components/PopNumber.js';
 import { Dock, Hint, Screen, TopBar } from '../../components/Screen.js';
 import { toast } from '../../components/Toast.js';
 import { StartControls } from '../lobby/StartControls.js';
+import { Counting, Placement, Podium, RankList } from './Leaderboard.js';
+import { Replay } from './Replay.js';
 import { shareCard } from './shareCard.js';
 import s from './Ended.module.css';
 
@@ -41,7 +43,13 @@ export function Ended() {
   const playerId = useStore((st) => st.playerId);
   const conductor = session?.role === 'conductor';
   const players = snap?.players.filter((p) => !p.conductor) ?? [];
+  const results = useStore((st) => st.results);
+  const pending = useStore((st) => st.resultsPending);
   const [sharing, setSharing] = useState(false);
+  const ranked = results?.players ?? [];
+  const mine = ranked.find((p) => p.playerId === playerId);
+  /** No scores yet and still waiting: hold a calm placeholder; no scores and done waiting: today's view */
+  const counting = pending && !results;
 
   const total = track?.events.filter((e) => e.kind === 'note').length ?? 0;
   const g = grade(tally.accuracy, total ? tally.notes / total : 0);
@@ -72,13 +80,24 @@ export function Ended() {
         {piece ? <span className={s.kicker}>{piece.title}</span> : null}
         {conductor || !track ? (
           <>
-            <span className={s.bravo}>
-              <Icon name="confetti" size={64} />
-            </span>
+            {ranked.length || counting ? null : (
+              <span className={s.bravo}>
+                <Icon name="confetti" size={64} />
+              </span>
+            )}
             <h1 className={s.title}>Well played</h1>
             <p className={s.lede}>
               {players.length} {players.length === 1 ? 'phone' : 'phones'} played together
             </p>
+            {counting ? <Counting /> : null}
+            {ranked.length && conductor ? <Podium players={ranked} piece={piece} /> : null}
+            {conductor ? <Replay /> : null}
+            {ranked.length && !conductor ? (
+              <>
+                <span className={s.heading}>Top 3</span>
+                <RankList players={ranked.slice(0, 3)} piece={piece} mine={playerId} />
+              </>
+            ) : null}
           </>
         ) : (
           <>
@@ -89,6 +108,8 @@ export function Ended() {
               {PRAISE[g]}, {session?.name}
             </h1>
             <p className={s.lede}>{track.name}</p>
+            {counting ? <Counting /> : null}
+            {mine ? <Placement me={mine} of={ranked.length} /> : null}
             <div className={s.stats}>
               <div>
                 <b>
@@ -124,6 +145,12 @@ export function Ended() {
                 </div>
               </div>
             ) : null}
+            {ranked.length ? (
+              <>
+                <span className={s.heading}>Top 3</span>
+                <RankList players={ranked.slice(0, 3)} piece={piece} mine={playerId} />
+              </>
+            ) : null}
             <Button variant="dark" wide disabled={sharing} onClick={() => void share()}>
               <Icon name="share-network" size={18} />
               {sharing ? 'Making your card…' : 'Share my card'}
@@ -131,11 +158,13 @@ export function Ended() {
           </>
         )}
         {runNotes ? <RoomNotes notes={runNotes} /> : null}
-        <div className={s.avatars}>
-          {players.slice(0, 60).map((p) => (
-            <Avatar key={p.id} id={p.avatar} name={p.name} away={!p.connected} mine={p.id === playerId} />
-          ))}
-        </div>
+        {ranked.length ? null : (
+          <div className={s.avatars}>
+            {players.slice(0, 60).map((p) => (
+              <Avatar key={p.id} id={p.avatar} name={p.name} away={!p.connected} mine={p.id === playerId} />
+            ))}
+          </div>
+        )}
         {conductor ? null : <Hint>Stay on this screen. The conductor may call an encore.</Hint>}
         {snap ? <CodeBlock code={snap.code} conductor={conductor} /> : null}
       </div>

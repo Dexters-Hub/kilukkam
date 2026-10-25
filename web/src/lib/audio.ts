@@ -1,5 +1,6 @@
 import type { InstrumentId } from '@kilukkam/shared';
 import { beatsToSeconds, midiToFreq } from './music.js';
+import type { RenderNote } from './recording.js';
 import { BANKS_FOR, BANK_NOTES, SHAPES, TONE, loopRegion, nearestSample, pickBank, rateFor, sampleUrl, shapeFor, type BankId } from './samples.js';
 
 // WebAudio synth voices, no samples. Each note builds a short-lived graph:
@@ -631,3 +632,49 @@ export function bell(): void {
     }
   });
 }
+
+/**
+ * Render a recorded take to audio offline, through the same instruments and
+ * master bus the room heard, for the replay player and the WAV download.
+ * Null when the browser has no OfflineAudioContext.
+ */
+export async function renderTake(notes: readonly RenderNote[], seconds: number, bpm: number, sampleRate = 44100): Promise<AudioBuffer | null> {
+  const Offline = (window as { OfflineAudioContext?: typeof OfflineAudioContext }).OfflineAudioContext;
+  if (!Offline) return null;
+  await Promise.all([...new Set(notes.map((n) => n.instrument))].map((i) => preloadInstrument(i)));
+  const c = new Offline(2, Math.max(1, Math.ceil(seconds * sampleRate)), sampleRate);
+  const bus = masterBus(c);
+  for (const n of notes) {
+    const written = noteSeconds(n.beats, bpm);
+    const t0 = n.t + 0.05;
+    const v = build(c, bus, n.instrument, n.midi, t0, written, n.velocity, n.level, { seconds: written, velocity: n.velocity, held: false, spread: false });
+    for (const src of v.sources) {
+      src.start(t0);
+      src.stop(Number.isFinite(v.end) ? v.end : t0 + written + 2);
+    }
+  }
+  return c.startRendering();
+}
+
+/** Play a rendered buffer on the live context from `offset` seconds; returns its stop. */
+export function playBuffer(buffer: AudioBuffer, offset: number, onEnded: () => void): () => void {
+  const c = unlockAudio();
+  if (!c || !out) return () => {};
+  const src = c.createBufferSource();
+  src.buffer = buffer;
+  src.connect(c.destination);
+  src.onended = onEnded;
+  src.start(0, Math.max(0, Math.min(offset, buffer.duration)));
+  return () => {
+    src.onended = null;
+    try {
+      src.stop();
+    } catch {
+      // Already finished.
+    }
+  };
+}
+
+/** The live context's clock, for a playhead. */
+export const audioNow = (): number => ctx?.currentTime ?? 0;
+

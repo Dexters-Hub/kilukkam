@@ -14,6 +14,8 @@ import { PLAYALONG_ID } from '../../lib/spotify/playalong.js';
 import { NowPlaying } from '../create/NowPlaying.js';
 import { CameraConductor } from './CameraConductor.js';
 import { Lanes } from './Lanes.js';
+import { useRoomSound } from './roomSound.js';
+import { recordTake } from './take.js';
 import s from './Stage.module.css';
 
 /**
@@ -22,6 +24,23 @@ import s from './Stage.module.css';
  * it: the panel turns into live readouts and the buttons fold away behind
  * "No camera? Use buttons".
  */
+const SOUND_PREF = 'kilukkam.roomSound';
+/** On by default: the conductor hears every phone through this screen. */
+const loadRoomSound = (): boolean => {
+  try {
+    return localStorage.getItem(SOUND_PREF) !== 'off';
+  } catch {
+    return true;
+  }
+};
+const saveRoomSound = (on: boolean): void => {
+  try {
+    localStorage.setItem(SOUND_PREF, on ? 'on' : 'off');
+  } catch {
+    // Private mode: the choice lasts this visit only.
+  }
+};
+
 export function Stage() {
   const snap = useStore((st) => st.snapshot);
   const piece = useStore((st) => st.piece);
@@ -32,9 +51,13 @@ export function Stage() {
   const [camera, setCamera] = useState(false);
   const [dj, setDj] = useState<{ cue: 'build' | 'drop' | 'kilukkam'; at: number } | null>(null);
   const onCamera = useCallback((on: boolean) => setCamera(on), []);
+  const [sound, setSound] = useState(loadRoomSound);
   const song = chosenPlayAlong();
 
   useEffect(() => holdWakeLock(), []);
+  useRoomSound(piece, sound);
+  // Keep a take of this run for the replay on the end screen.
+  useEffect(() => (piece ? recordTake(piece) : undefined), [piece]);
   // Loops and one-shot cues come back from the room, whether a button or a gesture gave them.
   useEffect(
     () =>
@@ -77,8 +100,22 @@ export function Stage() {
           <span className={s.live} aria-hidden="true" />
           <span className={s.title}>{piece.title}</span>
         </div>
-        <span ref={totalRef} className={s.count}>
-          0 notes
+        <span className={s.topRight}>
+          <span ref={totalRef} className={s.count}>
+            0 notes
+          </span>
+          <button
+            type="button"
+            className={cx(s.sound, sound && s.soundOn)}
+            aria-pressed={sound}
+            onClick={() => {
+              setSound(!sound);
+              saveRoomSound(!sound);
+            }}
+          >
+            <Icon name={sound ? 'speaker-high' : 'speaker-slash'} size={18} />
+            {sound ? 'Room sound on' : 'Room sound off'}
+          </button>
         </span>
       </header>
 
