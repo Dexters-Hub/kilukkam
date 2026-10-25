@@ -5,6 +5,10 @@ before the docs commit are backfilled from `git log`.
 
 ## Unreleased
 
+- 2026-10-25 06:08: The README and decks credit Devin Hacks Kochi (24 Oct
+  2026, solo, 12 hours) and describe today's features; the home page marks
+  Spotify play-along and the daily challenge leaderboard as coming soon.
+
 - 2026-10-25 06:06: Hear the whole orchestra. The conductor's stage plays
   every note the phones play (Room sound, on by default), the end screen
   replays the room's real performance as a waveform with play, seek, WAV

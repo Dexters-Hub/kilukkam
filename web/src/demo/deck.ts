@@ -60,7 +60,7 @@ const SLIDES: readonly Slide[] = [
     build: () =>
       slide(
         'slide-title-card',
-        h('p', { class: 'badge reveal' }, 'Track 4 · Make room for play'),
+        h('p', { class: 'badge reveal' }, 'Devin Hacks Kochi · 24 Oct 2026'),
         h('div', { class: 'reveal hero-mark' }, wordmark('hero')),
         h('p', { class: 'slide-lede reveal' }, 'A room full of phones becomes an orchestra.'),
         h('div', { class: 'lineup-strip reveal', 'aria-hidden': 'true' }, ...COMPOSERS.slice(0, 7).map((c) => avatar(c.id, { size: 'lg' }))),

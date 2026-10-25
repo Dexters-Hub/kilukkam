@@ -11,7 +11,7 @@ any song, together.**
 [![React 19](https://img.shields.io/badge/React-19-0a0a0a?style=for-the-badge&logo=react&logoColor=61DAFB)](web/package.json)
 [![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-0a0a0a?style=for-the-badge&logo=typescript&logoColor=3178C6)](tsconfig.base.json)
 [![Vite 8](https://img.shields.io/badge/Vite-8-0a0a0a?style=for-the-badge&logo=vite&logoColor=B6F400)](web/package.json)
-[![Tests](https://img.shields.io/badge/tests-547%20passing-B6F400?style=for-the-badge&logo=vitest&logoColor=0a0a0a)](#testing)
+[![Tests](https://img.shields.io/badge/tests-642%20passing-B6F400?style=for-the-badge&logo=vitest&logoColor=0a0a0a)](#testing)
 <br>
 [![WebAudio](https://img.shields.io/badge/WebAudio-real%20instruments-0a0a0a?style=for-the-badge&logo=audiomack&logoColor=B6F400)](web/src/lib/audio.ts)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-camera%20conductor-0a0a0a?style=for-the-badge&logo=google&logoColor=B6F400)](web/src/lib/camera)
@@ -20,7 +20,7 @@ any song, together.**
 
 **[How it plays](#how-it-plays) · [Features](#feature-tour) · [Screenshots](#screenshots) · [Quick start](#quick-start) · [Architecture](#architecture) · [Credits](#credits)**
 
-Built for **DevDay Exchange Kochi**, track 4: *Make room for play*.
+Built solo in twelve hours at **Devin Hacks Kochi**, 24 October 2026, Kochi, Kerala.
 
 </div>
 
@@ -37,9 +37,9 @@ Conductor (laptop)                       Players (phones)
    and a QR on a lime card          │       composer avatar
                                     │    4. Get an instrument straight away
 5. Watch the seats fill, then start ─┘       (swap if you like), warm up
-6. Conduct: by hand on the camera,       7. Play: notes fall in two lanes,
-   or with the live controls                tap the left or right side on
-                                            the beat, chase the combo
+6. Conduct: by hand on the camera,       7. Play: glass tiles fall Piano
+   or with the live controls                Tiles style; tap each one as it
+                                            reaches the line, chase the combo
 8. The piece ends itself: Well played    9. Your grade, timing breakdown
    and an encore button                     and a result card to share
 ```
@@ -54,9 +54,10 @@ laptop camera.
 | | Feature | What it does |
 |---|---|---|
 | 🎻 | **Real instruments** | Violin, cello, flute and piano are real recordings (VSCO 2 CE, CC0), with articulations; drums are a synthesised kit and the guitar a modelled plucked string for fingerstyle. Each phone plays its own part. |
-| 🙌 | **Two hands** | Notes come down a left or right lane: thumbs on a phone, F and J on a laptop. Wrong side breaks the combo. Grades spring up with particles; streaks cheer. |
-| 🪄 | **Camera conductor** | MediaPipe hand tracking, on the device. Hit the numbered targets of a 2/4, 3/4 or 4/4 pattern as their rings close, with levels; point into a labelled third to cue Violins, Flutes or Cellos; the left hand shapes dynamics; a fist cuts off. |
-| 🎧 | **Any song (Spotify)** | Search a song or open a playlist, tap along to find its beat, and the room plays drums, claps, bass, a pad and fingerstyle guitar in time with the real recording on the conductor laptop, with a now-playing card that shows it is on the beat. |
+| 🎹 | **Piano Tiles play** | Glass tiles in your instrument's colour fall to a low tap line. Easy, Normal, Hard and Expert set 1, 2 or 4 columns; Expert adds hold tiles and swipe-up tiles. Hits spark and beam up the column, and disco lights pulse with the combo. D F J K on a laptop. |
+| 🪄 | **Camera conductor** | MediaPipe hand tracking, on the device, drives the live room with ten gestures: beat time sets the tempo, the off hand lifts or presses the dynamics, point to bring a section in, a flat palm rests it, both palms pause, a downbeat resumes, build, drop, a finger circle loops the bar, and a bell shake rings Kilukkam on every phone. Only the Stop button ends a piece. A practice page has eight levels. |
+| 🔊 | **Room sound** | The conductor's screen plays every note the phones play, so a conductor in headphones or on a projector hears the whole performance. |
+| 🎧 | **Any song (Spotify)**, coming soon | Search a song or open a playlist, tap along to find its beat, and the room plays drums, claps, bass, a pad and fingerstyle guitar in time with the real recording on the conductor laptop, with a now-playing card that shows it is on the beat. |
 | 💿 | **Music shelf** | Animated covers drawn from each piece's instruments, with 12 second previews. Classics and game-style originals (Boss Rush, Pixel Plains, Hallowed Depths). |
 | 🪑 | **Seating chart** | The conductor watches avatars take their seats section by section, drags anyone to another instrument, shares the invite link or QR. |
 | 🏆 | **Results** | A grade, accuracy, best combo and a timing breakdown per player, the room's total notes, and a result card to share. |

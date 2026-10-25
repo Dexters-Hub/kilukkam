@@ -25,9 +25,14 @@ const TRY_PIECE_ID = 'ode-to-joy';
 const ARTICLE: Record<InstrumentId, string> = { violin: 'a violin', flute: 'a flute', piano: 'a piano', cello: 'a cello', drums: 'a drum', guitar: 'a guitar' };
 
 
-const SOURCES: readonly { icon: IconName; label: string; text: string }[] = [
-  { icon: 'headphones', label: 'Spotify play-along', text: 'Play any track from your playlists; the room keeps the beat and the harmony.' },
-  { icon: 'music-notes', label: 'Classics and originals', text: 'Canon in D, Ode to Joy, and game-style originals like Boss Rush.' },
+const SOURCES: readonly { icon: IconName; label: string; text: string; soon?: boolean }[] = [
+  { icon: 'music-notes', label: 'Classics and originals', text: 'Canon in D, Ode to Joy, Spanish Romance, and game-style originals like Boss Rush.' },
+  { icon: 'headphones', label: 'Spotify play-along', text: 'Play any song from your playlists; the room keeps the beat and the harmony.', soon: true },
+];
+
+/** What is on the way, shown quietly at the side of the tour. */
+const SOON: readonly { icon: IconName; label: string; text: string }[] = [
+  { icon: 'crown-simple', label: 'Daily challenge', text: 'One piece a day for everyone. Play it solo and climb the global board with just a nickname, no login.' },
 ];
 
 /** Kahoot-style game PIN right on the landing page. */
@@ -170,8 +175,32 @@ export function Home() {
                   <Icon name={src.icon} size={26} />
                 </span>
                 <span>
-                  <strong>{src.label}</strong>
+                  <strong>
+                    {src.label}
+                    {src.soon ? <span className={s.soon}>Coming soon</span> : null}
+                  </strong>
                   <span className={s.stepText}>{src.text}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+        <section className={s.section} aria-labelledby="soon" data-reveal>
+          <h2 id="soon" className={s.sectionTitle}>
+            Coming soon
+          </h2>
+          <ul className={s.steps}>
+            {SOON.map((item) => (
+              <li key={item.label} className={s.soonItem}>
+                <span className={s.stepIcon}>
+                  <Icon name={item.icon} size={26} />
+                </span>
+                <span>
+                  <strong>
+                    {item.label}
+                    <span className={s.soon}>Coming soon</span>
+                  </strong>
+                  <span className={s.stepText}>{item.text}</span>
                 </span>
               </li>
             ))}
