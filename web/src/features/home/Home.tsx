@@ -22,6 +22,8 @@ import s from './Home.module.css';
 // game-PIN box to jump into a room. Words are kept to a minimum.
 
 const TRY_PIECE_ID = 'ode-to-joy';
+/** Marquee pace per composer, so the strip glides at the same speed however long the roster grows. */
+const LEGEND_SECONDS_EACH = 3.4;
 const ARTICLE: Record<InstrumentId, string> = { violin: 'a violin', flute: 'a flute', piano: 'a piano', cello: 'a cello', drums: 'a drum', guitar: 'a guitar' };
 
 
@@ -79,7 +81,7 @@ export function Home() {
   const root = useRef<HTMLDivElement>(null);
 
   useGSAP(() => {
-    const stop = legends.current ? marquee(legends.current) : () => {};
+    const stop = legends.current ? marquee(legends.current, COMPOSERS.length * LEGEND_SECONDS_EACH) : () => {};
     if (root.current) {
       heroIntro(root.current);
       revealOnScroll(root.current.querySelectorAll('[data-reveal]'));

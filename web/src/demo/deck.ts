@@ -3,7 +3,7 @@ import '../style.css';
 import './deck.css';
 import { gsap } from 'gsap';
 import { MAX_PLAYERS, PIECES, type InstrumentId } from '@kilukkam/shared';
-import { COMPOSERS } from '../data/composers.js';
+import { COMPOSERS, type ComposerId } from '../data/composers.js';
 import { INSTRUMENTS, noteName } from '../lib/music.js';
 import { BANK_NOTES } from '../lib/samples.js';
 import { avatar, h, wordmark } from '../ui/dom.js';
@@ -45,6 +45,9 @@ const instrumentChip = (id: InstrumentId): HTMLElement => {
 };
 
 const joinUrl = (): string => `${location.protocol}//${location.host}/`;
+/** A mixed seven for the title card, eight centuries from Hildegard to Rahman. */
+const TITLE_LINEUP: readonly ComposerId[] = ['hildegard', 'bach', 'schumann-c', 'beethoven', 'boulanger-l', 'subbulakshmi', 'rahman'];
+
 const isLocalOnly = (): boolean => ['localhost', '127.0.0.1', '::1', '[::1]'].includes(location.hostname);
 
 const library = () => {
@@ -63,7 +66,7 @@ const SLIDES: readonly Slide[] = [
         h('p', { class: 'badge reveal' }, 'Devin Hacks Kochi · 24 Oct 2026'),
         h('div', { class: 'reveal hero-mark' }, wordmark('hero')),
         h('p', { class: 'slide-lede reveal' }, 'A room full of phones becomes an orchestra.'),
-        h('div', { class: 'lineup-strip reveal', 'aria-hidden': 'true' }, ...COMPOSERS.slice(0, 7).map((c) => avatar(c.id, { size: 'lg' }))),
+        h('div', { class: 'lineup-strip reveal', 'aria-hidden': 'true' }, ...TITLE_LINEUP.map((id) => avatar(id, { size: 'lg' }))),
       ),
   },
   {

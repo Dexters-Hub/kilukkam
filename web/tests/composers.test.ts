@@ -1,6 +1,7 @@
+import { existsSync, readFileSync } from 'node:fs';
 import { MAX_AVATAR_LEN } from '@kilukkam/shared';
 import { describe, expect, it } from 'vitest';
-import { COMPOSERS, composerFor, pickComposer } from '../src/data/composers.js';
+import { COMPOSERS, composerFor, pickComposer, portraitUrl } from '../src/data/composers.js';
 
 describe('COMPOSERS', () => {
   it('has unique ids that fit the wire avatar limit', () => {
@@ -11,6 +12,14 @@ describe('COMPOSERS', () => {
 
   it('uses 1 or 2 letter monograms', () => {
     for (const c of COMPOSERS) expect(c.monogram).toMatch(/^\p{L}{1,2}$/u);
+  });
+
+  it('gives every composer a portrait and a credit line', () => {
+    const credits = readFileSync(new URL('../public/composers/CREDITS.md', import.meta.url), 'utf8');
+    for (const c of COMPOSERS) {
+      expect(existsSync(new URL(`../public${portraitUrl(c)}`, import.meta.url)), c.id).toBe(true);
+      expect(credits, c.id).toContain(`| \`${c.id}\` |`);
+    }
   });
 });
 

@@ -10,16 +10,20 @@
   min-height: 88px; text-align: center; text-transform: uppercase;
   font: 700 2.8rem/1 var(--font-display); letter-spacing: .3em; padding-left: .3em;
 }
-.lineup { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+/* 20+ composers: 4 across on a 390px phone, 6 at the 560px column max. */
+.lineup { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; margin-bottom: 8px; }
 .pick {
-  display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0;
-  padding: 12px 6px 10px; border-radius: var(--radius); background: var(--sunk);
+  display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0;
+  padding: 10px 4px 8px; border-radius: var(--radius); background: var(--sunk);
   transition: transform .15s var(--ease), background .2s, box-shadow .2s;
 }
 .pick:active { transform: scale(.97); }
 .pick.on { background: var(--surface); box-shadow: var(--shadow-lift), var(--ring); }
 .pickName {
-  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font: 600 .85rem/1.2 var(--font-display); letter-spacing: -.01em;
+  /* Two lines so "Fanny Mendelssohn" stays readable; rows keep one height. */
+  max-width: 100%; min-height: 2.3em; overflow: hidden; overflow-wrap: normal; hyphens: manual;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+  text-align: center; text-wrap: balance;
+  font: 600 .78rem/1.15 var(--font-display); letter-spacing: -.01em;
 }
 .pick.on .pickName { color: var(--accent-text); }

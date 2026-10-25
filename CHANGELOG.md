@@ -5,6 +5,15 @@ before the docs commit are backfilled from `git log`.
 
 ## Unreleased
 
+- 2026-10-25 06:31: Ten more composer avatars, all women: Hildegard von Bingen,
+  Barbara Strozzi, Fanny Mendelssohn, Cécile Chaminade, Ethel Smyth, Amy
+  Beach, Nadia Boulanger, Florence Price, Lili Boulanger and M.S.
+  Subbulakshmi, with public domain or CC BY portraits credited in
+  `web/public/composers/CREDITS.md`. The roster runs in birth order (22
+  composers), the join picker fits 4 across on a phone and 6 on desktop
+  with two-line names, the home strip keeps its pace, and the deck title
+  card shows a mixed lineup.
+
 - 2026-10-25 06:30: Room sound and the replay sound right. The stage loads
   every instrument's recordings up front, plays each echoed note on its
   place in the room's beat grid a steady 180 ms behind (a jitter buffer)

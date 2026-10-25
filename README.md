@@ -11,7 +11,7 @@ any song, together.**
 [![React 19](https://img.shields.io/badge/React-19-0a0a0a?style=for-the-badge&logo=react&logoColor=61DAFB)](web/package.json)
 [![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-0a0a0a?style=for-the-badge&logo=typescript&logoColor=3178C6)](tsconfig.base.json)
 [![Vite 8](https://img.shields.io/badge/Vite-8-0a0a0a?style=for-the-badge&logo=vite&logoColor=B6F400)](web/package.json)
-[![Tests](https://img.shields.io/badge/tests-660%20passing-B6F400?style=for-the-badge&logo=vitest&logoColor=0a0a0a)](#testing)
+[![Tests](https://img.shields.io/badge/tests-664%20passing-B6F400?style=for-the-badge&logo=vitest&logoColor=0a0a0a)](#testing)
 <br>
 [![WebAudio](https://img.shields.io/badge/WebAudio-real%20instruments-0a0a0a?style=for-the-badge&logo=audiomack&logoColor=B6F400)](web/src/lib/audio.ts)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-camera%20conductor-0a0a0a?style=for-the-badge&logo=google&logoColor=B6F400)](web/src/lib/camera)

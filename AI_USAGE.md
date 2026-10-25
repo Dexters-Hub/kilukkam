@@ -62,3 +62,4 @@ taste, and reviewed and accepted every change.
 | 2026-10-25 06:06 | (pending) | Claude session built room sound, the take recorder, offline render and replay card, and the in-sync headphones orchestra, and tested them in a four-device room. |
 | 2026-10-25 06:08 | (pending) | Claude session updated the README, in-repo deck and home page copy. |
 | 2026-10-25 06:30 | (pending) | Claude session traced patchy, smeared room sound to unloaded samples and on-arrival playback, moved room sound and the take onto the beat grid, and added Polished replay with tests. |
+| 2026-10-25 06:31 | (pending) | Claude worker checked each portrait's licence and author on its Commons file page, cropped ten women composers' portraits with sips, grew the roster to 22 and refit the join picker, home strip and deck, with a portrait and credit test. |
