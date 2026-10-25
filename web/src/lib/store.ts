@@ -6,6 +6,7 @@ import {
   getPiece,
   type ErrorCode,
   type NoteEvent,
+  type PieceResults,
   type PlayerSnapshot,
   type RoomSnapshot,
   type Score,
@@ -198,6 +199,10 @@ export interface AppState {
   tally: Tally;
   /** Play missed notes on the beat so the music stays whole */
   assist: boolean;
+  /** The room leaderboard for the run that just ended; null until piece_results arrives */
+  results: PieceResults | null;
+  /** The piece stopped and the server is still counting the scores */
+  resultsPending: boolean;
 }
 
 export function initialState(): AppState {
@@ -215,6 +220,8 @@ export function initialState(): AppState {
     runNotes: null,
     tally: emptyTally(),
     assist: true,
+    results: null,
+    resultsPending: false,
   };
 }
 

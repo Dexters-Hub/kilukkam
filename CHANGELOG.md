@@ -5,6 +5,20 @@ before the docs commit are backfilled from `git log`.
 
 ## Unreleased
 
+- 2026-10-25 06:00: Leaderboard scores are out of 1000 and fair across
+  parts: 900 for timing as a share of your own notes, 100 for your longest
+  streak, so a flawless short part beats a sloppy long one. The crown sits
+  on the winner's portrait.
+
+- 2026-10-25 05:58: A room leaderboard ends every piece. Each phone
+  reports its run once when the piece stops (by hand or at the end of the
+  music), the server keeps one tally per player, bounds it by the player's
+  part and ranks everyone by score (3 per perfect, 2 per great, 1 per good,
+  plus a point per 10-note streak). The big screen shows a podium for the
+  top three with a crown and "Best musician" for first place, then everyone
+  else ranked; each phone shows "You placed #N of M" and the top three.
+  "Counting the scores…" covers the short wait.
+
 - 2026-10-25 05:24: The camera starts faster. The conductor's lobby and
   stage fetch hand tracking (about 11 MB) in the background while the room
   fills, the Worker lets browsers keep the build files for good and the

@@ -15,8 +15,8 @@ import {
   type DynamicsLevel,
   type ErrorCode,
   type PauseState,
+  type PlayerEntry,
   type PlayerSnapshot,
-  type PlayerTally,
   type RoomPhase,
   type RoomSnapshot,
   type Score,
@@ -71,8 +71,8 @@ interface Room {
   paused: PauseState | null;
   /** Server ms of the last kilukkam, for its rate limit */
   kilukkamAt: number;
-  /** Tallies collected after a stop, keyed by trackId; null when no window is open */
-  results: { closesAt: number; byTrack: Map<string, PlayerTally[]> } | null;
+  /** Tallies collected after a stop, one per player (a resend replaces it); null when no window is open */
+  results: { closesAt: number; byPlayer: Map<string, PlayerEntry> } | null;
   /** The room game in progress or just finished; null when none */
   game: GameSession | null;
 }
@@ -205,7 +205,7 @@ export class RoomEngine {
     const actions: EngineAction[] = [];
     for (const room of this.rooms.values()) {
       if (room.results && now >= room.results.closesAt) {
-        actions.push(send(socketsOf(room), { type: 'piece_results', results: aggregateResults(room.results.byTrack) }));
+        actions.push(send(socketsOf(room), { type: 'piece_results', results: aggregateResults([...room.results.byPlayer.values()]) }));
         room.results = null;
       }
       if (room.game) {
@@ -382,7 +382,7 @@ export class RoomEngine {
     const pulse = this.flushPulse(room, this.now());
     room.phase = 'ended';
     room.paused = null;
-    room.results = { closesAt: this.now() + RESULTS_GRACE_MS, byTrack: new Map() };
+    room.results = { closesAt: this.now() + RESULTS_GRACE_MS, byPlayer: new Map() };
     return [
       ...(pulse ? [pulse] : []),
       send(socketsOf(room), { type: 'piece_stopped' }),
@@ -500,10 +500,22 @@ export class RoomEngine {
     if (!room.results || this.now() > room.results.closesAt) {
       return error(socketId, 'bad_message', 'results window is closed');
     }
-    if (!player.trackId) return error(socketId, 'track_not_found', 'you have no instrument');
-    const list = room.results.byTrack.get(player.trackId) ?? [];
-    list.push(msg.tally);
-    room.results.byTrack.set(player.trackId, list);
+    const track = room.piece.tracks.find((t) => t.id === player.trackId);
+    if (!track) return error(socketId, 'track_not_found', 'you have no instrument');
+    // Tallies are self-reported; the server can only bound them by the part this phone holds.
+    const notes = track.events.filter((e) => e.kind === 'note').length;
+    const { perfect, great, good, miss, streakBest } = msg.tally;
+    if (perfect + great + good + miss > notes || streakBest > notes) {
+      return error(socketId, 'bad_message', 'tally does not fit your part');
+    }
+    // Name and avatar from our own record; a resend replaces the earlier tally.
+    room.results.byPlayer.set(player.id, {
+      playerId: player.id,
+      name: player.name,
+      avatar: player.avatar,
+      trackId: track.id,
+      tally: { perfect, great, good, miss, streakBest },
+    });
     return [];
   };
 

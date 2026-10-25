@@ -753,5 +753,72 @@ describe('piece_results', () => {
     h.clock.t = 2_000; send(h, 'cond', { type: 'stop_piece' });
     const res = only(h.engine.tick(2_000 + RESULTS_GRACE_MS), 'cond', 'piece_results').results;
     expect(res.room).toEqual({ notes: 0, accuracy: 0, grade: 'D' });
+    expect(res.players).toEqual([]);
+  });
+
+  /** Room on ode-to-joy (flute 30 notes, cello 15) stopped at t=50s, players a b c seated */
+  function stoppedRoom(): Harness {
+    const h = setup();
+    const code = createRoom(h, 'cond', 'ode-to-joy');
+    joinRoom(h, 'a', code, 'Ann'); joinRoom(h, 'b', code, 'Bo'); joinRoom(h, 'c', code, 'Cy');
+    send(h, 'a', { type: 'pick_track', trackId: 'flute' });
+    send(h, 'b', { type: 'pick_track', trackId: 'flute' });
+    send(h, 'c', { type: 'pick_track', trackId: 'cello' });
+    send(h, 'cond', { type: 'start_piece' });
+    h.clock.t = 50_000;
+    send(h, 'cond', { type: 'stop_piece' });
+    return h;
+  }
+  const results = (h: Harness) => only(h.engine.tick(50_000 + RESULTS_GRACE_MS), 'cond', 'piece_results').results;
+
+  it('ranks players best first, with name and avatar from the server record', () => {
+    const h = stoppedRoom();
+    send(h, 'a', { type: 'player_tally', tally: { perfect: 20, great: 5, good: 0, miss: 5, streakBest: 12 } });
+    send(h, 'b', { type: 'player_tally', tally: { perfect: 25, great: 0, good: 0, miss: 5, streakBest: 25 } });
+    send(h, 'c', { type: 'player_tally', tally: { perfect: 2, great: 0, good: 0, miss: 13, streakBest: 2 } });
+    const res = results(h);
+    expect(res.players.map((p) => [p.name, p.rank, p.score])).toEqual([
+      ['Bo', 1, 833],
+      ['Ann', 2, 740],
+      ['Cy', 3, 133],
+    ]);
+    expect(res.players[0]).toMatchObject({ playerId: 'p3', avatar: '🎻', trackId: 'flute' });
+    expect(res.players[0]!.accuracy).toBeCloseTo(25 / 30);
+    expect(res.sections.find((sct) => sct.trackId === 'flute')).toMatchObject({ players: 2, perfect: 45 });
+    expect(res.room.notes).toBe(75);
+  });
+
+  it('replaces a resent tally instead of adding to it', () => {
+    const h = stoppedRoom();
+    send(h, 'a', { type: 'player_tally', tally: tally(10, 0) });
+    send(h, 'a', { type: 'player_tally', tally: tally(4, 1) });
+    const res = results(h);
+    expect(res.players).toHaveLength(1);
+    expect(res.players[0]).toMatchObject({ name: 'Ann', perfect: 4, miss: 1 });
+    expect(res.sections).toEqual([expect.objectContaining({ trackId: 'flute', players: 1, perfect: 4 })]);
+    expect(res.room.notes).toBe(5);
+  });
+
+  it('rejects a tally that does not fit the part', () => {
+    const h = stoppedRoom();
+    // cello has 15 notes: 16 judged notes, or a 16-note streak, cannot happen.
+    expect(errorCode(send(h, 'c', { type: 'player_tally', tally: { perfect: 10, great: 3, good: 2, miss: 1, streakBest: 4 } }), 'c')).toBe('bad_message');
+    expect(errorCode(send(h, 'c', { type: 'player_tally', tally: { perfect: 1, great: 0, good: 0, miss: 0, streakBest: 16 } }), 'c')).toBe('bad_message');
+    expect(send(h, 'c', { type: 'player_tally', tally: { perfect: 15, great: 0, good: 0, miss: 0, streakBest: 15 } })).toEqual([]);
+    const res = results(h);
+    expect(res.players.map((p) => [p.name, p.perfect])).toEqual([['Cy', 15]]);
+  });
+
+  it('leaves out a player who sends no tally', () => {
+    const h = stoppedRoom();
+    send(h, 'a', { type: 'player_tally', tally: tally(3, 0) });
+    const res = results(h);
+    expect(res.players.map((p) => p.name)).toEqual(['Ann']);
+    expect(res.players[0]!.rank).toBe(1);
+  });
+
+  it('refuses a tally from the conductor, who holds no instrument', () => {
+    const h = stoppedRoom();
+    expect(errorCode(send(h, 'cond', { type: 'player_tally', tally: tally(1) }), 'cond')).toBe('track_not_found');
   });
 });

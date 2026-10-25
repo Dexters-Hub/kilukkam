@@ -251,3 +251,30 @@ export function kilukkamFlash(flash: HTMLElement, field: HTMLElement, sparkClass
     );
   }
 }
+
+/**
+ * The leaderboard lands: podium blocks rise third, second, first, the players
+ * step up onto them, the crown drops onto the winner, then the ranked list
+ * follows. Mark blocks `data-podium="block"`, players `data-podium="who"` (both
+ * with `data-rank`), the crown `data-podium="crown"` and list rows `data-podium="row"`.
+ */
+export function podiumReveal(root: HTMLElement): void {
+  if (reduced()) return;
+  const byRankDesc = (sel: string) =>
+    [...root.querySelectorAll<HTMLElement>(sel)].sort((a, b) => Number(b.dataset.rank) - Number(a.dataset.rank));
+  const blocks = byRankDesc('[data-podium="block"]');
+  const who = byRankDesc('[data-podium="who"]');
+  const crown = root.querySelectorAll('[data-podium="crown"]');
+  const rows = root.querySelectorAll('[data-podium="row"]');
+  const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
+  if (blocks.length) tl.fromTo(blocks, { scaleY: 0, transformOrigin: '50% 100%' }, { scaleY: 1, duration: 0.7, stagger: 0.14, clearProps: 'transform' });
+  if (who.length) tl.fromTo(who, { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.55, stagger: 0.14, clearProps: 'transform,opacity,visibility' }, '-=0.55');
+  if (crown.length) tl.fromTo(crown, { autoAlpha: 0, y: -26, rotate: -24, scale: 0.5 }, { autoAlpha: 1, y: 0, rotate: -12, scale: 1, duration: 0.7, ease: 'back.out(2.6)', clearProps: 'opacity,visibility' }, '-=0.15');
+  if (rows.length) tl.fromTo(rows, { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.45, stagger: 0.04, clearProps: 'transform,opacity,visibility' }, '-=0.45');
+}
+
+/** A soft, endless breathing pulse for a waiting state. Reduced motion keeps it still. */
+export function breathe(el: HTMLElement): void {
+  if (reduced()) return;
+  gsap.fromTo(el, { scale: 0.92, opacity: 0.55 }, { scale: 1.06, opacity: 1, duration: 0.8, ease: 'sine.inOut', repeat: -1, yoyo: true });
+}

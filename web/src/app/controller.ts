@@ -1,4 +1,4 @@
-import { PIECES, type ClientMessage, type DjCue, type DynamicsLevel, type RoomSnapshot, type ServerMessage, type Track } from '@kilukkam/shared';
+import { PIECES, RESULTS_GRACE_MS, type ClientMessage, type DjCue, type DynamicsLevel, type RoomSnapshot, type ServerMessage, type Track } from '@kilukkam/shared';
 import { CONDUCTOR_AVATAR } from '../data/composers.js';
 import { playNote, preloadInstrument, thunk, unlockAudio } from '../lib/audio.js';
 import { ServerClock } from '../lib/clock.js';
@@ -47,8 +47,39 @@ const startRun = (startedAt: number | null): void => {
   runStartedAt = startedAt;
   runNotes = 0;
   dj = { dropUntil: 0, loop: null, build: null };
-  store.set({ tally: emptyTally() });
+  tallySentFor = null;
+  stopResultsWait();
+  store.set({ tally: emptyTally(), results: null, resultsPending: false });
 };
+
+// ---------- the room leaderboard ----------
+
+/** startedAt of the run whose tally this phone already reported; one report per run */
+let tallySentFor: number | null = null;
+/** Give up on the leaderboard this long after the grace window: the ended screen keeps its own view */
+const RESULTS_GIVE_UP_MS = RESULTS_GRACE_MS + 2500;
+let resultsTimer: ReturnType<typeof setTimeout> | null = null;
+
+function stopResultsWait(): void {
+  if (resultsTimer) clearTimeout(resultsTimer);
+  resultsTimer = null;
+}
+
+/** The piece stopped: report this phone's run once, then wait for the room's scores. */
+function onPieceStopped(): void {
+  const s = store.state;
+  if (s.session?.role === 'player' && myTrack(s) && tallySentFor !== runStartedAt) {
+    tallySentFor = runStartedAt;
+    const t = s.tally;
+    net.send({ type: 'player_tally', tally: { perfect: t.perfect, great: t.great, good: t.good, miss: t.miss, streakBest: t.bestCombo } });
+  }
+  stopResultsWait();
+  store.set({ results: null, resultsPending: true });
+  resultsTimer = setTimeout(() => {
+    resultsTimer = null;
+    if (store.state.resultsPending) store.set({ resultsPending: false });
+  }, RESULTS_GIVE_UP_MS);
+}
 
 // ---------- rhythm: one shared clock and beat grid for the whole room ----------
 
@@ -77,6 +108,12 @@ const currentGrid = (): BeatGrid | null => {
     grid = { key, grid: g };
   }
   return grid.grid;
+};
+
+/** The room's beat right now on the shared grid, or null before the clock syncs or the run starts. */
+export const roomBeatNow = (): number | null => {
+  const g = currentGrid();
+  return g && clock.ready ? g.beatAt(clock.now()) : null;
 };
 
 const onsetsFor = (track: Track): number[] => {
@@ -271,7 +308,13 @@ function onMessage(msg: ServerMessage): void {
     case 'piece_stopped':
       stopFinishWatch();
       if (s.session?.role === 'conductor') stopSong();
+      onPieceStopped();
       return; // room_state carries the phase change
+
+    case 'piece_results':
+      stopResultsWait();
+      store.set({ results: msg.results, resultsPending: false });
+      return;
 
     case 'piece_paused':
       // The whole room stops on the same beat; nothing plays or counts as missed until it resumes.

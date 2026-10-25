@@ -26,7 +26,7 @@ never an exception, never a disconnect.
 | `set_dynamics` | `level` (pp..ff) | conductor | any phase; broadcasts `dynamics` |
 | `set_section` | `trackId, muted` | conductor | any phase; snapshot carries `mutedTracks` |
 | `note_played` | `noteIndex` | player | playing and not paused; echoes to room |
-| `player_tally` | `tally{perfect,great,good,miss,streakBest}` | player | within 1.5 s after piece_stopped; needs a seat |
+| `player_tally` | `tally{perfect,great,good,miss,streakBest}` | player | within 1.5 s after piece_stopped; needs a seat; one per player (a resend replaces the earlier one); `bad_message` if perfect+great+good+miss or streakBest exceeds the note events in the player's part |
 | `ping` | `t` | anyone | RTT probe |
 
 ## Server → Client
@@ -43,7 +43,7 @@ never an exception, never a disconnect.
 | `piece_resumed` | `at, beat, bpm` | beat `beat` falls on server ms `at` (now plus the count-in), then `bpm`; phones show the count back in |
 | `kilukkam` | `at` | every phone (and the stage) flashes, sparkles and rings its bell together |
 | `piece_stopped` | (none) | room phase → ended; opens a 1.5 s tally window |
-| `piece_results` | `results{sections[], room{notes,accuracy,grade}}` | once, when the window closes; grade S/A/B/C/D at 95/85/70/50 percent |
+| `piece_results` | `results{sections[], room{notes,accuracy,grade}, players[]}` | once, when the window closes; grade S/A/B/C/D at 95/85/70/50 percent; `players` is the leaderboard (see below) |
 | `dynamics` | `level` | conductor changed expression; phones scale velocity + show the cue |
 | `note_echo` | `playerId, trackId, noteIndex` | conductor only; raw fan-out does not scale to 100 |
 | `ensemble_pulse` | `counts{trackId:n}, total, at` | ~4 Hz during playing, to everyone; feeds ambient room visuals |
@@ -112,3 +112,23 @@ gesture sends `stop_piece`. Detectors live in
 Nothing counts in the first 3 s after the camera starts, or from a hand in
 view for under 500 ms.
 
+## Leaderboard (`piece_results.results.players`)
+
+Each entry is `{playerId, name, avatar, trackId, perfect, great, good, miss,
+streakBest, accuracy, score, rank}`, sorted best first, `rank` 1..n in list
+order. Rank 1 is shown as "Best musician".
+
+- `score` is out of 1000 and fair across parts of any length: up to 900 for
+  timing, (perfect x 3 + great x 2 + good x 1) / (3 x judged notes), plus up
+  to 100 for `streakBest` as a share of judged notes (`playerScore` in
+  `shared/src/results.ts`).
+- `accuracy` = (perfect + great + good) / total judged notes, 0..1.
+- Ties break by accuracy, then `streakBest`, then name, then player id.
+- `name` and `avatar` come from the server's record of the player, never from
+  the tally. A player who sends no tally in the window is left out.
+- Tallies are self-reported by each phone. The server only bounds them: the
+  judged notes and the best streak may not exceed the note events in that
+  player's part. It cannot prove the timing.
+- Parser limits: at most `MAX_PLAYERS` (100) entries, `name` up to
+  `MAX_NAME_LEN`, `avatar` up to `MAX_AVATAR_LEN`, ids up to 64 characters,
+  counts 0..100000, `score` an integer 0..400000, `accuracy` 0..1.

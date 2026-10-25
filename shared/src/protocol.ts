@@ -67,9 +67,25 @@ export interface SectionResult extends PlayerTally {
 
 export type Grade = 'S' | 'A' | 'B' | 'C' | 'D';
 
+/** One player's line on the room leaderboard. Name and avatar come from the server's record, never the tally. */
+export interface PlayerResult extends PlayerTally {
+  playerId: string;
+  name: string;
+  avatar: string;
+  trackId: string;
+  /** (perfect + great + good) / total, 0..1; 0 when no notes */
+  accuracy: number;
+  /** See playerScore in results.ts */
+  score: number;
+  /** 1 is the Best musician; ranks are 1..n in list order */
+  rank: number;
+}
+
 export interface PieceResults {
   sections: SectionResult[];
   room: { notes: number; accuracy: number; grade: Grade };
+  /** Every player who reported a tally, best first */
+  players: PlayerResult[];
 }
 
 // ---------- room games (docs/specs/room-games.md) ----------
@@ -297,14 +313,38 @@ function isTally(v: unknown): v is PlayerTally {
   return isObj(v) && isCount(v.perfect) && isCount(v.great) && isCount(v.good) && isCount(v.miss) && isCount(v.streakBest);
 }
 
+/** Section and room sums: up to MAX_PLAYERS phones' worth of isCount */
+const isTotal = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= MAX_PLAYERS * 100_000;
+const isSum = (v: Record<string, unknown>): boolean => isTotal(v.perfect) && isTotal(v.great) && isTotal(v.good) && isTotal(v.miss) && isCount(v.streakBest);
+const isUnit = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
+/** Scores are out of 1000 (results.ts playerScore) */
+const MAX_SCORE = 1000;
+/** Sections in one result: a piece never has more parts than this */
+const MAX_SECTIONS = 64;
+
 function isSection(v: unknown): v is SectionResult {
-  return isObj(v) && isTally(v) && isStr(v.trackId, 64) && isCount(v.players) && typeof v.accuracy === 'number';
+  return isObj(v) && isSum(v) && isStr(v.trackId, 64) && isCount(v.players) && isUnit(v.accuracy);
+}
+
+function isPlayerResult(v: unknown, index: number): v is PlayerResult {
+  return (
+    isObj(v) &&
+    isTally(v) &&
+    isStr(v.playerId, 64) &&
+    isStr(v.name, MAX_NAME_LEN) &&
+    isStr(v.avatar, MAX_AVATAR_LEN) &&
+    isStr(v.trackId, 64) &&
+    isUnit(v.accuracy) &&
+    typeof v.score === 'number' && Number.isInteger(v.score) && v.score >= 0 && v.score <= MAX_SCORE &&
+    v.rank === index + 1
+  );
 }
 
 function isResults(v: unknown): v is PieceResults {
-  if (!isObj(v) || !Array.isArray(v.sections) || !v.sections.every(isSection) || !isObj(v.room)) return false;
+  if (!isObj(v) || !Array.isArray(v.sections) || v.sections.length > MAX_SECTIONS || !v.sections.every(isSection) || !isObj(v.room)) return false;
+  if (!Array.isArray(v.players) || v.players.length > MAX_PLAYERS || !v.players.every(isPlayerResult)) return false;
   const r = v.room;
-  return isCount(r.notes) && typeof r.accuracy === 'number' && ['S', 'A', 'B', 'C', 'D'].includes(r.grade as string);
+  return isTotal(r.notes) && isUnit(r.accuracy) && ['S', 'A', 'B', 'C', 'D'].includes(r.grade as string);
 }
 
 function isTempo(v: unknown): v is TempoAnchor {
