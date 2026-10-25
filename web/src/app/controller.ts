@@ -110,6 +110,12 @@ const currentGrid = (): BeatGrid | null => {
   return grid.grid;
 };
 
+/** Server time (ms) at which `beat` falls on the room's grid, or null before the run starts. */
+export const roomTimeOf = (beat: number): number | null => currentGrid()?.timeOf(beat) ?? null;
+
+/** Server time now, or null before the clock syncs. */
+export const serverNow = (): number | null => (clock.ready ? clock.now() : null);
+
 /** The room's beat right now on the shared grid, or null before the clock syncs or the run starts. */
 export const roomBeatNow = (): number | null => {
   const g = currentGrid();

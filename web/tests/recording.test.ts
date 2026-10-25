@@ -1,6 +1,7 @@
 import { getPiece } from '@kilukkam/shared';
 import { describe, expect, it } from 'vitest';
-import { Recorder, channelGains, defaultMix, encodeMidi, encodeWav, takeFileName, takeLength, takeNotes, vlq } from '../src/lib/recording.js';
+import { Recorder, channelGains, defaultMix, encodeMidi, encodeWav, fillGaps, takeFileName, takeLength, takeNotes, vlq } from '../src/lib/recording.js';
+import { onsets } from '../src/lib/rhythm.js';
 
 const ode = getPiece('ode-to-joy');
 if (!ode) throw new Error('ode-to-joy missing');
@@ -102,3 +103,38 @@ describe('takeFileName', () => {
     expect(takeFileName('canon-in-d', new Date(2026, 9, 24, 21, 5), 'wav')).toBe('kilukkam-canon-in-d-2026-10-24-2105.wav');
   });
 });
+
+describe('fillGaps', () => {
+  const part = ode.tracks[0]!;
+  const beats = onsets(part.events);
+  const notes = part.events.map((e, i) => ({ e, i })).filter((x) => x.e.kind === 'note');
+  const spb = 60 / ode.bpm;
+
+  it('adds the notes the room missed on its parts, timed from the take', () => {
+    // The room played every other note, on time at the written tempo.
+    const played = notes.filter((_, k) => k % 2 === 0);
+    const take = { pieceId: ode.id, events: played.map(({ i }) => ({ trackId: part.id, playerId: 'a', noteIndex: i, t: (beats[i] ?? 0) * spb })) };
+    const filled = fillGaps(ode, take, ode.bpm);
+    expect(filled).toHaveLength(notes.length - played.length);
+    // Each filled note lands on the written time of a note the room skipped.
+    const skipped = notes.filter((_, k) => k % 2 === 1).map(({ i }) => (beats[i] ?? 0) * spb);
+    for (const n of filled) expect(skipped.some((t) => Math.abs(t - n.t) < 1e-6)).toBe(true);
+  });
+
+  it('follows the take when the room played slower than written', () => {
+    const [a, , c] = notes;
+    if (!a || !c) throw new Error('need notes');
+    const slow = 2;
+    const take = { pieceId: ode.id, events: [a, c].map(({ i }) => ({ trackId: part.id, playerId: 'a', noteIndex: i, t: (beats[i] ?? 0) * spb * slow })) };
+    const middle = notes[1]!;
+    const filled = fillGaps(ode, take, ode.bpm).find((n) => Math.abs(n.t - (beats[middle.i] ?? 0) * spb * slow) < 1e-6);
+    expect(filled).toBeDefined();
+  });
+
+  it('leaves parts nobody played silent, and an empty take empty', () => {
+    const take = { pieceId: ode.id, events: [{ trackId: part.id, playerId: 'a', noteIndex: notes[0]!.i, t: 0 }] };
+    expect(fillGaps(ode, take, ode.bpm).every((n) => n.trackId === part.id)).toBe(true);
+    expect(fillGaps(ode, { pieceId: ode.id, events: [] }, ode.bpm)).toEqual([]);
+  });
+});
+

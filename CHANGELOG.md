@@ -5,6 +5,14 @@ before the docs commit are backfilled from `git log`.
 
 ## Unreleased
 
+- 2026-10-25 06:30: Room sound and the replay sound right. The stage loads
+  every instrument's recordings up front, plays each echoed note on its
+  place in the room's beat grid a steady 180 ms behind (a jitter buffer)
+  instead of on arrival, and sits at 60% under the phones. The take is
+  timed on the grid too, keeps each note once, and the replay offers
+  Polished (fills the notes the room missed, on the room's own timing) or
+  As played.
+
 - 2026-10-25 06:08: The README and decks credit Devin Hacks Kochi (24 Oct
   2026, solo, 12 hours) and describe today's features; the home page marks
   Spotify play-along and the daily challenge leaderboard as coming soon.

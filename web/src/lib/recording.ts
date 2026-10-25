@@ -1,4 +1,5 @@
 import type { InstrumentId, Score } from '@kilukkam/shared';
+import { onsets } from './rhythm.js';
 
 // The conductor's phone receives every note_echo, so it can keep a take of
 // the room's real performance: who played which note, and when. Pure data
@@ -89,6 +90,48 @@ export const takeNotes = (score: Score, take: Take, mix: Mix): RenderNote[] => {
     notes.push({ t: e.t, trackId: e.trackId, instrument: track.instrument, midi: ev.midi, beats: ev.beats, velocity: ev.velocity ?? 96, level: gain * crowd });
   }
   return notes.sort((a, b) => a.t - b.t);
+};
+
+/**
+ * The score notes the room missed on the parts it played, timed from the
+ * take's own beat-to-time map (so the conductor's tempo changes carry over).
+ * Added to a sparse take, the replay sounds whole instead of full of holes.
+ */
+export const fillGaps = (score: Score, take: Take, bpm: number): RenderNote[] => {
+  const beatsOf = new Map(score.tracks.map((t) => [t.id, onsets(t.events)]));
+  const played = new Set<string>();
+  const pairs: { beat: number; t: number }[] = [];
+  for (const e of take.events) {
+    const beat = beatsOf.get(e.trackId)?.[e.noteIndex];
+    if (beat === undefined) continue;
+    played.add(`${e.trackId}:${e.noteIndex}`);
+    pairs.push({ beat, t: e.t });
+  }
+  if (!pairs.length) return [];
+  pairs.sort((a, b) => a.beat - b.beat || a.t - b.t);
+  const perBeat = 60 / bpm;
+  const first = pairs[0]!;
+  const last = pairs[pairs.length - 1]!;
+  /** Where a beat falls in the take: between two played notes, or at the written tempo past either end. */
+  const timeAt = (beat: number): number => {
+    if (beat <= first.beat) return first.t - (first.beat - beat) * perBeat;
+    if (beat >= last.beat) return last.t + (beat - last.beat) * perBeat;
+    const i = pairs.findIndex((p) => p.beat >= beat);
+    const b = pairs[i]!;
+    const a = pairs[i - 1]!;
+    return b.beat === a.beat ? a.t : a.t + ((beat - a.beat) / (b.beat - a.beat)) * (b.t - a.t);
+  };
+  const parts = new Set(take.events.map((e) => e.trackId));
+  const out: RenderNote[] = [];
+  for (const track of score.tracks) {
+    if (!parts.has(track.id)) continue;
+    const beats = beatsOf.get(track.id) ?? [];
+    track.events.forEach((ev, i) => {
+      if (ev.kind !== 'note' || played.has(`${track.id}:${i}`)) return;
+      out.push({ t: Math.max(0, timeAt(beats[i] ?? 0)), trackId: track.id, instrument: track.instrument, midi: ev.midi, beats: ev.beats, velocity: ev.velocity ?? 96, level: 0.85 });
+    });
+  }
+  return out;
 };
 
 /** Seconds of audio a take needs, including the last note's release. */

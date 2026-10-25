@@ -61,3 +61,4 @@ taste, and reviewed and accepted every change.
 | 2026-10-25 05:58 | (pending) | Claude worker built the room leaderboard (ranking, parser limits, one bounded tally per player, phone reporting, podium and placement screens) with shared and server tests, and checked it with a conductor and four phones in the browser. |
 | 2026-10-25 06:06 | (pending) | Claude session built room sound, the take recorder, offline render and replay card, and the in-sync headphones orchestra, and tested them in a four-device room. |
 | 2026-10-25 06:08 | (pending) | Claude session updated the README, in-repo deck and home page copy. |
+| 2026-10-25 06:30 | (pending) | Claude session traced patchy, smeared room sound to unloaded samples and on-arrival playback, moved room sound and the take onto the beat grid, and added Polished replay with tests. |

@@ -4,7 +4,10 @@
   background: var(--surface); box-shadow: var(--shadow);
   --wave-on: var(--accent); --wave-off: color-mix(in srgb, var(--muted) 40%, transparent);
 }
-.head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.modes { display: inline-flex; gap: 4px; padding: 3px; border-radius: 999px; background: var(--sunk); }
+.mode { min-height: 32px; padding: 0 12px; border-radius: 999px; font-weight: 650; font-size: .82rem; color: var(--muted); }
+.mode[aria-checked='true'] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
 .kicker { font-weight: 750; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .time { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .88rem; }
 .player { display: flex; align-items: center; gap: 14px; }

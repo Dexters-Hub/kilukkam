@@ -519,10 +519,10 @@ const SILENT: Voice = { release: () => {}, express: () => {}, wobble: () => {} }
  * Play one score event on this phone. `beats` and `bpm` come straight from
  * the Score. With `held`, the note sustains until release() (or MAX_HOLD).
  */
-export function playNote(instrument: InstrumentId, midi: number, beats: number, bpm: number, velocity = 96, opts: { held?: boolean; level?: number } = {}): Voice {
+export function playNote(instrument: InstrumentId, midi: number, beats: number, bpm: number, velocity = 96, opts: { held?: boolean; level?: number; delay?: number } = {}): Voice {
   const c = unlockAudio();
   if (!c || !out) return SILENT;
-  const t0 = c.currentTime + 0.005;
+  const t0 = c.currentTime + 0.005 + Math.max(0, opts.delay ?? 0);
   const written = noteSeconds(beats, bpm);
   const hold = opts.held ? MAX_HOLD : written;
 

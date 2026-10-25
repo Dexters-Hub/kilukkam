@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { audioNow, playBuffer, renderTake } from '../../lib/audio.js';
-import { defaultMix, encodeMidi, encodeWav, takeFileName, takeLength, takeNotes } from '../../lib/recording.js';
+import { defaultMix, encodeMidi, encodeWav, fillGaps, takeFileName, takeLength, takeNotes } from '../../lib/recording.js';
 import { Icon } from '../../components/Icon.js';
 import { toast } from '../../components/Toast.js';
 import { lastTake } from '../stage/take.js';
 import s from './Replay.module.css';
 
-// The conductor's replay: the room's real performance, rendered through the
-// same instruments, drawn as a waveform you can play, scrub, download as WAV
-// or MIDI, and share. Only the conductor keeps a take (it hears every note).
+// The conductor's replay: the room's performance, rendered through the same
+// instruments, drawn as a waveform you can play, scrub, download as WAV or
+// MIDI, and share. Only the conductor keeps a take (it hears every note).
+// "As played" is exactly what the room tapped; "Polished" fills the notes it
+// missed from the score, on the room's own timing, so the piece sounds whole.
 
 const BARS = 120;
+type Mode = 'polished' | 'played';
 /** Silence kept before the first note */
 const LEAD_IN = 0.3;
 
@@ -44,6 +47,7 @@ export function Replay() {
   const [ready, setReady] = useState<Ready | null>(null);
   const [state, setState] = useState<'rendering' | 'ready' | 'none' | 'failed'>('rendering');
   const [playing, setPlaying] = useState(false);
+  const [mode, setMode] = useState<Mode>('polished');
   /** Bumped to redraw the paused playhead after a seek */
   const [frame, setFrame] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -59,7 +63,14 @@ export function Replay() {
     }
     const { piece, take } = got;
     let live = true;
-    const notes = takeNotes(piece, take, defaultMix(piece));
+    play.current?.stop();
+    play.current = null;
+    position.current = 0;
+    setPlaying(false);
+    setState('rendering');
+    // One note per slot already (the take keeps each once), so every note plays at full part level.
+    const played = takeNotes(piece, take, defaultMix(piece)).map((n) => ({ ...n, level: 1 }));
+    const notes = (mode === 'polished' ? [...played, ...fillGaps(piece, take, piece.bpm)] : played).sort((a, b) => a.t - b.t);
     const first = notes[0]?.t ?? 0;
     const shifted = notes.map((n) => ({ ...n, t: Math.max(0, n.t - first + LEAD_IN) }));
     const when = new Date();
@@ -84,7 +95,7 @@ export function Replay() {
       live = false;
       play.current?.stop();
     };
-  }, []);
+  }, [mode]);
 
   // Waveform and playhead, redrawn every frame while playing.
   useEffect(() => {
@@ -182,6 +193,13 @@ export function Replay() {
     <section className={s.card} aria-label="Replay the room">
       <div className={s.head}>
         <span className={s.kicker}>Replay the room</span>
+        <span className={s.modes} role="radiogroup" aria-label="Replay">
+          {(['polished', 'played'] as const).map((m) => (
+            <button key={m} type="button" role="radio" aria-checked={mode === m} className={s.mode} onClick={() => setMode(m)}>
+              {m === 'polished' ? 'Polished' : 'As played'}
+            </button>
+          ))}
+        </span>
         <span ref={timeRef} className={s.time} aria-live="off">
           {state === 'rendering' ? 'Mixing the performance…' : ''}
         </span>
